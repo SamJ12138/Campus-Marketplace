@@ -34,8 +34,9 @@ class Settings(BaseSettings):
     cdn_url: str = "http://localhost:9000/bulletin-board"
 
     # Email
-    email_provider: Literal["console", "sendgrid", "ses"] = "console"
+    email_provider: Literal["console", "sendgrid", "ses", "resend"] = "console"
     sendgrid_api_key: str | None = None
+    resend_api_key: str | None = None
     email_from_address: str = "noreply@campusboard.local"
     email_from_name: str = "Campus Board"
 

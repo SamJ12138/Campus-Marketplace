@@ -39,4 +39,22 @@ class EmailService:
                 print(f"[EMAIL ERROR] {e}")
                 return False
 
+        elif self.settings.email_provider == "resend":
+            try:
+                import resend
+
+                resend.api_key = self.settings.resend_api_key
+                resend.Emails.send(
+                    {
+                        "from": f"{self.settings.email_from_name} <{self.settings.email_from_address}>",
+                        "to": [to_email],
+                        "subject": subject,
+                        "html": html_content,
+                    }
+                )
+                return True
+            except Exception as e:
+                print(f"[EMAIL ERROR] {e}")
+                return False
+
         return False

@@ -48,14 +48,6 @@ async def seed():
 
     async with async_session() as db:
         # Create campuses
-        campus = Campus(
-            name="Demo University",
-            domain="demo.edu",
-            slug="demo-university",
-            allow_non_edu=True,
-        )
-        db.add(campus)
-
         gettysburg = Campus(
             name="Gettysburg College",
             domain="gettysburg.edu",
