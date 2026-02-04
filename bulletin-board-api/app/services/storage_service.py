@@ -3,12 +3,12 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import aioboto3
-import magic
 from PIL import Image
 
 from app.config import Settings
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_FORMAT_TO_MIME = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}
 MAX_IMAGE_DIMENSIONS = (4096, 4096)
 
 
@@ -81,28 +81,31 @@ class StorageService:
             )
             file_bytes = await response["Body"].read()
 
-            detected_type = magic.from_buffer(file_bytes[:1024], mime=True)
+            try:
+                img = Image.open(io.BytesIO(file_bytes))
+                img.verify()
+                img = Image.open(io.BytesIO(file_bytes))
+                detected_type = _FORMAT_TO_MIME.get(img.format or "", "")
+            except Exception as e:
+                await s3.delete_object(
+                    Bucket=self.settings.s3_bucket_name, Key=temp_key
+                )
+                raise ValueError(f"Invalid image: {e}")
+
             if detected_type not in ALLOWED_IMAGE_TYPES:
                 await s3.delete_object(
                     Bucket=self.settings.s3_bucket_name, Key=temp_key
                 )
                 raise ValueError("Invalid file type detected")
 
-            try:
-                img = Image.open(io.BytesIO(file_bytes))
-                img.verify()
-                img = Image.open(io.BytesIO(file_bytes))
-
-                if (
-                    img.size[0] > MAX_IMAGE_DIMENSIONS[0]
-                    or img.size[1] > MAX_IMAGE_DIMENSIONS[1]
-                ):
-                    raise ValueError("Image dimensions too large")
-            except Exception as e:
+            if (
+                img.size[0] > MAX_IMAGE_DIMENSIONS[0]
+                or img.size[1] > MAX_IMAGE_DIMENSIONS[1]
+            ):
                 await s3.delete_object(
                     Bucket=self.settings.s3_bucket_name, Key=temp_key
                 )
-                raise ValueError(f"Invalid image: {e}")
+                raise ValueError("Image dimensions too large")
 
             permanent_key = temp_key.replace("tmp/", f"{destination_prefix}/")
             await s3.copy_object(
