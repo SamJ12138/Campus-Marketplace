@@ -248,7 +248,7 @@ export default function MyListingsPage() {
             <Package className="h-8 w-8 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">
-            You haven't posted any listings yet.
+            You haven&apos;t posted any listings yet.
           </p>
           <Link
             href="/listings/new"

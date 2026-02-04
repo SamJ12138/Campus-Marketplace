@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
 
   const now = new Date();
 
-  let ads = SEED_ADS
+  const ads = SEED_ADS
     // Filter out expired ads
     .filter((ad) => {
       if (ad.endsAt && new Date(ad.endsAt) < now) return false;

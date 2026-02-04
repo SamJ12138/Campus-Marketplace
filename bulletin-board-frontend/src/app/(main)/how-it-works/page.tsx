@@ -496,7 +496,7 @@ export default function HowItWorksPage() {
               Your Safety Matters
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-sm text-white/70">
-              We've built multiple layers of protection so you can trade with
+              We&apos;ve built multiple layers of protection so you can trade with
               confidence on campus.
             </p>
           </div>

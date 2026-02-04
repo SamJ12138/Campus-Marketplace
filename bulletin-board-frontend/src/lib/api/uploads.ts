@@ -17,7 +17,7 @@ interface UploadConfirmResponse {
   avatar_url?: string;
 }
 
-interface UploadFileResult extends UploadConfirmResponse {}
+type UploadFileResult = UploadConfirmResponse;
 
 // ---- API functions ----
 

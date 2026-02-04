@@ -350,7 +350,7 @@ function BlockedUsersSection() {
 
       {!isLoading && blockedUsers.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          You haven't blocked anyone.
+          You haven&apos;t blocked anyone.
         </p>
       )}
 
