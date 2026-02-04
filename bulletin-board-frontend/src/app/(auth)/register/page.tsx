@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, type FormEvent } from "react";
+import { Suspense, useState, useMemo, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, UserPlus, GraduationCap, Check, X, Phone } from "lucide-react";
@@ -30,7 +30,7 @@ const PASSWORD_RULES: PasswordRule[] = [
   { label: "One digit", test: (pw) => /[0-9]/.test(pw) },
 ];
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "";
@@ -473,5 +473,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterContent />
+    </Suspense>
   );
 }
