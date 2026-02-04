@@ -65,6 +65,24 @@ export async function GET(request: NextRequest) {
   });
 }
 
+export async function DELETE(request: NextRequest) {
+  const auth = request.headers.get("authorization");
+  const tokenData = parseToken(auth);
+
+  if (!tokenData) {
+    return NextResponse.json(
+      { detail: "Not authenticated", code: "not_authenticated" },
+      { status: 401 },
+    );
+  }
+
+  // Remove from registered users if present
+  const registeredRaw = globalThis.__mockRegisteredUsers as Map<string, unknown> | undefined;
+  registeredRaw?.delete(tokenData.email);
+
+  return NextResponse.json({ message: "Account deleted" });
+}
+
 export async function PATCH(request: NextRequest) {
   const auth = request.headers.get("authorization");
   const tokenData = parseToken(auth);

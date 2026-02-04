@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   KeyRound,
   Loader2,
@@ -12,11 +13,12 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { changePasswordSchema, type ChangePasswordInput } from "@/lib/validation/auth";
-import { changePassword } from "@/lib/api/users";
+import { changePassword, deleteAccount } from "@/lib/api/users";
 import { getBlockedUsers, unblockUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/client";
 import type { UserBrief } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 function ChangePasswordSection() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -412,6 +414,30 @@ function BlockedUsersSection() {
 }
 
 function DeleteAccountSection() {
+  const router = useRouter();
+  const { logout } = useAuth();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setError(null);
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      await logout();
+      router.push("/register");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.detail);
+      } else {
+        setError("Failed to delete account. Please try again.");
+      }
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
@@ -423,19 +449,92 @@ function DeleteAccountSection() {
       <p className="text-sm text-muted-foreground max-w-md">
         {t.profile.deleteAccountWarning}
       </p>
-      <button
-        type="button"
-        disabled
-        className={cn(
-          "inline-flex h-10 items-center justify-center gap-2 rounded-md",
-          "border border-destructive/50 bg-destructive/10 px-4 py-2",
-          "text-sm font-medium text-destructive",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-        )}
-      >
-        <Trash2 className="h-4 w-4" />
-        Contact support to delete account
-      </button>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive max-w-md">
+          {error}
+        </div>
+      )}
+
+      {!showConfirm ? (
+        <button
+          type="button"
+          onClick={() => setShowConfirm(true)}
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+            "border border-destructive/50 bg-destructive/10 px-4 py-2",
+            "text-sm font-medium text-destructive",
+            "hover:bg-destructive/20 transition-colors",
+          )}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete my account
+        </button>
+      ) : (
+        <div className="space-y-3 max-w-md rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm font-medium text-destructive">
+            This action is permanent and cannot be undone. All your listings, messages, and profile data will be deleted.
+          </p>
+          <div className="space-y-2">
+            <label htmlFor="confirm_delete" className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-semibold text-foreground">DELETE</span> to confirm
+            </label>
+            <input
+              id="confirm_delete"
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              disabled={isDeleting}
+              placeholder="DELETE"
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+                "placeholder:text-muted-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={confirmText !== "DELETE" || isDeleting}
+              className={cn(
+                "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+                "bg-destructive px-4 py-2",
+                "text-sm font-medium text-destructive-foreground",
+                "hover:bg-destructive/90 transition-colors",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {isDeleting ? "Deleting..." : "Permanently delete account"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowConfirm(false);
+                setConfirmText("");
+                setError(null);
+              }}
+              disabled={isDeleting}
+              className={cn(
+                "inline-flex h-10 items-center justify-center rounded-md",
+                "border border-input bg-background px-4 py-2",
+                "text-sm font-medium",
+                "hover:bg-accent transition-colors",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

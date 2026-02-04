@@ -39,3 +39,7 @@ export async function unblockUser(userId: string): Promise<void> {
 export async function getBlockedUsers(): Promise<UserBrief[]> {
   return api.get<UserBrief[]>("/api/v1/users/me/blocked");
 }
+
+export async function deleteAccount(): Promise<void> {
+  return api.delete("/api/v1/users/me");
+}
