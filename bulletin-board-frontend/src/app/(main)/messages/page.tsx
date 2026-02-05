@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -65,9 +66,11 @@ function ThreadRow({ thread }: { thread: MessageThread }) {
       {/* Avatar */}
       <div className="relative h-10 w-10 shrink-0">
         {avatarUrl ? (
-          <img
+          <Image
             src={avatarUrl}
             alt={thread.other_user.display_name}
+            width={40}
+            height={40}
             className="h-10 w-10 rounded-full object-cover"
           />
         ) : (

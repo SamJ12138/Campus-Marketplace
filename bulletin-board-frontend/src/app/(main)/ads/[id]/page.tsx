@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import {
   ArrowLeft,
   ExternalLink,
@@ -93,10 +94,11 @@ export default function AdDetailPage() {
 
       {/* Hero image */}
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted">
-        <img
+        <Image
           src={ad.image.src}
           alt={ad.image.alt}
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          className="object-cover"
         />
       </div>
 

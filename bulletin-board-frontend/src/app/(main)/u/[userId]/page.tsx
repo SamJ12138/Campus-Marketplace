@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Loader2,
   MessageSquare,
@@ -30,12 +31,13 @@ function ListingGridCard({ listing }: { listing: Listing }) {
       href={`/listings/${listing.id}`}
       className="group rounded-lg border border-border bg-card overflow-hidden transition-colors hover:border-primary/30"
     >
-      <div className="aspect-[4/3] bg-muted">
+      <div className="relative aspect-[4/3] bg-muted">
         {thumbnailUrl ? (
-          <img
+          <Image
             src={thumbnailUrl}
             alt={listing.title}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -178,9 +180,11 @@ export default function PublicUserProfilePage() {
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
         {/* Avatar */}
         {profile.avatar_url ? (
-          <img
+          <Image
             src={profile.avatar_url}
             alt={profile.display_name}
+            width={96}
+            height={96}
             className="h-24 w-24 rounded-full object-cover shrink-0"
           />
         ) : (

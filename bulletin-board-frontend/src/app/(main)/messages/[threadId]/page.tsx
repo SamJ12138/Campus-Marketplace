@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Send,
@@ -185,9 +186,11 @@ export default function ThreadDetailPage() {
         {otherUser && (
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {otherUser.avatar_url ? (
-              <img
+              <Image
                 src={otherUser.avatar_url}
                 alt={otherUser.display_name}
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover shrink-0"
               />
             ) : (

@@ -1,4 +1,7 @@
+"use client";
+
 import { useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
 interface AvatarProps {
@@ -12,6 +15,12 @@ const sizeMap = {
   sm: "h-8 w-8 text-xs",
   md: "h-10 w-10 text-sm",
   lg: "h-16 w-16 text-lg",
+} as const;
+
+const sizePixels = {
+  sm: 32,
+  md: 40,
+  lg: 64,
 } as const;
 
 function getInitials(name: string): string {
@@ -45,9 +54,11 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
       )}
     >
       {showImage ? (
-        <img
+        <Image
           src={src}
           alt={name}
+          width={sizePixels[size]}
+          height={sizePixels[size]}
           className="h-full w-full object-cover"
           onError={() => setImgError(true)}
         />

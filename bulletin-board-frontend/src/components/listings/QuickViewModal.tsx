@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { X, MessageCircle, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -129,10 +130,13 @@ export default function QuickViewModal({
         {/* Photo */}
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
           {currentPhoto ? (
-            <img
+            <Image
               src={currentPhoto.url}
               alt={listing.title}
-              className="h-full w-full object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, 640px"
+              className="object-cover"
+              priority
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -203,9 +207,11 @@ export default function QuickViewModal({
           {/* Poster */}
           <div className="flex items-center gap-2">
             {listing.user.avatar_url ? (
-              <img
+              <Image
                 src={listing.user.avatar_url}
                 alt={listing.user.display_name}
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover"
               />
             ) : (

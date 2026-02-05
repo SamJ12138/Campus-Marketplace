@@ -2,6 +2,7 @@
 
 import { useCallback, type MouseEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Eye, MapPin, ShoppingBag } from "lucide-react";
 import type { Listing } from "@/lib/types";
@@ -63,10 +64,12 @@ export default function ListingListItem({
       {/* Thumbnail */}
       <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
         {thumbnailUrl ? (
-          <img
+          <Image
             src={thumbnailUrl}
             alt={listing.title}
-            className="h-full w-full object-cover"
+            fill
+            sizes="80px"
+            className="object-cover"
             loading="lazy"
           />
         ) : (

@@ -16,9 +16,27 @@ vi.mock("next/navigation", () => ({
 // Mock next/image
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
-    const { fill, priority, ...rest } = props;
+    const { fill: _fill, priority: _priority, ...rest } = props;
+    // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
     return <img {...rest} />;
   },
+}));
+
+// Mock next/link
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 // Mock IntersectionObserver

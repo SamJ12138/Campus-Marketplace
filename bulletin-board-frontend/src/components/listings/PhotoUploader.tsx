@@ -7,6 +7,7 @@ import {
   useEffect,
   type ChangeEvent,
 } from "react";
+import NextImage from "next/image";
 import { Plus, X, ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -355,10 +356,11 @@ export default function PhotoUploader({
           >
             {/* Thumbnail */}
             {entry.previewUrl ? (
-              <img
+              <NextImage
                 src={entry.previewUrl}
                 alt={`Photo ${index + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-slate-100">

@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
@@ -199,12 +200,13 @@ function AdSlide({
 
       {/* Right – image */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted md:aspect-auto md:w-[45%]">
-        <img
+        <Image
           src={ad.image.src}
           alt={ad.image.alt}
-          loading={isCurrent ? "eager" : "lazy"}
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="(max-width: 768px) 100vw, 45vw"
+          priority={isCurrent}
+          className="object-cover"
         />
         {/* Gradient overlay for visual depth */}
         <div className="absolute inset-0 bg-gradient-to-r from-card/20 to-transparent md:from-card/10" />

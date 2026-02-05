@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Briefcase,
   ShoppingBag,
@@ -33,11 +34,12 @@ function PreviewCard({ values }: { values: Partial<ListingCreateInput> & { photo
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       {values.photoUrls && values.photoUrls.length > 0 ? (
-        <div className="aspect-[4/3] w-full bg-slate-100">
-          <img
+        <div className="relative aspect-[4/3] w-full bg-slate-100">
+          <Image
             src={values.photoUrls[0]}
             alt="Preview"
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       ) : (

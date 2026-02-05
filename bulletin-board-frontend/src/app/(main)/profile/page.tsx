@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Camera,
   Pencil,
@@ -119,9 +120,11 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="relative group">
           {user.avatar_url ? (
-            <img
+            <Image
               src={user.avatar_url}
               alt={user.display_name}
+              width={96}
+              height={96}
               className="h-24 w-24 rounded-full object-cover"
             />
           ) : (

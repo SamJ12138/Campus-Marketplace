@@ -1,13 +1,23 @@
 import type { Metadata } from "next";
+import { PAGE_METADATA, SEO_CONFIG } from "@/lib/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Browse Marketplace",
-  description:
-    "Browse listings for services, items, and more from students at your campus. Find tutoring, textbooks, electronics, and community connections.",
+  title: PAGE_METADATA.feed.title,
+  description: PAGE_METADATA.feed.description,
+  keywords: [...PAGE_METADATA.feed.keywords],
   openGraph: {
-    title: "Browse Marketplace | Gimme Dat",
-    description:
-      "Browse listings for services, items, and more from students at your campus.",
+    title: `${PAGE_METADATA.feed.title} | Gimme Dat`,
+    description: PAGE_METADATA.feed.description,
+    type: "website",
+    url: `${SEO_CONFIG.siteUrl}/feed`,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: PAGE_METADATA.feed.title,
+    description: PAGE_METADATA.feed.description,
+  },
+  alternates: {
+    canonical: `${SEO_CONFIG.siteUrl}/feed`,
   },
 };
 

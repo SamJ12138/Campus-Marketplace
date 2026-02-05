@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, HeartOff, Package, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -27,10 +28,11 @@ function FavoriteCard({
       <Link href={`/listings/${listing.id}`} className="block">
         <div className="aspect-[4/3] bg-muted">
           {thumbnailUrl ? (
-            <img
+            <Image
               src={thumbnailUrl}
               alt={listing.title}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

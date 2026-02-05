@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Package,
   Loader2,
@@ -88,9 +89,11 @@ function ListingCard({
       {/* Thumbnail */}
       <div className="h-20 w-20 shrink-0 rounded-md bg-muted overflow-hidden">
         {thumbnailUrl ? (
-          <img
+          <Image
             src={thumbnailUrl}
             alt={listing.title}
+            width={80}
+            height={80}
             className="h-full w-full object-cover"
           />
         ) : (

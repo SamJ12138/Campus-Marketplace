@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import {
   Heart,
@@ -27,6 +28,7 @@ import {
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
+import { ListingSchema } from "@/components/seo";
 import {
   useListing,
   useToggleFavorite,
@@ -113,12 +115,15 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
     <>
       {/* Main carousel */}
       <div className="relative overflow-hidden rounded-xl bg-slate-100">
-        <div className="aspect-[4/3] w-full">
-          <img
+        <div className="aspect-[4/3] w-full relative">
+          <Image
             src={photos[current].url}
             alt={`Photo ${current + 1} of ${photos.length}`}
-            className="h-full w-full cursor-pointer object-cover"
+            fill
+            sizes="(max-width: 1024px) 100vw, 60vw"
+            className="cursor-pointer object-cover"
             onClick={() => setLightboxOpen(true)}
+            priority
           />
         </div>
 
@@ -173,16 +178,18 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
               type="button"
               onClick={() => setCurrent(idx)}
               className={cn(
-                "h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+                "relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                 idx === current
                   ? "border-blue-500 ring-1 ring-blue-500"
                   : "border-transparent opacity-60 hover:opacity-100",
               )}
             >
-              <img
+              <Image
                 src={photo.thumbnail_url}
                 alt={`Thumbnail ${idx + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                sizes="64px"
+                className="object-cover"
               />
             </button>
           ))}
@@ -206,12 +213,19 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
           >
             <X className="h-6 w-6" />
           </button>
-          <img
-            src={photos[current].url}
-            alt={`Photo ${current + 1}`}
-            className="max-h-[90vh] max-w-[90vw] object-contain"
+          <div
+            className="relative max-h-[90vh] max-w-[90vw] w-full h-full"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <Image
+              src={photos[current].url}
+              alt={`Photo ${current + 1}`}
+              fill
+              sizes="90vw"
+              className="object-contain"
+              priority
+            />
+          </div>
           {photos.length > 1 && (
             <>
               <button
@@ -412,6 +426,9 @@ export default function ListingDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      {/* Structured data for SEO */}
+      <ListingSchema listing={listing} />
+
       {/* Back navigation */}
       <button
         type="button"
@@ -525,9 +542,11 @@ export default function ListingDetailPage() {
           <div className="rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-3">
               {listing.user.avatar_url ? (
-                <img
+                <Image
                   src={listing.user.avatar_url}
                   alt={listing.user.display_name}
+                  width={48}
+                  height={48}
                   className="h-12 w-12 rounded-full object-cover"
                 />
               ) : (
