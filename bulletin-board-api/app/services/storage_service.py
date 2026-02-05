@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import aioboto3
+from botocore.config import Config as BotoConfig
 from PIL import Image
 
 from app.config import Settings
@@ -23,6 +24,7 @@ class StorageService:
             "aws_access_key_id": self.settings.s3_access_key_id,
             "aws_secret_access_key": self.settings.s3_secret_access_key,
             "region_name": self.settings.s3_region,
+            "config": BotoConfig(signature_version="s3v4"),
         }
 
     async def create_presigned_upload(
@@ -57,7 +59,6 @@ class StorageService:
                     "Bucket": self.settings.s3_bucket_name,
                     "Key": key,
                     "ContentType": content_type,
-                    "ContentLength": file_size,
                 },
                 ExpiresIn=300,
             )
