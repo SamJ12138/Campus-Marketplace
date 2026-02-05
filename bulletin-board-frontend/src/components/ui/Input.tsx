@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <label
             htmlFor={inputId}
             className={cn(
-              "mb-1.5 block text-sm font-medium",
+              "mb-1.5 block text-sm font-medium font-display",
               disabled ? "text-muted-foreground" : "text-foreground",
             )}
           >
@@ -28,14 +28,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           type={type}
           id={inputId}
           className={cn(
-            "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm transition-all duration-200",
+            "flex h-11 w-full rounded-xl border-2 bg-background px-4 py-2.5 text-sm transition-all duration-200 ease-spring",
             "file:border-0 file:bg-transparent file:text-sm file:font-medium",
-            "placeholder:text-muted-foreground",
-            "hover:border-primary/40",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input",
+            "placeholder:text-muted-foreground/60",
+            "hover:border-primary/40 hover:shadow-sm",
+            "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10",
+            "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input disabled:hover:shadow-none",
             error
-              ? "border-destructive hover:border-destructive/60 focus-visible:ring-destructive"
+              ? "border-destructive hover:border-destructive/60 focus-visible:border-destructive focus-visible:ring-destructive/10"
               : "border-input",
             className,
           )}
@@ -48,7 +48,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={inputId ? `${inputId}-error` : undefined}
-            className="mt-1.5 text-sm text-destructive"
+            className="mt-1.5 text-sm text-destructive animate-slide-up"
             role="alert"
           >
             {error}

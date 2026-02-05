@@ -1,15 +1,12 @@
 "use client";
 
 import { useRef, useCallback } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Sparkles } from "lucide-react";
 import type { ListingType, Category } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useCategories } from "@/lib/hooks/use-listings";
 
-// ----------------------------------------------------------------
-// Props
-// ----------------------------------------------------------------
 interface FilterBarProps {
   currentType: ListingType | null;
   currentCategory: string | null;
@@ -20,18 +17,12 @@ interface FilterBarProps {
   onSortChange: (sort: string) => void;
 }
 
-// ----------------------------------------------------------------
-// Constants
-// ----------------------------------------------------------------
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
   { value: "popular", label: "Popular" },
 ] as const;
 
-// ----------------------------------------------------------------
-// Component
-// ----------------------------------------------------------------
 export default function FilterBar({
   currentType,
   currentCategory,
@@ -60,7 +51,6 @@ export default function FilterBar({
   const handleTypeToggle = useCallback(
     (type: ListingType) => {
       if (currentType === type) {
-        // Don't allow toggling off the locked type
         if (lockedType === type) return;
         onTypeChange(null);
       } else {
@@ -72,7 +62,7 @@ export default function FilterBar({
   );
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/80 px-4 backdrop-blur-md">
+    <div className="sticky top-0 z-20 -mx-4 border-b border-border/50 glass-strong px-4">
       <div
         ref={scrollRef}
         className={cn(
@@ -82,46 +72,49 @@ export default function FilterBar({
           "[&::-webkit-scrollbar]:hidden",
         )}
       >
-        {/* Type toggle pills */}
-        <div className="flex flex-shrink-0 items-center gap-1 snap-start">
+        <div className="flex flex-shrink-0 items-center gap-2 snap-start">
           <button
             type="button"
             onClick={() => handleTypeToggle("service")}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               currentType === "service"
-                ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
-                : "bg-card text-foreground border border-border hover:bg-accent hover:border-primary/30 hover:shadow-sm",
+                ? "bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] text-white shadow-md shadow-primary/25"
+                : "glass border border-border/50 text-foreground hover:border-primary/30 hover:shadow-sm",
             )}
           >
-            {t.listings.servicesTab}
+            <span className="flex items-center gap-1.5">
+              {currentType === "service" && <Sparkles className="h-3.5 w-3.5" />}
+              {t.listings.servicesTab}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => handleTypeToggle("item")}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 whitespace-nowrap",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               currentType === "item"
-                ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20"
-                : "bg-card text-foreground border border-border hover:bg-accent hover:border-primary/30 hover:shadow-sm",
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25"
+                : "glass border border-border/50 text-foreground hover:border-primary/30 hover:shadow-sm",
             )}
           >
-            {t.listings.itemsTab}
+            <span className="flex items-center gap-1.5">
+              {currentType === "item" && <Sparkles className="h-3.5 w-3.5" />}
+              {t.listings.itemsTab}
+            </span>
           </button>
         </div>
 
-        {/* Divider */}
-        <div className="h-6 w-px flex-shrink-0 bg-border" />
+        <div className="h-6 w-px flex-shrink-0 bg-border/50" />
 
-        {/* Category chips */}
         {categoriesLoading ? (
           <>
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-8 w-20 flex-shrink-0 animate-pulse rounded-full bg-slate-200"
+                className="h-9 w-20 flex-shrink-0 animate-pulse rounded-full bg-muted/50"
               />
             ))}
           </>
@@ -136,22 +129,21 @@ export default function FilterBar({
                 )
               }
               className={cn(
-                "flex-shrink-0 snap-start rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 whitespace-nowrap",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                "flex-shrink-0 snap-start rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-spring whitespace-nowrap",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 currentCategory === cat.slug
-                  ? "bg-foreground text-background shadow-sm"
-                  : "bg-card text-muted-foreground border border-border hover:border-primary/30 hover:text-foreground hover:shadow-sm",
+                  ? "bg-foreground text-background shadow-md"
+                  : "glass border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground hover:shadow-sm",
               )}
             >
+              {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
               {cat.name}
             </button>
           ))
         ) : null}
 
-        {/* Divider */}
-        <div className="h-6 w-px flex-shrink-0 bg-border" />
+        <div className="h-6 w-px flex-shrink-0 bg-border/50" />
 
-        {/* Sort dropdown */}
         <div className="relative flex-shrink-0 snap-start">
           <label htmlFor="sort-select" className="sr-only">
             Sort listings
@@ -161,9 +153,9 @@ export default function FilterBar({
             value={currentSort}
             onChange={(e) => onSortChange(e.target.value)}
             className={cn(
-              "appearance-none rounded-full border border-border bg-card py-1.5 pl-3 pr-8 text-sm font-medium text-foreground",
-              "transition-all duration-200 hover:bg-accent hover:border-primary/30 hover:shadow-sm",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              "appearance-none rounded-full border border-border/50 glass py-2 pl-4 pr-9 text-sm font-medium text-foreground",
+              "transition-all duration-200 ease-spring hover:border-primary/30 hover:shadow-sm",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
           >
             {SORT_OPTIONS.map((opt) => (
@@ -172,21 +164,20 @@ export default function FilterBar({
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         </div>
 
-        {/* Clear filters */}
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleClearFilters}
             className={cn(
-              "flex flex-shrink-0 items-center gap-1 snap-start rounded-full px-3 py-1.5 text-sm font-medium",
-              "text-rose-600 hover:bg-rose-50 transition-colors",
+              "flex flex-shrink-0 items-center gap-1.5 snap-start rounded-full px-4 py-2 text-sm font-semibold",
+              "text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all duration-200 ease-spring",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400",
             )}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
             Clear filters
           </button>
         )}

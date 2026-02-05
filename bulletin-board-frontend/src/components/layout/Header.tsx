@@ -17,6 +17,7 @@ import {
   Shield,
   Mail,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
@@ -107,26 +108,29 @@ export function Header() {
     user?.role === "moderator" || user?.role === "admin";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <header className="sticky top-0 z-30 border-b border-border/50 glass-strong">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/feed"
-          className="shrink-0 flex items-baseline gap-2"
+          className="shrink-0 flex items-center gap-2 group"
         >
-          <span className="text-lg font-bold tracking-tight text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] shadow-md shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-lg font-bold font-display tracking-tight gradient-text-primary">
             {isAuthenticated && user?.campus_name ? user.campus_name : t.common.appName}
           </span>
         </Link>
 
         <div className="hidden flex-1 md:block">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               value={searchValue}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search listings..."
-              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="h-10 w-full rounded-xl border-2 border-border/50 bg-background/50 pl-10 pr-4 text-sm placeholder:text-muted-foreground/60 transition-all duration-200 hover:border-primary/30 hover:bg-background focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-background"
             />
           </div>
         </div>
@@ -134,7 +138,7 @@ export function Header() {
         <nav className="hidden items-center gap-1 md:flex">
           <Link
             href="/feed"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
           >
             All Offers
           </Link>
@@ -142,7 +146,7 @@ export function Header() {
           <MegaDropdown type="service" label="Services" />
           <Link
             href="/how-it-works"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
           >
             How It Works
           </Link>
@@ -151,13 +155,13 @@ export function Header() {
             <>
               <Link
                 href="/messages"
-                className="relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="relative rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               >
                 <span className="flex items-center gap-1.5">
                   <Mail className="h-4 w-4" />
                   {t.messages.inboxTitle}
                   {totalUnread > 0 && (
-                    <Badge variant="destructive" className="h-5 min-w-[20px] px-1.5 text-[10px]">
+                    <Badge variant="gradient" size="sm" className="ml-1">
                       {totalUnread > 99 ? "99+" : totalUnread}
                     </Badge>
                   )}
@@ -165,7 +169,7 @@ export function Header() {
               </Link>
               <Link
                 href="/listings/new"
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="ml-2 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110"
               >
                 <Plus className="h-4 w-4" />
                 New Offer
@@ -175,7 +179,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => handleAuthGatedNav("/listings/new")}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="ml-2 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110"
             >
               <Plus className="h-4 w-4" />
               New Offer
@@ -187,15 +191,15 @@ export function Header() {
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="rounded-xl p-2.5 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               aria-label={
                 theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
               }
             >
               {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
+                <Sun className="h-5 w-5" />
               ) : (
-                <Moon className="h-4 w-4" />
+                <Moon className="h-5 w-5" />
               )}
             </button>
           )}
@@ -204,7 +208,7 @@ export function Header() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 rounded-md p-1.5 transition-colors hover:bg-accent"
+                className="flex items-center gap-2 rounded-xl p-1.5 transition-all duration-200 hover:bg-primary/10"
                 aria-expanded={dropdownOpen}
                 aria-haspopup="true"
               >
@@ -215,16 +219,16 @@ export function Header() {
                 />
                 <ChevronDown
                   className={cn(
-                    "hidden h-3.5 w-3.5 text-muted-foreground transition-transform md:block",
+                    "hidden h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 md:block",
                     dropdownOpen && "rotate-180",
                   )}
                 />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-popover py-1 shadow-lg animate-slide-down">
-                  <div className="border-b border-border px-4 py-3">
-                    <p className="text-sm font-medium text-popover-foreground">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border/50 glass-strong py-1 shadow-xl animate-bounce-in">
+                  <div className="border-b border-border/50 px-4 py-3">
+                    <p className="text-sm font-semibold font-display text-popover-foreground">
                       {user?.display_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -270,10 +274,10 @@ export function Header() {
                       />
                     )}
                   </div>
-                  <div className="border-t border-border py-1">
+                  <div className="border-t border-border/50 py-1">
                     <button
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-destructive transition-colors hover:bg-accent"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-destructive transition-all duration-200 hover:bg-destructive/10 rounded-lg mx-1"
                     >
                       <LogOut className="h-4 w-4" />
                       {t.auth.logoutAction}
@@ -286,14 +290,14 @@ export function Header() {
             <div className="flex items-center gap-2">
               <Link
                 href={`/login?redirect=${encodeURIComponent(pathname)}`}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               >
                 <LogIn className="h-4 w-4" />
                 Sign in
               </Link>
               <Link
                 href={`/register?redirect=${encodeURIComponent(pathname)}`}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110"
               >
                 Sign up
               </Link>
@@ -311,7 +315,6 @@ function MegaDropdown({ type, label }: { type: "item" | "service"; label: string
   const pathname = usePathname();
   const { data: categories } = useCategories(type);
 
-  // Close on route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -339,29 +342,29 @@ function MegaDropdown({ type, label }: { type: "item" | "service"; label: string
     >
       <Link
         href={`/feed?type=${type}`}
-        className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
       >
         {label}
       </Link>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-lg border border-border bg-popover p-2 shadow-xl backdrop-blur-sm animate-slide-down">
+        <div className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-2xl border border-border/50 glass-strong p-2 shadow-xl animate-bounce-in">
           <Link
             href={`/feed?type=${type}`}
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-popover-foreground transition-colors hover:bg-accent"
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
           >
             View All {label}
           </Link>
           {categories && categories.length > 0 && (
             <>
-              <div className="my-1 h-px bg-border" />
+              <div className="my-1 h-px bg-border/50" />
               {categories.map((cat: Category) => (
                 <Link
                   key={cat.id}
                   href={`/feed?type=${type}&category=${cat.slug}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent"
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
                 >
                   {cat.icon && <span className="text-base">{cat.icon}</span>}
                   {cat.name}
@@ -390,7 +393,7 @@ function DropdownLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2 text-sm text-popover-foreground transition-colors hover:bg-accent"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary rounded-lg mx-1"
     >
       <Icon className="h-4 w-4 text-muted-foreground" />
       {label}

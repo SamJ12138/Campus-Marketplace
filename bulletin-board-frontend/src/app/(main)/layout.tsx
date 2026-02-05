@@ -16,8 +16,10 @@ function AuthInit({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-mesh">
+        <div className="h-10 w-10 animate-spin rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] p-0.5">
+          <div className="h-full w-full rounded-[14px] bg-background" />
+        </div>
       </div>
     );
   }
@@ -32,9 +34,9 @@ export default function MainLayout({
 }) {
   return (
     <AuthInit>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-mesh">
         <Header />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 pb-20 md:pb-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 pb-24 md:pb-6">
           {children}
         </main>
         <Footer />

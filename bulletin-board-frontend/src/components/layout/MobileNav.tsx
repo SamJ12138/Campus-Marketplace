@@ -37,23 +37,24 @@ export function MobileNav() {
   const navItems = isAuthenticated ? authedItems : guestItems;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:hidden">
+    <nav className="fixed bottom-4 left-4 right-4 z-30 md:hidden">
       <div
-        className="flex items-center justify-around"
+        className="flex items-center justify-around rounded-2xl border border-border/50 glass-strong shadow-lg shadow-primary/10"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
+          const isHighlight = "highlight" in item && item.highlight;
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-all duration-200",
-                "highlight" in item && item.highlight
+                "relative flex flex-1 flex-col items-center gap-0.5 py-3 text-[10px] font-medium transition-all duration-200 ease-spring",
+                isHighlight
                   ? "text-primary"
                   : isActive
                     ? "text-primary"
@@ -61,22 +62,27 @@ export function MobileNav() {
               )}
             >
               <div className="relative">
-                <Icon
-                  className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    isActive && "scale-110",
-                    "highlight" in item && item.highlight && "h-7 w-7",
-                  )}
-                />
+                {isHighlight ? (
+                  <div className="flex h-12 w-12 -mt-6 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] shadow-lg shadow-primary/30 animate-pulse-glow">
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                ) : (
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 transition-all duration-200 ease-spring",
+                      isActive && "scale-110 text-primary",
+                    )}
+                  />
+                )}
                 {"showBadge" in item && item.showBadge && totalUnread > 0 && (
-                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-1 text-[9px] font-bold text-white shadow-sm">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </span>
                 )}
               </div>
-              <span>{item.label}</span>
-              {isActive && (
-                <span className="absolute -top-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-primary" />
+              {!isHighlight && <span className="mt-0.5">{item.label}</span>}
+              {isActive && !isHighlight && (
+                <span className="absolute -top-0.5 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))]" />
               )}
             </Link>
           );
