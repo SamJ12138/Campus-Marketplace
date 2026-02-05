@@ -153,6 +153,7 @@ export default function CreateListingPage() {
   const [photoData, setPhotoData] = useState<
     { id: string; url: string; position: number }[]
   >([]);
+  const [createdListingId, setCreatedListingId] = useState<string | null>(null);
 
   const {
     register,
@@ -239,6 +240,10 @@ export default function CreateListingPage() {
       };
 
       const newListing = await createListing.mutateAsync(cleanPayload);
+      // Set listing ID to trigger deferred photo uploads
+      setCreatedListingId(newListing.id);
+      // Brief delay to let photo uploads start, then navigate
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       router.push(`/listings/${newListing.id}`);
     },
     [createListing, router, isOtherCategory],
@@ -584,7 +589,7 @@ export default function CreateListingPage() {
             hint={selectedType === "item" ? "Required for items - add up to 6 photos" : "Optional - add up to 6 photos"}
           >
             <PhotoUploader
-              listingId={null}
+              listingId={createdListingId}
               maxPhotos={6}
               onPhotosChange={(photos) => {
                 setPhotoData(

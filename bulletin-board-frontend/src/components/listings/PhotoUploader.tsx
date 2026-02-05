@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useEffect,
   type ChangeEvent,
 } from "react";
 import { Plus, X, ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
@@ -227,10 +228,12 @@ export default function PhotoUploader({
 
       setEntries((prev) => [...prev, ...newEntries]);
 
-      // Start uploading valid entries
-      for (const entry of newEntries) {
-        if (!entry.error) {
-          uploadSingleFile(entry);
+      // Start uploading valid entries (only if we have a listing ID)
+      if (listingId) {
+        for (const entry of newEntries) {
+          if (!entry.error) {
+            uploadSingleFile(entry);
+          }
         }
       }
 
@@ -303,6 +306,16 @@ export default function PhotoUploader({
     },
     [entries, uploadSingleFile],
   );
+
+  // When listingId becomes available, upload all pending entries
+  useEffect(() => {
+    if (!listingId) return;
+    for (const entry of entries) {
+      if (!entry.error && !entry.uploaded && !activeUploads.current.has(entry.localId)) {
+        uploadSingleFile(entry);
+      }
+    }
+  }, [listingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canAddMore = entries.length < maxPhotos;
 
