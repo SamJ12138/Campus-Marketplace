@@ -42,7 +42,7 @@ interface PhotoUploaderProps {
 // ----------------------------------------------------------------
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const MAX_DIMENSION = 4096;
+const MAX_DIMENSION = 8192;
 
 function validateFileType(file: File): string | null {
   if (!ACCEPTED_TYPES.includes(file.type)) {

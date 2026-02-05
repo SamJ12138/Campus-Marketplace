@@ -10,7 +10,7 @@ from app.config import Settings
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _FORMAT_TO_MIME = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}
-MAX_IMAGE_DIMENSIONS = (4096, 4096)
+MAX_IMAGE_DIMENSIONS = (8192, 8192)
 
 
 class StorageService:
