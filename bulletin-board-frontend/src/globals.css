@@ -181,6 +181,10 @@
     animation: heart-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   }
 
+  .animate-dropdown-in {
+    animation: dropdown-in 0.15s ease-out forwards;
+  }
+
   .text-balance {
     text-wrap: balance;
   }
@@ -412,6 +416,17 @@
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes dropdown-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

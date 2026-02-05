@@ -226,7 +226,7 @@ export function Header() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border/50 glass-strong py-1 shadow-xl animate-bounce-in">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border/50 glass-strong py-1 shadow-xl animate-dropdown-in">
                   <div className="border-b border-border/50 px-4 py-3">
                     <p className="text-sm font-semibold font-display text-popover-foreground">
                       {user?.display_name}
@@ -348,7 +348,7 @@ function MegaDropdown({ type, label }: { type: "item" | "service"; label: string
       </Link>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-2xl border border-border/50 glass-strong p-2 shadow-xl animate-bounce-in">
+        <div className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-2xl border border-border/50 glass-strong p-2 shadow-xl animate-dropdown-in">
           <Link
             href={`/feed?type=${type}`}
             onClick={() => setOpen(false)}
