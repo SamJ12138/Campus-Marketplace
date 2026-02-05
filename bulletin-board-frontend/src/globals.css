@@ -4,35 +4,35 @@
 
 @layer base {
   :root {
-    /* Playful Student Theme - Light Mode */
-    /* Background: Lavender tint */
-    --background: 270 50% 99%;
-    --foreground: 270 15% 15%;
+    /* Warm Campus Theme - Light Mode */
+    /* Background: Warm cream tint */
+    --background: 30 50% 99%;
+    --foreground: 25 15% 15%;
 
-    /* Cards: White with slight purple tint */
-    --card: 270 30% 99%;
-    --card-foreground: 270 15% 15%;
+    /* Cards: White with warm tint */
+    --card: 30 30% 99%;
+    --card-foreground: 25 15% 15%;
 
-    --popover: 270 30% 99%;
-    --popover-foreground: 270 15% 15%;
+    --popover: 30 30% 99%;
+    --popover-foreground: 25 15% 15%;
 
-    /* Primary: Violet */
-    --primary: 271 91% 65%;
+    /* Primary: Vibrant Orange */
+    --primary: 24 95% 53%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Light lavender */
-    --secondary: 270 30% 96%;
-    --secondary-foreground: 270 15% 25%;
+    /* Secondary: Light cream */
+    --secondary: 30 30% 96%;
+    --secondary-foreground: 25 15% 25%;
 
-    /* Secondary Accent: Hot Pink (for gradients) */
-    --secondary-accent: 330 81% 60%;
+    /* Secondary Accent: Coral (for gradients) */
+    --secondary-accent: 12 90% 55%;
 
     /* Accent: Teal */
     --accent: 168 76% 42%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 270 20% 95%;
-    --muted-foreground: 270 10% 45%;
+    --muted: 30 20% 95%;
+    --muted-foreground: 25 10% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -43,43 +43,43 @@
     --warning: 38 92% 50%;
     --warning-foreground: 38 20% 10%;
 
-    --border: 270 20% 90%;
-    --input: 270 20% 90%;
-    --ring: 271 91% 65%;
+    --border: 30 20% 90%;
+    --input: 30 20% 90%;
+    --ring: 24 95% 53%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    /* Playful Student Theme - Dark Mode */
-    /* Background: Deep purple-black */
-    --background: 270 20% 9%;
-    --foreground: 270 15% 95%;
+    /* Warm Campus Theme - Dark Mode */
+    /* Background: Deep warm black */
+    --background: 25 20% 9%;
+    --foreground: 30 15% 95%;
 
-    /* Cards: Elevated purple */
-    --card: 270 18% 13%;
-    --card-foreground: 270 15% 95%;
+    /* Cards: Elevated warm dark */
+    --card: 25 18% 13%;
+    --card-foreground: 30 15% 95%;
 
-    --popover: 270 18% 13%;
-    --popover-foreground: 270 15% 95%;
+    --popover: 25 18% 13%;
+    --popover-foreground: 30 15% 95%;
 
-    /* Primary: Brighter Violet */
-    --primary: 271 91% 70%;
-    --primary-foreground: 270 20% 10%;
+    /* Primary: Brighter Orange */
+    --primary: 24 95% 58%;
+    --primary-foreground: 25 20% 10%;
 
-    /* Secondary: Dark purple */
-    --secondary: 270 18% 18%;
-    --secondary-foreground: 270 15% 90%;
+    /* Secondary: Dark warm */
+    --secondary: 25 18% 18%;
+    --secondary-foreground: 30 15% 90%;
 
-    /* Secondary Accent: Hot Pink (brighter in dark) */
-    --secondary-accent: 330 81% 65%;
+    /* Secondary Accent: Brighter Coral */
+    --secondary-accent: 12 90% 60%;
 
     /* Accent: Teal (brighter) */
     --accent: 168 76% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 270 18% 18%;
-    --muted-foreground: 270 10% 55%;
+    --muted: 25 18% 18%;
+    --muted-foreground: 25 10% 55%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -90,9 +90,9 @@
     --warning: 38 80% 55%;
     --warning-foreground: 38 20% 10%;
 
-    --border: 270 15% 22%;
-    --input: 270 15% 22%;
-    --ring: 271 91% 70%;
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 24 95% 58%;
   }
 }
 

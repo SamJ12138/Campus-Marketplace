@@ -198,8 +198,6 @@ function NotificationPreferencesSection() {
   const [emailNewMessage, setEmailNewMessage] = useState(true);
   const [emailListingResponse, setEmailListingResponse] = useState(true);
   const [emailDigest, setEmailDigest] = useState(false);
-  const [smsNewMessage, setSmsNewMessage] = useState(true);
-  const [smsListingResponse, setSmsListingResponse] = useState(true);
 
   return (
     <section className="space-y-4">
@@ -259,16 +257,21 @@ function NotificationPreferencesSection() {
           </label>
         </div>
 
-        {/* SMS notifications */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">SMS</p>
+        {/* SMS notifications - Coming Soon */}
+        <div className="space-y-3 opacity-60">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-muted-foreground">SMS</p>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              Coming Soon
+            </span>
+          </div>
 
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-not-allowed">
             <input
               type="checkbox"
-              checked={smsNewMessage}
-              onChange={(e) => setSmsNewMessage(e.target.checked)}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+              checked={false}
+              disabled
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-not-allowed"
             />
             <div>
               <p className="text-sm font-medium">New messages</p>
@@ -278,12 +281,12 @@ function NotificationPreferencesSection() {
             </div>
           </label>
 
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-not-allowed">
             <input
               type="checkbox"
-              checked={smsListingResponse}
-              onChange={(e) => setSmsListingResponse(e.target.checked)}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+              checked={false}
+              disabled
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-not-allowed"
             />
             <div>
               <p className="text-sm font-medium">Listing activity</p>
@@ -294,9 +297,11 @@ function NotificationPreferencesSection() {
           </label>
         </div>
 
-        <p className="text-xs text-muted-foreground italic pt-1">
-          Notification preferences will be saved automatically in a future update.
-        </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 px-3 py-2">
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            Email notification preferences are currently being set up. Your selections will be saved once the backend integration is complete.
+          </p>
+        </div>
       </div>
     </section>
   );

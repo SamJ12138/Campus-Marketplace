@@ -273,6 +273,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
           <button
             type="button"
             onClick={handleFavoriteClick}
+            disabled={toggleFavorite.isPending}
             aria-label={
               listing.is_favorited
                 ? t.listings.removeFavorite
@@ -282,6 +283,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               "rounded-full p-2 transition-all duration-200 ease-spring",
               "hover:bg-rose-50 dark:hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400",
               listing.is_favorited ? "text-rose-500" : "text-muted-foreground hover:text-rose-400",
+              toggleFavorite.isPending && "opacity-50 cursor-not-allowed",
             )}
           >
             <Heart

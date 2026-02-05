@@ -4,6 +4,7 @@ import "@/globals.css";
 import { Providers } from "./providers";
 import { OrganizationSchema, WebSiteSchema } from "@/components/seo";
 import { ALL_KEYWORDS, SEO_CONFIG } from "@/lib/constants/seo";
+import { Toaster } from "sonner";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -103,6 +104,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>{children}</Providers>
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

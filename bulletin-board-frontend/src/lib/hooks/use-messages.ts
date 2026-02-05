@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type {
   Message,
   MessageThread,
@@ -47,6 +48,8 @@ export function useThread(threadId: string | undefined) {
     queryFn: () => getThread(threadId!),
     enabled: !!threadId,
     refetchInterval: 10_000,
+    refetchIntervalInBackground: false, // Pause polling when tab is hidden
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   });
 }
 
@@ -65,6 +68,10 @@ export function useStartThread() {
     }) => startThread(listing_id, content),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: messageKeys.threads() });
+      toast.success("Message sent!");
+    },
+    onError: () => {
+      toast.error("Failed to start conversation. Please try again.");
     },
   });
 }
@@ -139,6 +146,7 @@ export function useSendMessage() {
           context.previousThread,
         );
       }
+      toast.error("Failed to send message. Please try again.");
     },
 
     onSettled: (_data, _err, { threadId }) => {

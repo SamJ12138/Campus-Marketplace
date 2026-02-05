@@ -69,7 +69,7 @@ function validateDimensions(file: File): Promise<string | null> {
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
-        resolve("Image dimensions must be 4096x4096 or smaller");
+        resolve(`Image dimensions must be ${MAX_DIMENSION}x${MAX_DIMENSION} or smaller`);
       }
       resolve(null);
     };
@@ -255,10 +255,15 @@ export default function PhotoUploader({
     [entries.length, maxPhotos, uploadSingleFile],
   );
 
-  // Remove a photo
+  // Remove a photo (with memory cleanup)
   const handleRemove = useCallback(
     (localId: string) => {
       setEntries((prev) => {
+        const entryToRemove = prev.find((e) => e.localId === localId);
+        // Revoke object URL to prevent memory leak
+        if (entryToRemove?.previewUrl && entryToRemove.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(entryToRemove.previewUrl);
+        }
         const updated = prev.filter((e) => e.localId !== localId);
         syncPhotos(updated);
         return updated;
@@ -337,6 +342,17 @@ export default function PhotoUploader({
       });
     }
   }, [listingId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      entries.forEach((entry) => {
+        if (entry.previewUrl && entry.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(entry.previewUrl);
+        }
+      });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canAddMore = entries.length < maxPhotos;
 

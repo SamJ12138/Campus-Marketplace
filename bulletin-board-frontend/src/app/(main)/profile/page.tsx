@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Package,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -21,6 +22,10 @@ import { uploadFile } from "@/lib/api/uploads";
 import type { UpdateProfileRequest } from "@/lib/types";
 import { ApiError } from "@/lib/api/client";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
+
+// Avatar validation constants
+const AVATAR_MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const AVATAR_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -79,14 +84,30 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!AVATAR_ACCEPTED_TYPES.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, or WebP image");
+      return;
+    }
+
+    // Validate file size
+    if (file.size > AVATAR_MAX_SIZE) {
+      toast.error("Image must be smaller than 2MB");
+      return;
+    }
+
     setIsUploadingAvatar(true);
     try {
       await uploadFile(file, "avatar");
       await refreshUser();
-    } catch {
-      // Avatar upload errors are silently handled; the user can try again
+      toast.success("Profile photo updated!");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to upload photo";
+      toast.error(message);
     } finally {
       setIsUploadingAvatar(false);
+      // Reset file input so same file can be re-selected
+      e.target.value = "";
     }
   }
 

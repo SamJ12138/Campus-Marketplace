@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type {
   Category,
   CreateListingRequest,
@@ -213,7 +214,11 @@ export function useToggleFavorite() {
       return { previousDetail };
     },
 
-    onError: (_err, { listingId }, context) => {
+    onSuccess: (_data, { isFavorited }) => {
+      toast.success(isFavorited ? "Removed from favorites" : "Added to favorites");
+    },
+
+    onError: (_err, { listingId, isFavorited }, context) => {
       // Roll back the detail cache
       if (context?.previousDetail) {
         queryClient.setQueryData(
@@ -223,6 +228,12 @@ export function useToggleFavorite() {
       }
       // Refetch lists to restore correct state
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      // Show error toast
+      toast.error(
+        isFavorited
+          ? "Failed to remove from favorites"
+          : "Failed to add to favorites"
+      );
     },
 
     onSettled: () => {

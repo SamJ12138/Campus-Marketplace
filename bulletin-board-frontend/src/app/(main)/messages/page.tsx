@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { MessageSquare, Loader2, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
-import { useThreads } from "@/lib/hooks/use-messages";
+import { useThreads, useStartThread } from "@/lib/hooks/use-messages";
+import { useListing } from "@/lib/hooks/use-listings";
 import type { MessageThread } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
@@ -127,12 +129,49 @@ function ThreadRow({ thread }: { thread: MessageThread }) {
 }
 
 export default function MessagesPage() {
-  const { data, isLoading, isError } = useThreads();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const listingId = searchParams.get("listing");
+
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = useThreads();
+  const { data: listing, isLoading: listingLoading } = useListing(listingId ?? undefined);
+  const startThread = useStartThread();
+
+  const [newMessage, setNewMessage] = useState("");
+  const [showCompose, setShowCompose] = useState(false);
+
+  // Show compose UI when listing param is present
+  useEffect(() => {
+    if (listingId && listing) {
+      setShowCompose(true);
+    }
+  }, [listingId, listing]);
 
   const threads = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap((page) => page.items);
   }, [data]);
+
+  const handleSendNewMessage = useCallback(async () => {
+    if (!listingId || !newMessage.trim()) return;
+
+    try {
+      const result = await startThread.mutateAsync({
+        listing_id: listingId,
+        content: newMessage.trim(),
+      });
+      // Navigate to the new thread
+      router.replace(`/messages/${result.thread.id}`);
+    } catch {
+      // Error toast is handled in the hook
+    }
+  }, [listingId, newMessage, startThread, router]);
+
+  const handleCancelCompose = useCallback(() => {
+    setShowCompose(false);
+    setNewMessage("");
+    router.replace("/messages");
+  }, [router]);
 
   return (
     <ProtectedPage>
@@ -141,6 +180,52 @@ export default function MessagesPage() {
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3">
         <h1 className="text-lg font-semibold">{t.messages.inboxTitle}</h1>
       </div>
+
+      {/* New Message Compose (when coming from listing) */}
+      {showCompose && listingId && (
+        <div className="border-b border-border p-4 bg-accent/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {listingLoading ? "Loading..." : `Message about: ${listing?.title}`}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelCompose}
+              className="p-1 rounded-full hover:bg-muted"
+              aria-label="Cancel"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Write your message..."
+              className="flex-1 min-h-[80px] rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              disabled={startThread.isPending}
+            />
+          </div>
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={handleSendNewMessage}
+              disabled={!newMessage.trim() || startThread.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {startThread.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {isLoading && (
@@ -166,13 +251,16 @@ export default function MessagesPage() {
       )}
 
       {/* Empty */}
-      {!isLoading && !isError && threads.length === 0 && (
+      {!isLoading && !isError && threads.length === 0 && !showCompose && (
         <div className="flex flex-col items-center gap-3 py-16 text-center px-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <MessageSquare className="h-8 w-8 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">
             {t.messages.emptyInbox}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Start a conversation by messaging a seller on any listing.
           </p>
         </div>
       )}
@@ -183,6 +271,27 @@ export default function MessagesPage() {
           {threads.map((thread) => (
             <ThreadRow key={thread.id} thread={thread} />
           ))}
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {hasNextPage && (
+        <div className="p-4 text-center">
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load more conversations"
+            )}
+          </button>
         </div>
       )}
     </div>

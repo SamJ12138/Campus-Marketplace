@@ -140,11 +140,14 @@ export default function ThreadDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Mark thread as read on open
+  // Mark thread as read on open (fix race condition - only set flag on success)
   useEffect(() => {
     if (threadId && thread && thread.unread_count > 0 && !hasMarkedRead.current) {
-      hasMarkedRead.current = true;
-      markReadMutation.mutate(threadId);
+      markReadMutation.mutate(threadId, {
+        onSuccess: () => {
+          hasMarkedRead.current = true;
+        },
+      });
     }
   }, [threadId, thread, markReadMutation]);
 
