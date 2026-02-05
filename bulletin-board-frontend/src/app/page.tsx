@@ -243,9 +243,9 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
               {ad.subtitle}
             </p>
           )}
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+          <h2 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
             {ad.title}
-          </h1>
+          </h2>
           {ad.body && (
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
               {ad.body}

@@ -1,0 +1,11 @@
+# Robots.txt for gimme-dat.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /messages/
+Disallow: /profile/settings/
+
+# Sitemap
+Sitemap: https://www.gimme-dat.com/sitemap.xml
