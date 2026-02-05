@@ -237,7 +237,6 @@ export default function EditListingPage() {
   }, [listing, reset]);
 
   const description = watch("description") ?? "";
-  const isRegulated = watch("is_regulated");
 
   // Warn on leave if dirty
   useEffect(() => {
@@ -594,15 +593,6 @@ export default function EditListingPage() {
             }}
           />
         </FormField>
-
-        {/* Regulated disclaimer */}
-        {isRegulated && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm text-amber-800">
-              {t.listings.regulatedDisclaimer}
-            </p>
-          </div>
-        )}
 
         {/* API error */}
         {updateListingMutation.isError && (

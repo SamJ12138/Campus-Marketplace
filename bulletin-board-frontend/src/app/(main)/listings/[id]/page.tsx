@@ -500,18 +500,6 @@ export default function ListingDetailPage() {
             </p>
           )}
 
-          {/* Regulated disclaimer */}
-          {listing.is_regulated && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <div className="flex items-start gap-2">
-                <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-                <p className="text-xs text-amber-800">
-                  {t.listings.regulatedDisclaimer}
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Meta info */}
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1">

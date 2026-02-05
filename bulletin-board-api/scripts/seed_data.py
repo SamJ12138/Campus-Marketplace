@@ -15,13 +15,7 @@ settings = get_settings()
 CATEGORIES = [
     # Services
     {"name": "Tutoring", "slug": "tutoring", "listing_type": "service", "sort_order": 1},
-    {
-        "name": "Hair & Beauty",
-        "slug": "hair-beauty",
-        "listing_type": "service",
-        "sort_order": 2,
-        "requires_regulated_flag": True,
-    },
+    {"name": "Hair & Beauty", "slug": "hair-beauty", "listing_type": "service", "sort_order": 2},
     {"name": "Photography", "slug": "photography", "listing_type": "service", "sort_order": 3},
     {"name": "Music Lessons", "slug": "music-lessons", "listing_type": "service", "sort_order": 4},
     {"name": "Fitness Training", "slug": "fitness", "listing_type": "service", "sort_order": 5},

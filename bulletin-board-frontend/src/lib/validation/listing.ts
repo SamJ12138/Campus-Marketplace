@@ -44,20 +44,7 @@ export const listingCreateSchema = z
     }),
     is_regulated: z.boolean().default(false),
     disclaimer_accepted: z.boolean().default(false),
-  })
-  .refine(
-    (data) => {
-      if (data.is_regulated) {
-        return data.disclaimer_accepted === true;
-      }
-      return true;
-    },
-    {
-      message:
-        "You must accept the disclaimer for regulated items",
-      path: ["disclaimer_accepted"],
-    },
-  );
+  });
 
 export const listingUpdateSchema = z.object({
   title: z

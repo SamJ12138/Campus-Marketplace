@@ -185,7 +185,6 @@ export default function CreateListingPage() {
 
   const selectedType = watch("type");
   const description = watch("description") ?? "";
-  const isRegulated = watch("is_regulated");
   const watchedValues = watch();
 
   // Load categories filtered by selected type
@@ -197,13 +196,6 @@ export default function CreateListingPage() {
     () => categories?.find((c: Category) => c.id === selectedCategoryId),
     [categories, selectedCategoryId],
   );
-
-  // Auto-set is_regulated based on category
-  useEffect(() => {
-    if (selectedCategory?.is_regulated) {
-      setValue("is_regulated", true);
-    }
-  }, [selectedCategory, setValue]);
 
   // Warn on leave if form is dirty
   useEffect(() => {
@@ -609,28 +601,6 @@ export default function CreateListingPage() {
               }}
             />
           </FormField>
-
-          {/* Regulated disclaimer checkbox */}
-          {isRegulated && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  {...register("disclaimer_accepted")}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-amber-800">
-                  {t.listings.regulatedDisclaimer}
-                </span>
-              </label>
-              {errors.disclaimer_accepted && (
-                <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.disclaimer_accepted.message}
-                </p>
-              )}
-            </div>
-          )}
 
           {/* API error */}
           {createListing.isError && (

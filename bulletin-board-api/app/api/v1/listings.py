@@ -98,10 +98,6 @@ async def create_listing(
     if not category or category.listing_type != data.type.value:
         raise HTTPException(400, "Invalid category for listing type")
 
-    # Check regulated flag requirement
-    if category.requires_regulated_flag and not data.is_regulated:
-        raise HTTPException(400, "This category requires regulated service acknowledgment")
-
     service = ListingService(db)
     listing = await service.create_listing(
         user_id=current_user.id,

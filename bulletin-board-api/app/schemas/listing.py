@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.schemas.common import PaginationMeta
 from app.schemas.user import UserBrief
@@ -46,13 +46,6 @@ class ListingCreate(BaseModel):
     contact_details: str | None = Field(None, max_length=255)
     is_regulated: bool = False
     disclaimer_accepted: bool = False
-
-    @field_validator("disclaimer_accepted")
-    @classmethod
-    def validate_disclaimer(cls, v, info):
-        if info.data.get("is_regulated") and not v:
-            raise ValueError("Must accept disclaimer for regulated services")
-        return v
 
 
 class ListingUpdate(BaseModel):
