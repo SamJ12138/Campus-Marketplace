@@ -27,7 +27,7 @@ export async function requestPresignedUpload(
   file_size: number,
   listing_id?: string,
 ): Promise<PresignedUploadResponse> {
-  return api.post<PresignedUploadResponse>("/api/v1/uploads/presign", {
+  return api.post<PresignedUploadResponse>("/api/v1/uploads/presigned", {
     purpose,
     content_type,
     file_size,
@@ -39,9 +39,8 @@ export async function confirmUpload(
   upload_id: string,
   position?: number,
 ): Promise<UploadConfirmResponse> {
-  return api.post<UploadConfirmResponse>("/api/v1/uploads/confirm", {
-    upload_id,
-    position,
+  return api.post<UploadConfirmResponse>(`/api/v1/uploads/confirm/${upload_id}`, {
+    position: position ?? 0,
   });
 }
 
