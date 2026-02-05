@@ -35,6 +35,8 @@ interface PhotoUploaderProps {
   listingId: string | null;
   maxPhotos?: number;
   onPhotosChange: (photos: ManagedPhoto[]) => void;
+  onUploadsComplete?: () => void;
+  onPendingCountChange?: (count: number) => void;
   initialPhotos?: ManagedPhoto[];
 }
 
@@ -85,6 +87,8 @@ export default function PhotoUploader({
   listingId,
   maxPhotos = 6,
   onPhotosChange,
+  onUploadsComplete,
+  onPendingCountChange,
   initialPhotos = [],
 }: PhotoUploaderProps) {
   const [entries, setEntries] = useState<UploadingEntry[]>(() =>
@@ -226,7 +230,12 @@ export default function PhotoUploader({
         });
       }
 
-      setEntries((prev) => [...prev, ...newEntries]);
+      setEntries((prev) => {
+        const updated = [...prev, ...newEntries];
+        const pendingCount = updated.filter((e) => !e.error && !e.uploaded).length;
+        onPendingCountChange?.(pendingCount);
+        return updated;
+      });
 
       // Start uploading valid entries (only if we have a listing ID)
       if (listingId) {
@@ -310,10 +319,21 @@ export default function PhotoUploader({
   // When listingId becomes available, upload all pending entries
   useEffect(() => {
     if (!listingId) return;
-    for (const entry of entries) {
-      if (!entry.error && !entry.uploaded && !activeUploads.current.has(entry.localId)) {
-        uploadSingleFile(entry);
-      }
+    const pending = entries.filter(
+      (e) => !e.error && !e.uploaded && !activeUploads.current.has(e.localId),
+    );
+    if (pending.length === 0) {
+      onUploadsComplete?.();
+      return;
+    }
+    let completed = 0;
+    for (const entry of pending) {
+      uploadSingleFile(entry).then(() => {
+        completed++;
+        if (completed >= pending.length) {
+          onUploadsComplete?.();
+        }
+      });
     }
   }, [listingId]); // eslint-disable-line react-hooks/exhaustive-deps
 

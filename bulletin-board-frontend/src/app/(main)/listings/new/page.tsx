@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Briefcase,
@@ -154,6 +154,8 @@ export default function CreateListingPage() {
     { id: string; url: string; position: number }[]
   >([]);
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
+  const uploadsCompleteResolve = useRef<(() => void) | null>(null);
+  const hasPendingPhotos = useRef(false);
 
   const {
     register,
@@ -240,10 +242,13 @@ export default function CreateListingPage() {
       };
 
       const newListing = await createListing.mutateAsync(cleanPayload);
-      // Set listing ID to trigger deferred photo uploads
-      setCreatedListingId(newListing.id);
-      // Brief delay to let photo uploads start, then navigate
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // If photos were selected, wait for uploads to complete
+      if (hasPendingPhotos.current) {
+        await new Promise<void>((resolve) => {
+          uploadsCompleteResolve.current = resolve;
+          setCreatedListingId(newListing.id);
+        });
+      }
       router.push(`/listings/${newListing.id}`);
     },
     [createListing, router, isOtherCategory],
@@ -595,6 +600,12 @@ export default function CreateListingPage() {
                 setPhotoData(
                   photos.map((p) => ({ id: p.id, url: p.url, position: p.position })),
                 );
+              }}
+              onUploadsComplete={() => {
+                uploadsCompleteResolve.current?.();
+              }}
+              onPendingCountChange={(count) => {
+                hasPendingPhotos.current = count > 0;
               }}
             />
           </FormField>
