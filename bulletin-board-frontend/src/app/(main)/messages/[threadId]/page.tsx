@@ -195,6 +195,7 @@ export default function ThreadDetailPage() {
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full object-cover shrink-0"
+                unoptimized={otherUser.avatar_url.includes('r2.dev') || otherUser.avatar_url.includes('cloudflare')}
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">

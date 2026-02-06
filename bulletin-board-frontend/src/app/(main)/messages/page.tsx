@@ -74,6 +74,7 @@ function ThreadRow({ thread }: { thread: MessageThread }) {
             width={40}
             height={40}
             className="h-10 w-10 rounded-full object-cover"
+            unoptimized={avatarUrl.includes('r2.dev') || avatarUrl.includes('cloudflare')}
           />
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">

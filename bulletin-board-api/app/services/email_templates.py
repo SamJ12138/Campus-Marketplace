@@ -95,10 +95,7 @@ def verification_email(verify_url: str, display_name: str = "there") -> str:
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
             <tr>
                 <td style="padding: 8px 0 24px 0;">
-                    <a href="{verify_url}"
-                       style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);">
-                        Verify My Email
-                    </a>
+                    <a href="{verify_url}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);">Verify My Email</a>
                 </td>
             </tr>
         </table>
@@ -143,10 +140,7 @@ def password_reset_email(reset_url: str) -> str:
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
             <tr>
                 <td style="text-align: center; padding: 8px 0 28px 0;">
-                    <a href="{reset_url}"
-                       style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.4);">
-                        Reset Password
-                    </a>
+                    <a href="{reset_url}" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.4);">Reset Password</a>
                 </td>
             </tr>
         </table>
@@ -194,10 +188,7 @@ def resend_verification_email(verify_url: str) -> str:
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
             <tr>
                 <td style="text-align: center; padding: 8px 0 28px 0;">
-                    <a href="{verify_url}"
-                       style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);">
-                        Verify My Email
-                    </a>
+                    <a href="{verify_url}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);">Verify My Email</a>
                 </td>
             </tr>
         </table>
