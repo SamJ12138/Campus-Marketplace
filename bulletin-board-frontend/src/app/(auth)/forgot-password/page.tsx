@@ -64,7 +64,13 @@ export default function ForgotPasswordPage() {
                 <p className="text-lg font-medium">Check your email</p>
                 <p className="text-sm text-muted-foreground">
                   If an account exists with that email, we have sent a password
-                  reset link. Please check your inbox and spam folder.
+                  reset link.
+                </p>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+                <p className="font-medium">Can't find the email?</p>
+                <p className="mt-1 text-amber-700 dark:text-amber-300">
+                  Check your spam or junk folder. University email filters may flag password reset emails.
                 </p>
               </div>
             </div>
