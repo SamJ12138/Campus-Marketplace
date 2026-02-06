@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_secret_key: str = Field(..., min_length=32)
     app_url: str = "http://localhost:8000"
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:3000"  # Comma-separated for multiple origins
 
     # Database
     database_url: str  # postgresql+asyncpg://user:pass@host:5432/db
