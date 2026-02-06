@@ -1,20 +1,23 @@
-import json
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from redis.asyncio import Redis
-from sqlalchemy import func, select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user
 from app.config import get_settings
-from app.dependencies import get_db, get_redis
+from app.dependencies import get_db
 from app.models.listing import Listing, ListingPhoto
+from app.models.pending_upload import PendingUpload
 from app.models.user import User
 from app.services.storage_service import StorageService
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
+
+# Upload expires after 10 minutes
+UPLOAD_EXPIRY_MINUTES = 10
 
 
 class PresignedUploadRequest(BaseModel):
@@ -39,7 +42,6 @@ class ConfirmUploadRequest(BaseModel):
 async def get_presigned_upload_url(
     data: PresignedUploadRequest,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
 ):
     """Get presigned URL for direct upload to S3."""
@@ -53,6 +55,7 @@ async def get_presigned_upload_url(
         if not listing or listing.user_id != current_user.id:
             raise HTTPException(404, "Listing not found")
 
+        from sqlalchemy import func
         photo_count = await db.scalar(
             select(func.count()).where(ListingPhoto.listing_id == data.listing_id)
         )
@@ -69,19 +72,26 @@ async def get_presigned_upload_url(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    upload_id = uuid4()
-    await redis.setex(
-        f"pending_upload:{upload_id}",
-        600,
-        json.dumps(
-            {
-                "user_id": str(current_user.id),
-                "purpose": data.purpose,
-                "storage_key": result["storage_key"],
-                "listing_id": str(data.listing_id) if data.listing_id else None,
-            }
-        ),
+    # Clean up expired pending uploads for this user
+    await db.execute(
+        delete(PendingUpload).where(
+            PendingUpload.user_id == current_user.id,
+            PendingUpload.expires_at < datetime.now(timezone.utc),
+        )
     )
+
+    # Store pending upload in database instead of Redis
+    upload_id = uuid4()
+    pending = PendingUpload(
+        id=upload_id,
+        user_id=current_user.id,
+        purpose=data.purpose,
+        storage_key=result["storage_key"],
+        listing_id=data.listing_id,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=UPLOAD_EXPIRY_MINUTES),
+    )
+    db.add(pending)
+    await db.commit()
 
     return PresignedUploadResponse(
         upload_url=result["upload_url"],
@@ -96,30 +106,35 @@ async def confirm_upload(
     upload_id: UUID,
     data: ConfirmUploadRequest,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
 ):
     """Confirm upload completed, validate and move file."""
-    pending_raw = await redis.get(f"pending_upload:{upload_id}")
-    if not pending_raw:
+    # Look up pending upload from database
+    pending = await db.get(PendingUpload, upload_id)
+
+    if not pending:
         raise HTTPException(404, "Upload not found or expired")
 
-    pending = json.loads(pending_raw)
-    if pending["user_id"] != str(current_user.id):
+    if pending.expires_at < datetime.now(timezone.utc):
+        await db.delete(pending)
+        await db.commit()
+        raise HTTPException(404, "Upload not found or expired")
+
+    if pending.user_id != current_user.id:
         raise HTTPException(403, "Not your upload")
 
     settings = get_settings()
     storage = StorageService(settings)
 
     try:
-        if pending["purpose"] == "listing_photo":
+        if pending.purpose == "listing_photo":
             result = await storage.validate_and_move_upload(
-                pending["storage_key"],
+                pending.storage_key,
                 "photos",
             )
 
             photo = ListingPhoto(
-                listing_id=UUID(pending["listing_id"]),
+                listing_id=pending.listing_id,
                 url=result["url"],
                 storage_key=result["storage_key"],
                 content_type=result["content_type"],
@@ -127,22 +142,26 @@ async def confirm_upload(
                 position=data.position,
             )
             db.add(photo)
+
+            # Delete the pending upload record
+            await db.delete(pending)
             await db.commit()
 
             return {"photo_id": str(photo.id), "url": result["url"]}
 
-        elif pending["purpose"] == "avatar":
+        elif pending.purpose == "avatar":
             result = await storage.validate_and_move_upload(
-                pending["storage_key"],
+                pending.storage_key,
                 "avatars",
             )
 
             current_user.avatar_url = result["url"]
+
+            # Delete the pending upload record
+            await db.delete(pending)
             await db.commit()
 
             return {"avatar_url": result["url"]}
 
     except ValueError as e:
         raise HTTPException(400, str(e))
-    finally:
-        await redis.delete(f"pending_upload:{upload_id}")

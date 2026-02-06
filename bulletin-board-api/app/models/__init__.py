@@ -8,6 +8,7 @@ from app.models.block import Block
 from app.models.report import Report
 from app.models.admin import AdminAction, BannedKeyword
 from app.models.notification import NotificationPreference
+from app.models.pending_upload import PendingUpload
 
 __all__ = [
     "Base",
@@ -27,4 +28,5 @@ __all__ = [
     "AdminAction",
     "BannedKeyword",
     "NotificationPreference",
+    "PendingUpload",
 ]
