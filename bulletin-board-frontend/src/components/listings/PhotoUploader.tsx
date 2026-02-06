@@ -325,23 +325,75 @@ export default function PhotoUploader({
   // When listingId becomes available, upload all pending entries
   useEffect(() => {
     if (!listingId) return;
-    const pending = entries.filter(
-      (e) => !e.error && !e.uploaded && !activeUploads.current.has(e.localId),
-    );
-    if (pending.length === 0) {
-      onUploadsComplete?.();
-      return;
-    }
-    let completed = 0;
-    for (const entry of pending) {
-      uploadSingleFile(entry).then(() => {
-        completed++;
-        if (completed >= pending.length) {
-          onUploadsComplete?.();
-        }
-      });
-    }
-  }, [listingId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Get current entries from state (avoid stale closure)
+    setEntries((currentEntries) => {
+      const pending = currentEntries.filter(
+        (e) => !e.error && !e.uploaded && !activeUploads.current.has(e.localId),
+      );
+
+      if (pending.length === 0) {
+        onUploadsComplete?.();
+        return currentEntries;
+      }
+
+      let completed = 0;
+      for (const entry of pending) {
+        // Start upload with the current listingId (not from stale closure)
+        (async () => {
+          if (activeUploads.current.has(entry.localId)) return;
+          activeUploads.current.add(entry.localId);
+
+          try {
+            const result = await uploadFile(entry.file, "listing_photo", {
+              listing_id: listingId,
+              position: 0,
+              onProgress: (percent) => {
+                setEntries((prev) =>
+                  prev.map((e) =>
+                    e.localId === entry.localId ? { ...e, progress: percent } : e,
+                  ),
+                );
+              },
+            });
+
+            const managedPhoto: ManagedPhoto = {
+              id: result.photo_id ?? entry.localId,
+              url: result.url ?? entry.previewUrl,
+              thumbnail_url: result.url ?? entry.previewUrl,
+              position: 0,
+            };
+
+            setEntries((prev) => {
+              const updated = prev.map((e) =>
+                e.localId === entry.localId
+                  ? { ...e, progress: 100, error: null, uploaded: managedPhoto }
+                  : e,
+              );
+              syncPhotos(updated);
+              return updated;
+            });
+          } catch (err) {
+            const message =
+              err instanceof Error ? err.message : "Upload failed";
+            setEntries((prev) =>
+              prev.map((e) =>
+                e.localId === entry.localId ? { ...e, error: message } : e,
+              ),
+            );
+          } finally {
+            activeUploads.current.delete(entry.localId);
+            completed++;
+            if (completed >= pending.length) {
+              onUploadsComplete?.();
+            }
+          }
+        })();
+      }
+
+      return currentEntries;
+    });
+  }, [listingId, syncPhotos, onUploadsComplete]);
 
   // Cleanup object URLs on unmount to prevent memory leaks
   useEffect(() => {
