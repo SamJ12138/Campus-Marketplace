@@ -72,9 +72,9 @@ export async function getFavorites(
 }
 
 export async function addFavorite(listingId: string): Promise<void> {
-  return api.post<void>(`/api/v1/listings/${listingId}/favorite`);
+  return api.post<void>(`/api/v1/favorites/${listingId}`);
 }
 
 export async function removeFavorite(listingId: string): Promise<void> {
-  return api.delete(`/api/v1/listings/${listingId}/favorite`);
+  return api.delete(`/api/v1/favorites/${listingId}`);
 }

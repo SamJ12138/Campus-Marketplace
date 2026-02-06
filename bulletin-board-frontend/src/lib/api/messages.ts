@@ -9,7 +9,7 @@ export async function getThreads(
   page?: number,
   per_page?: number,
 ): Promise<PaginatedResponse<MessageThread>> {
-  return api.get<PaginatedResponse<MessageThread>>("/api/v1/messages/threads", {
+  return api.get<PaginatedResponse<MessageThread>>("/api/v1/threads", {
     page,
     per_page,
   });
@@ -26,7 +26,7 @@ export async function getThread(
   return api.get<{
     thread: MessageThread;
     messages: PaginatedResponse<Message>;
-  }>(`/api/v1/messages/threads/${threadId}`, {
+  }>(`/api/v1/threads/${threadId}`, {
     page,
     per_page,
   });
@@ -42,18 +42,18 @@ export async function startThread(
   return api.post<{
     thread: MessageThread;
     messages: PaginatedResponse<Message>;
-  }>("/api/v1/messages/threads", { listing_id, content });
+  }>("/api/v1/threads", { listing_id, message: content });
 }
 
 export async function sendMessage(
   threadId: string,
   content: string,
 ): Promise<Message> {
-  return api.post<Message>(`/api/v1/messages/threads/${threadId}/messages`, {
+  return api.post<Message>(`/api/v1/threads/${threadId}/messages`, {
     content,
   });
 }
 
 export async function markThreadRead(threadId: string): Promise<void> {
-  return api.post<void>(`/api/v1/messages/threads/${threadId}/read`);
+  return api.patch<void>(`/api/v1/threads/${threadId}/read`);
 }
