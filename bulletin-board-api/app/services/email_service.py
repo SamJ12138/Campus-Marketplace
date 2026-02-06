@@ -9,13 +9,32 @@ class EmailService:
     def __init__(self, settings: Settings):
         self.settings = settings
 
+    def send_email_sync(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+    ) -> bool:
+        """Send an email synchronously. Use in background tasks / threads."""
+        return self._do_send(to_email, subject, html_content)
+
     async def send_email(
         self,
         to_email: str,
         subject: str,
         html_content: str,
     ) -> bool:
-        """Send an email using the configured provider."""
+        """Send an email. Runs blocking SDK calls in a thread to avoid blocking the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self._do_send, to_email, subject, html_content)
+
+    def _do_send(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+    ) -> bool:
+        """Internal send implementation (blocking)."""
         provider = self.settings.email_provider
         logger.info(f"[EMAIL] Attempting to send email via '{provider}' to {to_email}")
 

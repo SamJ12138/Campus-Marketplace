@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,15 +32,37 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/threads", tags=["messaging"])
 
 
-async def _notify_recipient_by_email(
+def _send_notification_email(
+    recipient_email: str,
+    sender_name: str,
+    listing_title: str,
+    message_content: str,
+    thread_url: str,
+) -> None:
+    """Send email notification in background thread. Called by FastAPI BackgroundTasks."""
+    try:
+        settings = get_settings()
+        html = new_message_email(sender_name, listing_title, message_content, thread_url)
+        email_service = EmailService(settings)
+        email_service.send_email_sync(
+            to_email=recipient_email,
+            subject=f"New message from {sender_name} - Gimme Dat",
+            html_content=html,
+        )
+    except Exception:
+        logger.exception("Failed to send message notification email")
+
+
+async def _maybe_queue_email(
     db: AsyncSession,
+    background_tasks: BackgroundTasks,
     recipient_id: UUID,
     sender_name: str,
     listing_title: str,
     message_content: str,
     thread_id: UUID,
 ) -> None:
-    """Send an email notification to the message recipient if their preferences allow it."""
+    """Check preferences and queue email notification as background task."""
     try:
         prefs = await db.scalar(
             select(NotificationPreference).where(
@@ -56,16 +78,17 @@ async def _notify_recipient_by_email(
 
         settings = get_settings()
         thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
-        html = new_message_email(sender_name, listing_title, message_content, thread_url)
 
-        email_service = EmailService(settings)
-        await email_service.send_email(
-            to_email=recipient.email,
-            subject=f"New message from {sender_name} - Gimme Dat",
-            html_content=html,
+        background_tasks.add_task(
+            _send_notification_email,
+            recipient.email,
+            sender_name,
+            listing_title,
+            message_content,
+            thread_url,
         )
     except Exception:
-        logger.exception("Failed to send message notification email")
+        logger.exception("Failed to queue message notification email")
 
 
 @router.get("", response_model=ThreadListResponse)
@@ -94,6 +117,7 @@ async def list_threads(
 @router.post("", response_model=ThreadDetailResponse, status_code=201)
 async def start_thread(
     data: StartThreadRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -123,16 +147,16 @@ async def start_thread(
         flagged=filter_result.flagged,
     )
 
-    # Send email notification to recipient
+    # Queue email notification (non-blocking background task)
     recipient_id = (
         thread.recipient_id
         if thread.initiator_id == current_user.id
         else thread.initiator_id
     )
     listing_title = thread.listing.title if thread.listing else "a listing"
-    await _notify_recipient_by_email(
-        db, recipient_id, current_user.display_name, listing_title,
-        data.message, thread.id,
+    await _maybe_queue_email(
+        db, background_tasks, recipient_id, current_user.display_name,
+        listing_title, data.message, thread.id,
     )
 
     messages_list = [
@@ -202,6 +226,7 @@ async def get_thread(
 async def send_message(
     thread_id: UUID,
     data: SendMessageRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -227,7 +252,7 @@ async def send_message(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Send email notification to recipient
+    # Queue email notification (non-blocking background task)
     thread = await db.scalar(
         select(MessageThread)
         .options(selectinload(MessageThread.listing))
@@ -240,9 +265,9 @@ async def send_message(
             else thread.initiator_id
         )
         listing_title = thread.listing.title if thread.listing else "a listing"
-        await _notify_recipient_by_email(
-            db, recipient_id, current_user.display_name, listing_title,
-            data.content, thread_id,
+        await _maybe_queue_email(
+            db, background_tasks, recipient_id, current_user.display_name,
+            listing_title, data.content, thread_id,
         )
 
     return MessageResponse(
