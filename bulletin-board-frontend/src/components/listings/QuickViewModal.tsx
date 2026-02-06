@@ -137,6 +137,7 @@ export default function QuickViewModal({
               sizes="(max-width: 640px) 100vw, 640px"
               className="object-cover"
               priority
+              unoptimized={currentPhoto.url.includes('r2.dev')}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

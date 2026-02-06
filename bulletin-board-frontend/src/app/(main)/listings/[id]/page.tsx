@@ -124,6 +124,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
             className="cursor-pointer object-cover"
             onClick={() => setLightboxOpen(true)}
             priority
+            unoptimized={photos[current].url.includes('r2.dev')}
           />
         </div>
 
@@ -190,6 +191,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
                 fill
                 sizes="64px"
                 className="object-cover"
+                unoptimized={photo.thumbnail_url.includes('r2.dev')}
               />
             </button>
           ))}
@@ -224,6 +226,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
               sizes="90vw"
               className="object-contain"
               priority
+              unoptimized={photos[current].url.includes('r2.dev')}
             />
           </div>
           {photos.length > 1 && (
