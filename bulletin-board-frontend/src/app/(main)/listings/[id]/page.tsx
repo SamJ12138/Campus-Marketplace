@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   Loader2,
   ArrowLeft,
-  ExternalLink,
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -348,7 +347,7 @@ export default function ListingDetailPage() {
   const listingId = params.id as string;
 
   const { data: listing, isLoading, isError } = useListing(listingId);
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const openReportModal = useUIStore((s) => s.openReportModal);
 

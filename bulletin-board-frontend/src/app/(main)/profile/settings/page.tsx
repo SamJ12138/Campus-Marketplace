@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
-import { changePasswordSchema, type ChangePasswordInput } from "@/lib/validation/auth";
+import { changePasswordSchema } from "@/lib/validation/auth";
 import { changePassword, deleteAccount } from "@/lib/api/users";
 import { getBlockedUsers, unblockUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/client";

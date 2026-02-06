@@ -252,7 +252,7 @@ export default function PhotoUploader({
         fileInputRef.current.value = "";
       }
     },
-    [entries.length, maxPhotos, uploadSingleFile],
+    [entries.length, maxPhotos, uploadSingleFile, listingId, onPendingCountChange],
   );
 
   // Remove a photo (with memory cleanup)

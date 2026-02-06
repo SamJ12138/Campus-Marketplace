@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { Button } from "@/components/ui/Button";
 

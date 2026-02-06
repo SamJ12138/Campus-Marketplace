@@ -114,7 +114,7 @@ export default function ThreadDetailPage() {
   const router = useRouter();
   const threadId = params.threadId as string;
 
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { data, isLoading, isError } = useThread(threadId);
   const sendMutation = useSendMessage();
   const markReadMutation = useMarkRead();

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Category, ListingType, LocationType, ContactPreference } from "@/lib/types";
+import type { Category, LocationType, ContactPreference } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { listingCreateSchema, type ListingCreateInput } from "@/lib/validation/listing";
@@ -245,7 +245,7 @@ export default function CreateListingPage() {
       }
       router.push(`/listings/${newListing.id}`);
     },
-    [createListing, router, isOtherCategory],
+    [createListing, router, isOtherCategory, setError],
   );
 
   // Cancel with confirmation

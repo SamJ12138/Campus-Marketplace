@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
-  Category,
   CreateListingRequest,
   Listing,
   ListingFilters,
