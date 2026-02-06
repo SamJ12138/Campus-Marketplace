@@ -7,7 +7,7 @@ import { Loader2, UserPlus, GraduationCap, Check, X, Phone } from "lucide-react"
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { registerSchema, type RegisterInput } from "@/lib/validation/auth";
+import { registerSchema } from "@/lib/validation/auth";
 import { ApiError } from "@/lib/api/client";
 import { getCampuses } from "@/lib/api/auth";
 import type { Campus } from "@/lib/types";

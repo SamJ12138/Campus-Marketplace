@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Briefcase,
@@ -178,12 +178,12 @@ export default function EditListingPage() {
   const listingId = params.id as string;
 
   const { data: listing, isLoading: listingLoading } = useListing(listingId);
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const updateListingMutation = useUpdateListing();
   const deleteListingMutation = useDeleteListing();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [photoData, setPhotoData] = useState<
+  const [_photoData, setPhotoData] = useState<
     { id: string; url: string; position: number }[]
   >([]);
 

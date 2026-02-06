@@ -10,7 +10,6 @@ import {
   FileText,
   Shield,
   KeyRound,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
