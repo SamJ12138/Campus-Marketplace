@@ -60,8 +60,6 @@ function RegisterContent() {
     accept_terms: false,
   });
 
-  const selectedCampus = campuses.find((c) => c.slug === form.campus_slug);
-
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,7 +183,7 @@ function RegisterContent() {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              Use your .edu email
+              .edu preferred, but any email works
             </p>
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
@@ -309,11 +307,6 @@ function RegisterContent() {
                 </option>
               ))}
             </select>
-            {selectedCampus && (
-              <p className="text-xs text-muted-foreground">
-                Use your @{selectedCampus.domain} email
-              </p>
-            )}
             {errors.campus_slug && (
               <p className="text-xs text-destructive">{errors.campus_slug}</p>
             )}
@@ -363,7 +356,7 @@ function RegisterContent() {
                 autoComplete="tel"
                 value={form.phone_number}
                 onChange={(e) => updateField("phone_number", e.target.value)}
-                placeholder="+12345678901"
+                placeholder="(555) 123-4567"
                 disabled={isSubmitting}
                 className={cn(
                   "flex h-10 w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm",
@@ -375,7 +368,7 @@ function RegisterContent() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              {t.auth.phoneNumberHelp}
+              Enter your 10-digit US phone number
             </p>
             {errors.phone_number && (
               <p className="text-xs text-destructive">{errors.phone_number}</p>

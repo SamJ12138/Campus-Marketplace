@@ -49,7 +49,25 @@ export const registerSchema = z
       .nullable(),
     phone_number: z
       .string()
-      .regex(/^\+[1-9]\d{1,14}$/, "Please enter a valid phone number (E.164 format, e.g. +12345678901)")
+      .transform((val) => {
+        if (!val) return val;
+        // Strip all non-digits
+        const digits = val.replace(/\D/g, "");
+        // If 10 digits, assume US and add +1
+        if (digits.length === 10) {
+          return `+1${digits}`;
+        }
+        // If 11 digits starting with 1, add +
+        if (digits.length === 11 && digits.startsWith("1")) {
+          return `+${digits}`;
+        }
+        // Otherwise return as-is (will fail validation if invalid)
+        return val.startsWith("+") ? val : `+${digits}`;
+      })
+      .refine(
+        (val) => !val || /^\+[1-9]\d{10,14}$/.test(val),
+        "Please enter a valid 10-digit phone number"
+      )
       .optional()
       .or(z.literal("")),
     notify_email: z.boolean().default(true),
