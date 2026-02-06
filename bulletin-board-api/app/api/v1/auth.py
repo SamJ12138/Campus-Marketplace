@@ -10,6 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_active_user
 from app.config import get_settings
 from app.services.email_service import EmailService
+from app.services.email_templates import (
+    verification_email,
+    password_reset_email,
+    resend_verification_email,
+)
 from app.core.rate_limit import check_login_rate_limit
 from app.core.security import (
     create_access_token,
@@ -119,13 +124,8 @@ async def register(
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
-        subject="Verify your Campus Board email",
-        html_content=(
-            f"<h2>Welcome to Campus Board!</h2>"
-            f"<p>Click the link below to verify your email address:</p>"
-            f'<p><a href="{verify_url}">Verify Email</a></p>'
-            f"<p>This link expires in 24 hours.</p>"
-        ),
+        subject="Welcome to Gimme Dat! Verify your email 🎉",
+        html_content=verification_email(verify_url, user.display_name),
     )
 
     return {
@@ -329,13 +329,8 @@ async def resend_verification(
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
-        subject="Verify your Campus Board email",
-        html_content=(
-            f"<h2>Verify your email</h2>"
-            f"<p>Click the link below to verify your email address:</p>"
-            f'<p><a href="{verify_url}">Verify Email</a></p>'
-            f"<p>This link expires in 24 hours.</p>"
-        ),
+        subject="Verify your Gimme Dat email ✉️",
+        html_content=resend_verification_email(verify_url),
     )
 
     return {"message": "If an account exists, a verification email has been sent."}
@@ -372,13 +367,8 @@ async def forgot_password(
         email_svc = EmailService(settings)
         await email_svc.send_email(
             to_email=user.email,
-            subject="Reset your Campus Board password",
-            html_content=(
-                f"<h2>Password Reset</h2>"
-                f"<p>Click the link below to reset your password:</p>"
-                f'<p><a href="{reset_url}">Reset Password</a></p>'
-                f"<p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>"
-            ),
+            subject="Reset your Gimme Dat password 🔐",
+            html_content=password_reset_email(reset_url),
         )
 
     return {"message": "If an account exists, a password reset email has been sent."}
