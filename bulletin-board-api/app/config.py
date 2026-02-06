@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     app_url: str = "http://localhost:8000"
     frontend_url: str = "http://localhost:3000"  # Comma-separated for multiple origins
 
+    @property
+    def primary_frontend_url(self) -> str:
+        """Get the primary frontend URL (first one if comma-separated)."""
+        return self.frontend_url.split(",")[0].strip()
+
     # Database
     database_url: str  # postgresql+asyncpg://user:pass@host:5432/db
     database_echo: bool = False

@@ -120,7 +120,7 @@ async def register(
         }
 
     # Send verification email
-    verify_url = f"{settings.frontend_url}/verify-email?token={raw_token}"
+    verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
@@ -325,7 +325,7 @@ async def resend_verification(
     db.add(verification)
     await db.commit()
 
-    verify_url = f"{settings.frontend_url}/verify-email?token={raw_token}"
+    verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
@@ -363,7 +363,7 @@ async def forgot_password(
         db.add(verification)
         await db.commit()
 
-        reset_url = f"{settings.frontend_url}/reset-password?token={raw_token}"
+        reset_url = f"{settings.primary_frontend_url}/reset-password?token={raw_token}"
         email_svc = EmailService(settings)
         await email_svc.send_email(
             to_email=user.email,
