@@ -436,8 +436,8 @@ export default function PhotoUploader({
               </div>
             )}
 
-            {/* Progress overlay */}
-            {!entry.uploaded && !entry.error && (
+            {/* Progress overlay - only show when actively uploading */}
+            {!entry.uploaded && !entry.error && entry.progress > 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
                 <Loader2 className="h-6 w-6 animate-spin text-white" />
                 <span className="mt-1 text-xs font-medium text-white">
@@ -450,6 +450,23 @@ export default function PhotoUploader({
                     style={{ width: `${entry.progress}%` }}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Ready overlay - show when waiting for listing to be created */}
+            {!entry.uploaded && !entry.error && entry.progress === 0 && !listingId && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                <span className="text-xs font-medium text-white">Ready</span>
+              </div>
+            )}
+
+            {/* Queued overlay - show when listingId exists but upload hasn't started */}
+            {!entry.uploaded && !entry.error && entry.progress === 0 && listingId && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <span className="mt-1 text-xs font-medium text-white">
+                  Starting...
+                </span>
               </div>
             )}
 
@@ -560,6 +577,7 @@ export default function PhotoUploader({
       {/* Helper text */}
       <p className="text-xs text-slate-500">
         {t.listings.photosHelp} ({entries.length}/{maxPhotos})
+        {!listingId && entries.length > 0 && " • Photos will upload when you post"}
       </p>
     </div>
   );
