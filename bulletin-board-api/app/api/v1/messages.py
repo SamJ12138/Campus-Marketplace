@@ -140,6 +140,14 @@ async def start_thread(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
+    # Capture listing title before send_message commits (avoids lazy load)
+    listing_title = thread.listing.title if thread.listing else "a listing"
+    recipient_id = (
+        thread.recipient_id
+        if thread.initiator_id == current_user.id
+        else thread.initiator_id
+    )
+
     message = await service.send_message(
         thread.id,
         current_user.id,
@@ -148,15 +156,21 @@ async def start_thread(
     )
 
     # Queue email notification (non-blocking background task)
-    recipient_id = (
-        thread.recipient_id
-        if thread.initiator_id == current_user.id
-        else thread.initiator_id
-    )
-    listing_title = thread.listing.title if thread.listing else "a listing"
     await _maybe_queue_email(
         db, background_tasks, recipient_id, current_user.display_name,
         listing_title, data.message, thread.id,
+    )
+
+    # Re-fetch thread with all relationships loaded after commit
+    thread = await db.scalar(
+        select(MessageThread)
+        .options(
+            selectinload(MessageThread.listing),
+            selectinload(MessageThread.initiator),
+            selectinload(MessageThread.recipient),
+            selectinload(MessageThread.messages),
+        )
+        .where(MessageThread.id == thread.id)
     )
 
     messages_list = [

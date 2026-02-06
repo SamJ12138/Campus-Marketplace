@@ -101,7 +101,9 @@ interface MessageGroup {
   messages: Message[];
 }
 
-function groupMessages(messages: Message[]): { date: string; groups: MessageGroup[] }[] {
+function groupMessages(
+  messages: Message[],
+): { date: string; groups: MessageGroup[] }[] {
   const dateMap = new Map<string, Message[]>();
   for (const msg of messages) {
     const dateKey = new Date(msg.created_at).toDateString();
@@ -116,7 +118,9 @@ function groupMessages(messages: Message[]): { date: string; groups: MessageGrou
       const last = groups[groups.length - 1];
       const timeDiff = last
         ? new Date(msg.created_at).getTime() -
-          new Date(last.messages[last.messages.length - 1].created_at).getTime()
+          new Date(
+            last.messages[last.messages.length - 1].created_at,
+          ).getTime()
         : Infinity;
 
       if (last && last.senderId === msg.sender_id && timeDiff < 120_000) {
@@ -146,8 +150,15 @@ function UserAvatar({
   size?: number;
   className?: string;
 }) {
-  const sizeClass = size === 32 ? "h-8 w-8" : size === 48 ? "h-12 w-12" : "h-10 w-10";
-  const textSize = size === 32 ? "text-xs" : size === 48 ? "text-base" : "text-sm";
+  const sizeClass =
+    size <= 32
+      ? "h-8 w-8"
+      : size <= 40
+        ? "h-10 w-10"
+        : size <= 44
+          ? "h-11 w-11"
+          : "h-12 w-12";
+  const textSize = size <= 32 ? "text-xs" : size <= 40 ? "text-sm" : "text-base";
 
   if (url) {
     return (
@@ -156,7 +167,7 @@ function UserAvatar({
         alt={name}
         width={size}
         height={size}
-        className={cn(sizeClass, "rounded-full object-cover", className)}
+        className={cn(sizeClass, "rounded-lg object-cover", className)}
         unoptimized={url.includes("r2.dev") || url.includes("cloudflare")}
       />
     );
@@ -166,7 +177,7 @@ function UserAvatar({
     <div
       className={cn(
         sizeClass,
-        "flex items-center justify-center rounded-full bg-primary/10 font-medium text-primary",
+        "flex items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary",
         textSize,
         className,
       )}
@@ -181,7 +192,7 @@ function UserAvatar({
 function ThreadSkeleton() {
   return (
     <div className="flex items-center gap-3 px-4 py-3 animate-pulse">
-      <div className="h-11 w-11 shrink-0 rounded-full bg-muted" />
+      <div className="h-12 w-12 shrink-0 rounded-lg bg-muted" />
       <div className="flex-1 space-y-2">
         <div className="h-3.5 w-32 rounded bg-muted" />
         <div className="h-3 w-48 rounded bg-muted" />
@@ -191,9 +202,9 @@ function ThreadSkeleton() {
   );
 }
 
-// ─── Thread Row ─────────────────────────────────────────────
+// ─── Contact Row (WeChat-style) ─────────────────────────────
 
-function ThreadRow({
+function ContactRow({
   thread,
   isActive,
   onClick,
@@ -209,34 +220,28 @@ function ThreadRow({
       className={cn(
         "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
         isActive
-          ? "bg-primary/8 border-l-2 border-primary"
-          : "border-l-2 border-transparent hover:bg-accent/50",
-        thread.unread_count > 0 && !isActive && "bg-accent/20",
+          ? "bg-accent"
+          : "hover:bg-accent/50",
+        thread.unread_count > 0 && !isActive && "bg-accent/30",
       )}
     >
-      {/* Avatar with listing thumbnail overlay */}
+      {/* Avatar (WeChat uses square-ish rounded avatars) */}
       <div className="relative shrink-0">
         <UserAvatar
           url={thread.other_user.avatar_url}
           name={thread.other_user.display_name}
-          size={44}
-          className="h-11 w-11"
+          size={48}
+          className="h-12 w-12"
         />
-        {thread.listing?.first_photo_url && (
-          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-md border-2 border-background overflow-hidden">
-            <Image
-              src={thread.listing.first_photo_url}
-              alt=""
-              width={20}
-              height={20}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          </div>
+        {/* Unread badge on avatar */}
+        {thread.unread_count > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+            {thread.unread_count > 99 ? "99+" : thread.unread_count}
+          </span>
         )}
       </div>
 
-      {/* Content */}
+      {/* Name + last message preview */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span
@@ -251,51 +256,41 @@ function ThreadRow({
             {formatTimeAgo(thread.last_message_at)}
           </span>
         </div>
-        {thread.listing && (
-          <p className="text-xs text-muted-foreground truncate">
-            {thread.listing.title}
-          </p>
-        )}
-        <div className="flex items-center justify-between gap-2">
-          <p
-            className={cn(
-              "text-[13px] truncate",
-              thread.unread_count > 0
-                ? "text-foreground font-medium"
-                : "text-muted-foreground",
-            )}
-          >
-            {thread.last_message_preview
-              ? truncate(thread.last_message_preview, 50)
-              : "No messages yet"}
-          </p>
-          {thread.unread_count > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shrink-0">
-              {thread.unread_count > 99 ? "99+" : thread.unread_count}
-            </span>
+        <p
+          className={cn(
+            "text-[13px] truncate mt-0.5",
+            thread.unread_count > 0
+              ? "text-foreground"
+              : "text-muted-foreground",
           )}
-        </div>
+        >
+          {thread.last_message_preview
+            ? truncate(thread.last_message_preview, 40)
+            : "No messages yet"}
+        </p>
       </div>
     </button>
   );
 }
 
-// ─── Thread List Panel ──────────────────────────────────────
+// ─── Contacts Panel (left side) ─────────────────────────────
 
-function ThreadListPanel({
+function ContactsPanel({
   activeThreadId,
   onSelectThread,
-  onCompose,
-  composeListingId,
 }: {
   activeThreadId: string | null;
   onSelectThread: (id: string) => void;
-  onCompose: (listingId: string) => void;
-  composeListingId: string | null;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useThreads();
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useThreads();
 
   const threads = useMemo(() => {
     if (!data?.pages) return [];
@@ -306,33 +301,28 @@ function ThreadListPanel({
     if (!searchQuery.trim()) return threads;
     const q = searchQuery.toLowerCase();
     return threads.filter(
-      (t) =>
-        t.other_user.display_name.toLowerCase().includes(q) ||
-        t.listing?.title.toLowerCase().includes(q) ||
-        t.last_message_preview?.toLowerCase().includes(q),
+      (thread) =>
+        thread.other_user.display_name.toLowerCase().includes(q) ||
+        thread.listing?.title.toLowerCase().includes(q) ||
+        thread.last_message_preview?.toLowerCase().includes(q),
     );
   }, [threads, searchQuery]);
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="shrink-0 border-b border-border px-4 py-3">
-        <h1 className="text-lg font-semibold">{t.messages.inboxTitle}</h1>
-      </div>
-
-      {/* Search */}
-      <div className="shrink-0 px-3 py-2">
+      {/* Search bar */}
+      <div className="shrink-0 px-3 py-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search conversations..."
+            placeholder="Search"
             className={cn(
-              "flex h-9 w-full rounded-lg border border-input bg-muted/50 pl-9 pr-3 text-sm",
+              "flex h-8 w-full rounded-md border-0 bg-muted/70 pl-9 pr-3 text-sm",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             )}
           />
           {searchQuery && (
@@ -347,14 +337,14 @@ function ThreadListPanel({
         </div>
       </div>
 
-      {/* Thread list */}
+      {/* Contact list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
-          <div className="divide-y divide-border">
+          <>
             {Array.from({ length: 6 }).map((_, i) => (
               <ThreadSkeleton key={i} />
             ))}
-          </div>
+          </>
         )}
 
         {isError && (
@@ -377,29 +367,26 @@ function ThreadListPanel({
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                {searchQuery ? "No matching conversations" : "No messages yet"}
+                {searchQuery ? "No results" : "No messages yet"}
               </p>
               {!searchQuery && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Start a conversation by messaging a seller on any listing.
+                  Message a seller on any listing to start a conversation.
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {filteredThreads.length > 0 && (
-          <div className="divide-y divide-border/50">
-            {filteredThreads.map((thread) => (
-              <ThreadRow
-                key={thread.id}
-                thread={thread}
-                isActive={thread.id === activeThreadId}
-                onClick={() => onSelectThread(thread.id)}
-              />
-            ))}
-          </div>
-        )}
+        {filteredThreads.length > 0 &&
+          filteredThreads.map((thread) => (
+            <ContactRow
+              key={thread.id}
+              thread={thread}
+              isActive={thread.id === activeThreadId}
+              onClick={() => onSelectThread(thread.id)}
+            />
+          ))}
 
         {hasNextPage && (
           <div className="p-3 text-center">
@@ -407,7 +394,7 @@ function ThreadListPanel({
               type="button"
               onClick={() => fetchNextPage()}
               disabled={isFetchingNextPage}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
             >
               {isFetchingNextPage ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -432,7 +419,7 @@ function ListingContextCard({
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="flex items-center gap-3 rounded-lg border border-border bg-accent/30 px-3 py-2 transition-colors hover:bg-accent/50"
+      className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-accent/50"
     >
       {listing.first_photo_url && (
         <Image
@@ -445,7 +432,7 @@ function ListingContextCard({
         />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">About this listing</p>
+        <p className="text-xs text-muted-foreground">About this listing</p>
         <p className="text-sm font-medium truncate">{listing.title}</p>
       </div>
       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -476,7 +463,6 @@ function QuickReplies({
   onSelect: (text: string) => void;
   messageCount: number;
 }) {
-  // Only show for new/short conversations
   if (messageCount > 4) return null;
 
   const replies = messageCount === 0 ? QUICK_REPLIES_BUYER : QUICK_REPLIES_SELLER;
@@ -497,82 +483,85 @@ function QuickReplies({
   );
 }
 
-// ─── Message Bubble ─────────────────────────────────────────
+// ─── Message Bubble (WeChat-style) ──────────────────────────
 
 function MessageBubble({
   message,
   isOwn,
   isFirst,
   isLast,
+  showAvatar,
+  avatarUrl,
+  senderName,
 }: {
   message: Message;
   isOwn: boolean;
   isFirst: boolean;
   isLast: boolean;
+  showAvatar: boolean;
+  avatarUrl: string | null;
+  senderName: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col max-w-[75%]",
-        isOwn ? "items-end self-end" : "items-start self-start",
+        "flex gap-2 px-4",
+        isOwn ? "flex-row-reverse" : "flex-row",
         isFirst ? "mt-3" : "mt-0.5",
       )}
     >
-      {/* Sender name for first message in group (received only) */}
-      {isFirst && !isOwn && (
-        <span className="text-[11px] font-medium text-muted-foreground mb-0.5 px-1">
-          {message.sender_name}
-        </span>
-      )}
-
-      <div
-        className={cn(
-          "px-3.5 py-2 text-sm leading-relaxed break-words",
-          isOwn
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground",
-          // Rounded corners based on position in group
-          isOwn
-            ? cn(
-                "rounded-2xl",
-                isFirst && isLast && "rounded-br-md",
-                isFirst && !isLast && "rounded-br-md rounded-bl-2xl",
-                !isFirst && isLast && "rounded-br-md",
-                !isFirst && !isLast && "rounded-br-md rounded-bl-2xl",
-              )
-            : cn(
-                "rounded-2xl",
-                isFirst && isLast && "rounded-bl-md",
-                isFirst && !isLast && "rounded-bl-md",
-                !isFirst && isLast && "rounded-bl-md",
-                !isFirst && !isLast && "rounded-bl-md",
-              ),
+      {/* Avatar column — only show on first message of group */}
+      <div className="w-8 shrink-0">
+        {showAvatar && (
+          <UserAvatar
+            url={avatarUrl}
+            name={senderName}
+            size={32}
+            className="h-8 w-8"
+          />
         )}
-      >
-        {message.content}
       </div>
 
-      {/* Timestamp + read receipt on last message in group */}
-      {isLast && (
-        <div className="flex items-center gap-1 px-1 mt-0.5">
-          <span className="text-[10px] text-muted-foreground">
-            {formatTime(message.created_at)}
-          </span>
-          {isOwn &&
-            (message.is_read ? (
-              <CheckCheck className="h-3 w-3 text-primary" />
-            ) : (
-              <Check className="h-3 w-3 text-muted-foreground" />
-            ))}
+      {/* Bubble */}
+      <div
+        className={cn(
+          "flex flex-col max-w-[65%]",
+          isOwn ? "items-end" : "items-start",
+        )}
+      >
+        <div
+          className={cn(
+            "px-3 py-2 text-sm leading-relaxed break-words",
+            isOwn
+              ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-md"
+              : "bg-background text-foreground border border-border/50 rounded-2xl rounded-tl-md",
+          )}
+        >
+          {message.content}
         </div>
-      )}
+
+        {/* Timestamp + read receipt on last message in group */}
+        {isLast && (
+          <div className="flex items-center gap-1 px-1 mt-0.5">
+            <span className="text-[10px] text-muted-foreground">
+              {formatTime(message.created_at)}
+            </span>
+            {isOwn &&
+              (message.is_read ? (
+                <CheckCheck className="h-3 w-3 text-primary" />
+              ) : (
+                <Check className="h-3 w-3 text-muted-foreground" />
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Conversation Panel ─────────────────────────────────────
+// ─── Chat Panel (right side — WeChat-style) ─────────────────
 
-function ConversationPanel({
+function ChatPanel({
   threadId,
   onBack,
   composeListingId,
@@ -606,7 +595,8 @@ function ConversationPanel({
     if (!container) return;
     const threshold = 100;
     const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      threshold;
     setShowScrollButton(!isNearBottom);
   }, []);
 
@@ -616,7 +606,8 @@ function ConversationPanel({
     if (!container) return;
     const threshold = 150;
     const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      threshold;
     if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -632,7 +623,12 @@ function ConversationPanel({
 
   // Mark as read
   useEffect(() => {
-    if (threadId && thread && thread.unread_count > 0 && !hasMarkedRead.current) {
+    if (
+      threadId &&
+      thread &&
+      thread.unread_count > 0 &&
+      !hasMarkedRead.current
+    ) {
       markReadMutation.mutate(threadId, {
         onSuccess: () => {
           hasMarkedRead.current = true;
@@ -660,18 +656,21 @@ function ConversationPanel({
 
     // New conversation flow
     if (!threadId && composeListingId) {
-      startThread.mutateAsync({
-        listing_id: composeListingId,
-        content: trimmed,
-      }).then((result) => {
-        setMessageText("");
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-        }
-        onComposeComplete(result.thread.id);
-      }).catch(() => {
-        // Error toast handled by hook
-      });
+      startThread
+        .mutateAsync({
+          listing_id: composeListingId,
+          content: trimmed,
+        })
+        .then((result) => {
+          setMessageText("");
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+          }
+          onComposeComplete(result.thread.id);
+        })
+        .catch(() => {
+          // Error toast handled by hook
+        });
       return;
     }
 
@@ -701,19 +700,15 @@ function ConversationPanel({
   const isPending = sendMutation.isPending || startThread.isPending;
   const isComposing = !threadId && composeListingId;
 
-  // Empty state — no thread selected
+  // ─── Empty state — no thread selected (WeChat blank right panel) ───
   if (!threadId && !composeListingId) {
     return (
-      <div className="flex h-full flex-col items-center justify-center text-center px-8">
+      <div className="flex h-full flex-col items-center justify-center bg-muted/30">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted mb-4">
-          <MessageSquare className="h-10 w-10 text-muted-foreground" />
+          <MessageSquare className="h-10 w-10 text-muted-foreground/50" />
         </div>
-        <h2 className="text-lg font-semibold text-muted-foreground">
-          Your messages
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-          Select a conversation from the left to continue chatting, or message a
-          seller from any listing.
+        <p className="text-sm text-muted-foreground">
+          Select a conversation to start chatting
         </p>
       </div>
     );
@@ -721,9 +716,9 @@ function ConversationPanel({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 shrink-0">
-        {/* Back button (visible on mobile) */}
+      {/* Chat header with contact info */}
+      <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-2.5 shrink-0">
+        {/* Back button (mobile) */}
         <button
           type="button"
           onClick={onBack}
@@ -734,75 +729,73 @@ function ConversationPanel({
         </button>
 
         {otherUser && (
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <UserAvatar
-              url={otherUser.avatar_url}
-              name={otherUser.display_name}
-              size={36}
-              className="h-9 w-9"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">
-                {otherUser.display_name}
-              </p>
-              {thread?.listing && (
-                <Link
-                  href={`/listings/${thread.listing.id}`}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <span className="truncate">{thread.listing.title}</span>
-                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-                </Link>
-              )}
-            </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">
+              {otherUser.display_name}
+            </p>
+            {thread?.listing && (
+              <Link
+                href={`/listings/${thread.listing.id}`}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <span className="truncate">{thread.listing.title}</span>
+                <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+              </Link>
+            )}
           </div>
         )}
 
         {isComposing && composeListing && (
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 shrink-0">
-              <Send className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">New message</p>
-              <p className="text-xs text-muted-foreground truncate">
-                About: {composeListing.title}
-              </p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">New message</p>
+            <p className="text-xs text-muted-foreground truncate">
+              Re: {composeListing.title}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Listing context card */}
+      {/* Listing context (pinned below header) */}
       {thread?.listing && (
-        <div className="shrink-0 px-4 pt-3">
+        <div className="shrink-0 px-4 py-2 bg-background border-b border-border/50">
           <ListingContextCard listing={thread.listing} />
         </div>
       )}
       {isComposing && composeListing && (
-        <div className="shrink-0 px-4 pt-3">
+        <div className="shrink-0 px-4 py-2 bg-background border-b border-border/50">
           <ListingContextCard
             listing={{
               id: composeListing.id,
               title: composeListing.title,
-              first_photo_url: composeListing.photos?.[0]?.thumbnail_url || composeListing.photos?.[0]?.url || null,
+              first_photo_url:
+                composeListing.photos?.[0]?.thumbnail_url ||
+                composeListing.photos?.[0]?.url ||
+                null,
             }}
           />
         </div>
       )}
 
-      {/* Messages area */}
+      {/* Messages area — WeChat uses a light gray background */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="relative flex-1 overflow-y-auto px-4 py-4"
+        className="relative flex-1 overflow-y-auto bg-muted/30 py-2"
       >
         {isLoading && (
-          <div className="flex flex-col gap-4 animate-pulse">
-            <div className="h-10 w-48 rounded-2xl bg-muted self-start" />
-            <div className="h-10 w-36 rounded-2xl bg-muted self-end" />
-            <div className="h-10 w-56 rounded-2xl bg-muted self-start" />
-            <div className="h-10 w-40 rounded-2xl bg-muted self-end" />
+          <div className="flex flex-col gap-4 px-4 py-4 animate-pulse">
+            <div className="flex gap-2">
+              <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
+              <div className="h-10 w-48 rounded-2xl bg-muted" />
+            </div>
+            <div className="flex gap-2 flex-row-reverse">
+              <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
+              <div className="h-10 w-36 rounded-2xl bg-muted" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
+              <div className="h-10 w-56 rounded-2xl bg-muted" />
+            </div>
           </div>
         )}
 
@@ -827,23 +820,15 @@ function ConversationPanel({
             {grouped.map(({ date, groups }) => (
               <div key={date}>
                 {/* Date separator */}
-                <div className="flex items-center gap-3 py-3">
-                  <div className="flex-1 border-t border-border" />
-                  <span className="text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center justify-center py-3">
+                  <span className="rounded-md bg-muted/80 px-2.5 py-0.5 text-[11px] text-muted-foreground">
                     {formatDateHeader(groups[0].messages[0].created_at)}
                   </span>
-                  <div className="flex-1 border-t border-border" />
                 </div>
 
                 {/* Message groups */}
                 {groups.map((group, gi) => (
-                  <div
-                    key={`${date}-${gi}`}
-                    className={cn(
-                      "flex flex-col",
-                      group.isOwn ? "items-end" : "items-start",
-                    )}
-                  >
+                  <div key={`${date}-${gi}`}>
                     {group.messages.map((msg, mi) => (
                       <MessageBubble
                         key={msg.id}
@@ -851,6 +836,13 @@ function ConversationPanel({
                         isOwn={group.isOwn}
                         isFirst={mi === 0}
                         isLast={mi === group.messages.length - 1}
+                        showAvatar={mi === 0}
+                        avatarUrl={
+                          group.isOwn
+                            ? null
+                            : otherUser?.avatar_url ?? null
+                        }
+                        senderName={msg.sender_name}
                       />
                     ))}
                   </div>
@@ -866,7 +858,7 @@ function ConversationPanel({
           <button
             type="button"
             onClick={scrollToBottom}
-            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-card border border-border shadow-md hover:bg-accent transition-colors z-10"
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-background border border-border shadow-md hover:bg-accent transition-colors z-10"
             aria-label="Scroll to bottom"
           >
             <ChevronDown className="h-4 w-4" />
@@ -883,7 +875,7 @@ function ConversationPanel({
         messageCount={messages.length}
       />
 
-      {/* Input bar */}
+      {/* Input bar — WeChat style with white background */}
       <div className="shrink-0 border-t border-border bg-background px-4 py-3">
         <form onSubmit={handleSend} className="flex items-end gap-2">
           <textarea
@@ -898,9 +890,9 @@ function ConversationPanel({
             disabled={isPending}
             rows={1}
             className={cn(
-              "flex-1 resize-none rounded-2xl border border-input bg-muted/50 px-4 py-2.5 text-sm leading-relaxed",
+              "flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm leading-relaxed",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "max-h-[120px]",
             )}
@@ -909,12 +901,10 @@ function ConversationPanel({
             type="submit"
             disabled={isPending || !messageText.trim()}
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary shrink-0",
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary shrink-0",
               "text-primary-foreground",
               "hover:bg-primary/90 transition-all",
               "disabled:opacity-40 disabled:pointer-events-none",
-              messageText.trim() && "scale-100",
-              !messageText.trim() && "scale-90",
             )}
             aria-label="Send message"
           >
@@ -937,7 +927,6 @@ function MessagesPageContent() {
 
   const threadParam = searchParams.get("thread");
   const listingParam = searchParams.get("listing");
-  const toParam = searchParams.get("to");
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(
     threadParam,
@@ -969,7 +958,6 @@ function MessagesPageContent() {
     setActiveThreadId(id);
     setComposeListingId(null);
     setMobileView("conversation");
-    // Update URL without navigation
     window.history.replaceState(null, "", `/messages?thread=${id}`);
   }
 
@@ -988,37 +976,31 @@ function MessagesPageContent() {
 
   return (
     <div className="mx-auto h-[calc(100vh-4rem)] max-w-5xl">
-      <div className="flex h-full border-x border-border">
-        {/* Thread list — always visible on desktop, toggle on mobile */}
+      <div className="flex h-full overflow-hidden rounded-lg border border-border">
+        {/* Contacts panel (left) */}
         <div
           className={cn(
             "h-full border-r border-border bg-background",
-            // Desktop: fixed 320px sidebar
-            "lg:block lg:w-80 lg:shrink-0",
+            // Desktop: fixed width sidebar
+            "lg:block lg:w-72 xl:w-80 lg:shrink-0",
             // Mobile: full width or hidden
             mobileView === "list" ? "w-full" : "hidden lg:block",
           )}
         >
-          <ThreadListPanel
+          <ContactsPanel
             activeThreadId={activeThreadId}
             onSelectThread={handleSelectThread}
-            onCompose={(id) => {
-              setComposeListingId(id);
-              setActiveThreadId(null);
-              setMobileView("conversation");
-            }}
-            composeListingId={composeListingId}
           />
         </div>
 
-        {/* Conversation — always visible on desktop, toggle on mobile */}
+        {/* Chat panel (right) — only shows content after clicking a contact */}
         <div
           className={cn(
-            "h-full flex-1 bg-background",
+            "h-full flex-1",
             mobileView === "conversation" ? "block" : "hidden lg:block",
           )}
         >
-          <ConversationPanel
+          <ChatPanel
             threadId={activeThreadId}
             onBack={handleBack}
             composeListingId={composeListingId}
@@ -1036,21 +1018,19 @@ export default function MessagesPage() {
       <Suspense
         fallback={
           <div className="mx-auto h-[calc(100vh-4rem)] max-w-5xl">
-            <div className="flex h-full border-x border-border">
-              <div className="w-full lg:w-80 lg:shrink-0 border-r border-border">
-                <div className="border-b border-border px-4 py-3">
-                  <div className="h-6 w-24 rounded bg-muted animate-pulse" />
+            <div className="flex h-full overflow-hidden rounded-lg border border-border">
+              <div className="w-full lg:w-72 xl:w-80 lg:shrink-0 border-r border-border">
+                <div className="px-3 py-3">
+                  <div className="h-8 w-full rounded-md bg-muted animate-pulse" />
                 </div>
-                <div className="divide-y divide-border">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <ThreadSkeleton key={i} />
-                  ))}
-                </div>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <ThreadSkeleton key={i} />
+                ))}
               </div>
-              <div className="hidden lg:flex flex-1 items-center justify-center">
+              <div className="hidden lg:flex flex-1 items-center justify-center bg-muted/30">
                 <div className="text-center">
-                  <div className="mx-auto h-16 w-16 rounded-full bg-muted animate-pulse mb-3" />
-                  <div className="h-4 w-32 rounded bg-muted animate-pulse mx-auto" />
+                  <div className="mx-auto h-20 w-20 rounded-full bg-muted animate-pulse mb-4" />
+                  <div className="h-4 w-48 rounded bg-muted animate-pulse mx-auto" />
                 </div>
               </div>
             </div>

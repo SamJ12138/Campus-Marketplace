@@ -2,6 +2,7 @@ import type {
   Message,
   MessageThread,
   PaginatedResponse,
+  PaginationMeta,
 } from "@/lib/types";
 import { api } from "./client";
 
@@ -15,6 +16,13 @@ export async function getThreads(
   });
 }
 
+/** Raw shape returned by the backend (flat messages list + separate pagination). */
+interface ThreadDetailRaw {
+  thread: MessageThread;
+  messages: Message[];
+  pagination: PaginationMeta;
+}
+
 export async function getThread(
   threadId: string,
   page?: number,
@@ -23,13 +31,14 @@ export async function getThread(
   thread: MessageThread;
   messages: PaginatedResponse<Message>;
 }> {
-  return api.get<{
-    thread: MessageThread;
-    messages: PaginatedResponse<Message>;
-  }>(`/api/v1/threads/${threadId}`, {
+  const raw = await api.get<ThreadDetailRaw>(`/api/v1/threads/${threadId}`, {
     page,
     per_page,
   });
+  return {
+    thread: raw.thread,
+    messages: { items: raw.messages, pagination: raw.pagination },
+  };
 }
 
 export async function startThread(
@@ -39,10 +48,14 @@ export async function startThread(
   thread: MessageThread;
   messages: PaginatedResponse<Message>;
 }> {
-  return api.post<{
-    thread: MessageThread;
-    messages: PaginatedResponse<Message>;
-  }>("/api/v1/threads", { listing_id, message: content });
+  const raw = await api.post<ThreadDetailRaw>("/api/v1/threads", {
+    listing_id,
+    message: content,
+  });
+  return {
+    thread: raw.thread,
+    messages: { items: raw.messages, pagination: raw.pagination },
+  };
 }
 
 export async function sendMessage(
