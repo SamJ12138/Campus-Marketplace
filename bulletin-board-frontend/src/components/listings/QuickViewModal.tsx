@@ -213,6 +213,7 @@ export default function QuickViewModal({
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full object-cover"
+                unoptimized={listing.user.avatar_url.includes('r2.dev')}
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">

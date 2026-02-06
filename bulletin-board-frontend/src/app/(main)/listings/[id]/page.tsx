@@ -548,6 +548,7 @@ export default function ListingDetailPage() {
                   width={48}
                   height={48}
                   className="h-12 w-12 rounded-full object-cover"
+                  unoptimized={listing.user.avatar_url.includes('r2.dev')}
                 />
               ) : (
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-bold text-slate-600">

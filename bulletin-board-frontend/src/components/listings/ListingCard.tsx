@@ -254,6 +254,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               width={24}
               height={24}
               className="h-6 w-6 rounded-full object-cover ring-2 ring-primary/20"
+              unoptimized={listing.user.avatar_url.includes('r2.dev')}
             />
           ) : (
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-[hsl(var(--secondary-accent))]/20 text-[10px] font-bold text-primary">
