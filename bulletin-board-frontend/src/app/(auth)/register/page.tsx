@@ -13,7 +13,7 @@ import { getCampuses } from "@/lib/api/auth";
 import type { Campus } from "@/lib/types";
 
 const FALLBACK_CAMPUSES: Campus[] = [
-  { id: "gettysburg", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg" },
+  { id: "gettysburg-college", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg-college" },
 ];
 
 const CLASS_YEARS = Array.from({ length: 12 }, (_, i) => 2024 + i);
