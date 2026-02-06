@@ -260,7 +260,7 @@ export function Header() {
                       onClick={() => setDropdownOpen(false)}
                     />
                     <DropdownLink
-                      href="/settings"
+                      href="/profile/settings"
                       icon={Settings}
                       label={t.profile.settings}
                       onClick={() => setDropdownOpen(false)}
