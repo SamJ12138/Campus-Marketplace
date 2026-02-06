@@ -31,10 +31,7 @@ export const registerSchema = z
     email: z
       .string()
       .min(1, "Email is required")
-      .email("Please enter a valid email address")
-      .refine((val) => val.endsWith(".edu"), {
-        message: "Only .edu email addresses are allowed",
-      }),
+      .email("Please enter a valid email address"),
     password: passwordRules,
     display_name: z
       .string()
