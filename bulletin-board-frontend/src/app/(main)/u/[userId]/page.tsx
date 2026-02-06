@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Loader2,
@@ -14,6 +15,7 @@ import {
   UserX,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getUserProfile, blockUser } from "@/lib/api/users";
@@ -24,7 +26,9 @@ import { ApiError } from "@/lib/api/client";
 
 function ListingGridCard({ listing }: { listing: Listing }) {
   const thumbnailUrl =
-    listing.photos.length > 0 ? listing.photos[0].thumbnail_url : null;
+    listing.photos.length > 0
+      ? listing.photos[0].thumbnail_url || listing.photos[0].url
+      : null;
 
   return (
     <Link
@@ -38,6 +42,7 @@ function ListingGridCard({ listing }: { listing: Listing }) {
             alt={listing.title}
             fill
             className="object-cover"
+            unoptimized={thumbnailUrl.includes('r2.dev')}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -50,7 +55,7 @@ function ListingGridCard({ listing }: { listing: Listing }) {
           {listing.title}
         </p>
         {listing.price_hint && (
-          <p className="text-xs text-muted-foreground">{listing.price_hint}</p>
+          <p className="text-xs font-semibold text-emerald-600">{formatPrice(listing.price_hint)}</p>
         )}
       </div>
     </Link>
@@ -72,6 +77,7 @@ function CardSkeleton() {
 export default function PublicUserProfilePage() {
   const params = useParams();
   const userId = params.userId as string;
+  const router = useRouter();
   const { user: currentUser } = useAuth();
   const openReportModal = useUIStore((s) => s.openReportModal);
 
@@ -186,6 +192,7 @@ export default function PublicUserProfilePage() {
             width={96}
             height={96}
             className="h-24 w-24 rounded-full object-cover shrink-0"
+            unoptimized={profile.avatar_url.includes('r2.dev')}
           />
         ) : (
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary shrink-0">
@@ -224,13 +231,11 @@ export default function PublicUserProfilePage() {
             <div className="flex items-center gap-2 justify-center sm:justify-start pt-2">
               <button
                 type="button"
-                disabled
-                title="Start a conversation from a listing"
+                onClick={() => router.push(`/messages?to=${userId}`)}
                 className={cn(
                   "inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4",
                   "text-sm font-medium text-primary-foreground",
                   "hover:bg-primary/90 transition-colors",
-                  "disabled:pointer-events-none disabled:opacity-50",
                 )}
               >
                 <MessageSquare className="h-4 w-4" />

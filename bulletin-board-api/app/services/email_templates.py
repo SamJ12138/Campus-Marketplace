@@ -166,6 +166,57 @@ def password_reset_email(reset_url: str) -> str:
     return _base_template(content, "Reset your Gimme Dat password")
 
 
+def new_message_email(
+    sender_name: str,
+    listing_title: str,
+    message_preview: str,
+    thread_url: str,
+) -> str:
+    """Generate an email notification for a new message."""
+    # Truncate preview if too long
+    preview = message_preview[:150] + ("..." if len(message_preview) > 150 else "")
+    content = f'''
+        <!-- Icon -->
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; background-color: #ede9fe; padding: 16px; border-radius: 50%;">
+                <span style="font-size: 32px;">💬</span>
+            </div>
+        </div>
+
+        <!-- Heading -->
+        <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #18181b; text-align: center;">
+            New Message
+        </h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #52525b; line-height: 1.6; text-align: center;">
+            <strong>{sender_name}</strong> sent you a message about <strong>{listing_title}</strong>.
+        </p>
+
+        <!-- Message preview -->
+        <div style="background-color: #f4f4f5; border-radius: 12px; padding: 16px 20px; margin-bottom: 28px;">
+            <p style="margin: 0; font-size: 14px; color: #3f3f46; line-height: 1.6; font-style: italic;">
+                &ldquo;{preview}&rdquo;
+            </p>
+        </div>
+
+        <!-- CTA Button -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 8px 0 24px 0;">
+                    <a href="{thread_url}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);">View Conversation</a>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Footer note -->
+        <div style="border-top: 1px solid #e4e4e7; padding-top: 20px;">
+            <p style="margin: 0; font-size: 13px; color: #a1a1aa; text-align: center;">
+                You can manage your email notification preferences in your account settings.
+            </p>
+        </div>
+    '''
+    return _base_template(content, f"{sender_name} sent you a message about {listing_title}")
+
+
 def resend_verification_email(verify_url: str) -> str:
     """Generate a beautiful resend verification email."""
     content = f'''

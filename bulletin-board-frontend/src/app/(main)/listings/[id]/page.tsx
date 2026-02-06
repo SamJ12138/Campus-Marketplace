@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { ListingSchema } from "@/components/seo";
 import {
@@ -185,12 +186,12 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
               )}
             >
               <Image
-                src={photo.thumbnail_url}
+                src={photo.thumbnail_url || photo.url}
                 alt={`Thumbnail ${idx + 1}`}
                 fill
                 sizes="64px"
                 className="object-cover"
-                unoptimized={photo.thumbnail_url.includes('r2.dev')}
+                unoptimized={(photo.thumbnail_url || photo.url).includes('r2.dev')}
               />
             </button>
           ))}
@@ -486,8 +487,8 @@ export default function ListingDetailPage() {
 
           {/* Price */}
           {listing.price_hint && (
-            <p className="text-lg font-semibold text-slate-700">
-              {listing.price_hint}
+            <p className="text-xl font-bold text-emerald-600">
+              {formatPrice(listing.price_hint)}
             </p>
           )}
 

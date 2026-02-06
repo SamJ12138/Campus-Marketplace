@@ -29,15 +29,15 @@ export async function blockUser(
   userId: string,
   reason?: string,
 ): Promise<void> {
-  return api.post<void>(`/api/v1/users/${userId}/block`, { reason });
+  return api.post<void>("/api/v1/blocks", { user_id: userId, reason });
 }
 
 export async function unblockUser(userId: string): Promise<void> {
-  return api.delete(`/api/v1/users/${userId}/block`);
+  return api.delete(`/api/v1/blocks/${userId}`);
 }
 
 export async function getBlockedUsers(): Promise<UserBrief[]> {
-  return api.get<UserBrief[]>("/api/v1/users/me/blocked");
+  return api.get<UserBrief[]>("/api/v1/blocks");
 }
 
 export async function deleteAccount(): Promise<void> {

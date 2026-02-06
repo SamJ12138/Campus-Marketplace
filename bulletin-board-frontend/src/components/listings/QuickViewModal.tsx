@@ -6,6 +6,7 @@ import Image from "next/image";
 import { X, MessageCircle, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 
 interface QuickViewModalProps {
   listing: Listing | null;
@@ -193,8 +194,8 @@ export default function QuickViewModal({
               {listing.title}
             </h2>
             {listing.price_hint && (
-              <span className="flex-shrink-0 rounded-full bg-foreground/10 px-3 py-1 text-sm font-bold text-foreground">
-                {listing.price_hint}
+              <span className="flex-shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">
+                {formatPrice(listing.price_hint)}
               </span>
             )}
           </div>

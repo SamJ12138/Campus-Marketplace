@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SupportChat } from "@/components/chat/SupportChat";
+import { ReportModal } from "@/components/modals/ReportModal";
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const { isLoading, initialize } = useAuthStore();
@@ -42,6 +43,7 @@ export default function MainLayout({
         <Footer />
         <MobileNav />
         <SupportChat />
+        <ReportModal />
       </div>
     </AuthInit>
   );

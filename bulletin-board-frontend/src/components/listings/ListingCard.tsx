@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useToggleFavorite } from "@/lib/hooks/use-listings";
 import { useRequireAuth } from "@/lib/hooks/use-require-auth";
@@ -192,7 +193,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
 
         {listing.price_hint && (
           <span className="absolute bottom-2 left-2 rounded-xl bg-foreground/90 px-3 py-1.5 text-sm font-bold text-background shadow-lg backdrop-blur-sm">
-            {listing.price_hint}
+            {formatPrice(listing.price_hint)}
           </span>
         )}
 

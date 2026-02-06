@@ -1,13 +1,18 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_active_user
+from app.config import get_settings
 from app.core.rate_limit import check_message_rate_limit
 from app.dependencies import get_db, get_redis
 from app.models.message import MessageThread
+from app.models.notification import NotificationPreference
 from app.models.user import User
 from app.schemas.common import PaginationMeta
 from app.schemas.message import (
@@ -17,10 +22,50 @@ from app.schemas.message import (
     ThreadDetailResponse,
     ThreadListResponse,
 )
+from app.services.email_service import EmailService
+from app.services.email_templates import new_message_email
 from app.services.message_service import MessageService
 from app.services.moderation_service import ModerationService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/threads", tags=["messaging"])
+
+
+async def _notify_recipient_by_email(
+    db: AsyncSession,
+    recipient_id: UUID,
+    sender_name: str,
+    listing_title: str,
+    message_content: str,
+    thread_id: UUID,
+) -> None:
+    """Send an email notification to the message recipient if their preferences allow it."""
+    try:
+        prefs = await db.scalar(
+            select(NotificationPreference).where(
+                NotificationPreference.user_id == recipient_id
+            )
+        )
+        if prefs and not prefs.email_messages:
+            return
+
+        recipient = await db.get(User, recipient_id)
+        if not recipient or not recipient.email:
+            return
+
+        settings = get_settings()
+        thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
+        html = new_message_email(sender_name, listing_title, message_content, thread_url)
+
+        email_service = EmailService(settings)
+        await email_service.send_email(
+            to_email=recipient.email,
+            subject=f"New message from {sender_name} - Gimme Dat",
+            html_content=html,
+        )
+    except Exception:
+        logger.exception("Failed to send message notification email")
 
 
 @router.get("", response_model=ThreadListResponse)
@@ -76,6 +121,18 @@ async def start_thread(
         current_user.id,
         data.message,
         flagged=filter_result.flagged,
+    )
+
+    # Send email notification to recipient
+    recipient_id = (
+        thread.recipient_id
+        if thread.initiator_id == current_user.id
+        else thread.initiator_id
+    )
+    listing_title = thread.listing.title if thread.listing else "a listing"
+    await _notify_recipient_by_email(
+        db, recipient_id, current_user.display_name, listing_title,
+        data.message, thread.id,
     )
 
     messages_list = [
@@ -169,6 +226,24 @@ async def send_message(
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+    # Send email notification to recipient
+    thread = await db.scalar(
+        select(MessageThread)
+        .options(selectinload(MessageThread.listing))
+        .where(MessageThread.id == thread_id)
+    )
+    if thread:
+        recipient_id = (
+            thread.recipient_id
+            if thread.initiator_id == current_user.id
+            else thread.initiator_id
+        )
+        listing_title = thread.listing.title if thread.listing else "a listing"
+        await _notify_recipient_by_email(
+            db, recipient_id, current_user.display_name, listing_title,
+            data.content, thread_id,
+        )
 
     return MessageResponse(
         id=message.id,
