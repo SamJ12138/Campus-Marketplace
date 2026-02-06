@@ -2,14 +2,16 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from sqlalchemy import case, func, or_, select, update
+from pydantic import BaseModel
+from sqlalchemy import case, delete as sa_delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import require_admin, require_moderator
 from app.dependencies import get_db
 from app.models.admin import AdminAction, BannedKeyword
-from app.models.listing import Listing
-from app.models.message import Message
+from app.models.listing import Category, Listing, ListingStatus
+from app.models.message import Message, MessageThread
 from app.models.report import Report
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.report import ReportResolution, ResolveReportRequest
@@ -424,3 +426,430 @@ async def _get_content_owner(db: AsyncSession, target_type: str, target_id: UUID
         message = await db.get(Message, target_id)
         return message.sender_id if message else None
     return None
+
+
+# ============ LISTINGS MANAGEMENT ============
+
+
+@router.get("/listings")
+async def admin_list_listings(
+    status: str | None = Query(None),
+    listing_type: str | None = Query(None, alias="type"),
+    search: str | None = Query(None, min_length=2),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """List all listings with filters for admin moderation."""
+    query = select(Listing).options(
+        selectinload(Listing.user),
+        selectinload(Listing.category),
+    ).order_by(Listing.created_at.desc())
+
+    if status:
+        query = query.where(Listing.status == status)
+    if listing_type:
+        query = query.where(Listing.type == listing_type)
+    if search:
+        query = query.where(
+            or_(
+                Listing.title.ilike(f"%{search}%"),
+                Listing.description.ilike(f"%{search}%"),
+            )
+        )
+
+    total = await db.scalar(
+        select(func.count()).select_from(query.subquery())
+    ) or 0
+
+    query = query.offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    listings = list(result.scalars().all())
+
+    return {
+        "items": [
+            {
+                "id": str(l.id),
+                "title": l.title,
+                "type": l.type.value if hasattr(l.type, "value") else l.type,
+                "status": l.status.value if hasattr(l.status, "value") else l.status,
+                "category_name": l.category.name if l.category else None,
+                "user_id": str(l.user_id),
+                "user_name": l.user.display_name if l.user else "Unknown",
+                "user_email": l.user.email if l.user else None,
+                "view_count": l.view_count,
+                "message_count": l.message_count,
+                "removal_reason": l.removal_reason,
+                "created_at": l.created_at.isoformat(),
+                "expires_at": l.expires_at.isoformat() if l.expires_at else None,
+            }
+            for l in listings
+        ],
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_items": total,
+            "total_pages": -(-total // per_page) if total > 0 else 0,
+            "has_next": page * per_page < total,
+            "has_prev": page > 1,
+        },
+    }
+
+
+class UpdateListingStatusRequest(BaseModel):
+    status: str
+    removal_reason: str | None = None
+
+
+@router.patch("/listings/{listing_id}")
+async def admin_update_listing(
+    listing_id: UUID,
+    data: UpdateListingStatusRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """Update a listing status (remove, restore, etc.)."""
+    listing = await db.get(Listing, listing_id)
+    if not listing:
+        raise HTTPException(404, "Listing not found")
+
+    old_status = listing.status.value if hasattr(listing.status, "value") else listing.status
+    listing.status = ListingStatus(data.status)
+    if data.removal_reason:
+        listing.removal_reason = data.removal_reason
+
+    audit = AdminAction(
+        admin_id=admin.id,
+        action_type=f"listing_status_changed_{old_status}_to_{data.status}",
+        target_type="listing",
+        target_id=listing_id,
+        reason=data.removal_reason,
+        metadata_={"title": listing.title},
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {"message": f"Listing status updated to {data.status}"}
+
+
+@router.delete("/listings/{listing_id}", status_code=204)
+async def admin_delete_listing(
+    listing_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Permanently delete a listing."""
+    listing = await db.get(Listing, listing_id)
+    if not listing:
+        raise HTTPException(404, "Listing not found")
+
+    title = listing.title
+    user_id = listing.user_id
+
+    await db.delete(listing)
+
+    audit = AdminAction(
+        admin_id=admin.id,
+        action_type="listing_permanently_deleted",
+        target_type="listing",
+        target_id=listing_id,
+        metadata_={"title": title, "user_id": str(user_id)},
+    )
+    db.add(audit)
+    await db.commit()
+
+
+# ============ CATEGORIES MANAGEMENT ============
+
+
+@router.get("/categories")
+async def admin_list_categories(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """List all categories including inactive ones."""
+    result = await db.execute(
+        select(Category).order_by(Category.sort_order, Category.name)
+    )
+    categories = list(result.scalars().all())
+    return [
+        {
+            "id": str(c.id),
+            "name": c.name,
+            "slug": c.slug,
+            "listing_type": c.listing_type,
+            "description": c.description,
+            "icon": c.icon,
+            "is_active": c.is_active,
+            "sort_order": c.sort_order,
+        }
+        for c in categories
+    ]
+
+
+class CreateCategoryRequest(BaseModel):
+    name: str
+    slug: str
+    listing_type: str
+    description: str | None = None
+    icon: str | None = None
+    sort_order: int = 0
+
+
+@router.post("/categories", status_code=201)
+async def admin_create_category(
+    data: CreateCategoryRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Create a new category."""
+    existing = await db.scalar(
+        select(Category).where(Category.slug == data.slug)
+    )
+    if existing:
+        raise HTTPException(400, "Category with this slug already exists")
+
+    category = Category(
+        name=data.name,
+        slug=data.slug,
+        listing_type=data.listing_type,
+        description=data.description,
+        icon=data.icon,
+        sort_order=data.sort_order,
+    )
+    db.add(category)
+
+    audit = AdminAction(
+        admin_id=admin.id,
+        action_type="category_created",
+        target_type="category",
+        target_id=category.id,
+        metadata_={"name": data.name, "slug": data.slug},
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {"id": str(category.id), "message": "Category created"}
+
+
+class UpdateCategoryRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    icon: str | None = None
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
+@router.patch("/categories/{category_id}")
+async def admin_update_category(
+    category_id: UUID,
+    data: UpdateCategoryRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Update a category."""
+    category = await db.get(Category, category_id)
+    if not category:
+        raise HTTPException(404, "Category not found")
+
+    changes = {}
+    if data.name is not None:
+        category.name = data.name
+        changes["name"] = data.name
+    if data.description is not None:
+        category.description = data.description
+        changes["description"] = data.description
+    if data.icon is not None:
+        category.icon = data.icon
+        changes["icon"] = data.icon
+    if data.is_active is not None:
+        category.is_active = data.is_active
+        changes["is_active"] = data.is_active
+    if data.sort_order is not None:
+        category.sort_order = data.sort_order
+        changes["sort_order"] = data.sort_order
+
+    audit = AdminAction(
+        admin_id=admin.id,
+        action_type="category_updated",
+        target_type="category",
+        target_id=category_id,
+        metadata_=changes,
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {"message": "Category updated"}
+
+
+@router.delete("/categories/{category_id}", status_code=204)
+async def admin_delete_category(
+    category_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Deactivate a category (soft delete)."""
+    category = await db.get(Category, category_id)
+    if not category:
+        raise HTTPException(404, "Category not found")
+
+    category.is_active = False
+
+    audit = AdminAction(
+        admin_id=admin.id,
+        action_type="category_deactivated",
+        target_type="category",
+        target_id=category_id,
+        metadata_={"name": category.name},
+    )
+    db.add(audit)
+    await db.commit()
+
+
+# ============ ENHANCED STATS ============
+
+
+@router.get("/stats/charts")
+async def get_stats_charts(
+    period: str = Query("30d", pattern="^(7d|30d|90d)$"),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """Get time-series data for dashboard charts."""
+    days = {"7d": 7, "30d": 30, "90d": 90}[period]
+    now = datetime.utcnow()
+    start_date = now - timedelta(days=days)
+
+    # Daily new users
+    user_result = await db.execute(
+        select(
+            func.date_trunc("day", User.created_at).label("day"),
+            func.count(User.id).label("count"),
+        )
+        .where(User.created_at >= start_date)
+        .group_by(func.date_trunc("day", User.created_at))
+        .order_by(func.date_trunc("day", User.created_at))
+    )
+    daily_users = [
+        {"date": row.day.isoformat()[:10], "count": row.count}
+        for row in user_result
+    ]
+
+    # Daily new listings
+    listing_result = await db.execute(
+        select(
+            func.date_trunc("day", Listing.created_at).label("day"),
+            func.count(Listing.id).label("count"),
+        )
+        .where(Listing.created_at >= start_date)
+        .group_by(func.date_trunc("day", Listing.created_at))
+        .order_by(func.date_trunc("day", Listing.created_at))
+    )
+    daily_listings = [
+        {"date": row.day.isoformat()[:10], "count": row.count}
+        for row in listing_result
+    ]
+
+    # Daily messages
+    message_result = await db.execute(
+        select(
+            func.date_trunc("day", Message.created_at).label("day"),
+            func.count(Message.id).label("count"),
+        )
+        .where(Message.created_at >= start_date)
+        .group_by(func.date_trunc("day", Message.created_at))
+        .order_by(func.date_trunc("day", Message.created_at))
+    )
+    daily_messages = [
+        {"date": row.day.isoformat()[:10], "count": row.count}
+        for row in message_result
+    ]
+
+    # Daily reports
+    report_result = await db.execute(
+        select(
+            func.date_trunc("day", Report.created_at).label("day"),
+            func.count(Report.id).label("count"),
+        )
+        .where(Report.created_at >= start_date)
+        .group_by(func.date_trunc("day", Report.created_at))
+        .order_by(func.date_trunc("day", Report.created_at))
+    )
+    daily_reports = [
+        {"date": row.day.isoformat()[:10], "count": row.count}
+        for row in report_result
+    ]
+
+    return {
+        "period": period,
+        "daily_users": daily_users,
+        "daily_listings": daily_listings,
+        "daily_messages": daily_messages,
+        "daily_reports": daily_reports,
+    }
+
+
+# ============ USER DETAIL ============
+
+
+@router.get("/users/{user_id}")
+async def admin_get_user_detail(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """Get detailed user info for admin."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    listing_count = await db.scalar(
+        select(func.count(Listing.id)).where(Listing.user_id == user_id)
+    ) or 0
+
+    active_listing_count = await db.scalar(
+        select(func.count(Listing.id)).where(
+            Listing.user_id == user_id,
+            Listing.status == "active",
+        )
+    ) or 0
+
+    report_count = await db.scalar(
+        select(func.count(Report.id)).where(
+            Report.target_type == "user",
+            Report.target_id == user_id,
+        )
+    ) or 0
+
+    thread_count = await db.scalar(
+        select(func.count(MessageThread.id)).where(
+            or_(
+                MessageThread.initiator_id == user_id,
+                MessageThread.recipient_id == user_id,
+            )
+        )
+    ) or 0
+
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "email_verified": user.email_verified,
+        "display_name": user.display_name,
+        "avatar_url": user.avatar_url,
+        "class_year": user.class_year,
+        "bio": user.bio,
+        "phone_number": user.phone_number,
+        "role": user.role.value,
+        "status": user.status.value,
+        "suspension_reason": user.suspension_reason,
+        "suspension_until": user.suspension_until.isoformat() if user.suspension_until else None,
+        "last_active_at": user.last_active_at.isoformat() if user.last_active_at else None,
+        "created_at": user.created_at.isoformat(),
+        "stats": {
+            "total_listings": listing_count,
+            "active_listings": active_listing_count,
+            "reports_against": report_count,
+            "message_threads": thread_count,
+        },
+    }

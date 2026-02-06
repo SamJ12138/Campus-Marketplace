@@ -10,6 +10,7 @@ import {
   FileText,
   Shield,
   KeyRound,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -23,6 +24,87 @@ interface AdminStats {
   pending_reports: number;
   messages_today: number;
 }
+
+interface ChartDataPoint {
+  date: string;
+  count: number;
+}
+
+interface ChartData {
+  period: string;
+  daily_users: ChartDataPoint[];
+  daily_listings: ChartDataPoint[];
+  daily_messages: ChartDataPoint[];
+  daily_reports: ChartDataPoint[];
+}
+
+// ─── SVG Sparkline chart ─────────────────────────────────────
+
+function MiniChart({
+  data,
+  color,
+  label,
+}: {
+  data: ChartDataPoint[];
+  color: string;
+  label: string;
+}) {
+  if (data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-24 text-xs text-muted-foreground">
+        No data
+      </div>
+    );
+  }
+
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const width = 280;
+  const height = 80;
+  const padding = 4;
+
+  const points = data.map((d, i) => {
+    const x = padding + (i / Math.max(data.length - 1, 1)) * (width - padding * 2);
+    const y = height - padding - (d.count / maxCount) * (height - padding * 2);
+    return { x, y, ...d };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs font-semibold">{total.toLocaleString()} total</p>
+      </div>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id={`grad-${label}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#grad-${label})`} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2" fill={color} opacity={i === points.length - 1 ? 1 : 0} />
+        ))}
+      </svg>
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>{data[0]?.date}</span>
+        <span>{data[data.length - 1]?.date}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Components ──────────────────────────────────────────────
 
 function StatCard({
   title,
@@ -83,6 +165,12 @@ const QUICK_LINKS = [
     icon: Users,
   },
   {
+    href: "/admin/listings",
+    title: "Content Management",
+    description: "Browse and moderate all listings",
+    icon: Package,
+  },
+  {
     href: "/admin/keywords",
     title: "Keyword Filters",
     description: "Manage blocked words and phrases",
@@ -96,9 +184,13 @@ const QUICK_LINKS = [
   },
 ] as const;
 
+// ─── Main Page ───────────────────────────────────────────────
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "90d">("30d");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,6 +215,26 @@ export default function AdminDashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCharts() {
+      try {
+        const data = await api.get<ChartData>("/api/v1/admin/stats/charts", {
+          period: chartPeriod,
+        });
+        if (!cancelled) setChartData(data);
+      } catch {
+        // Charts are non-critical, silently fail
+      }
+    }
+
+    fetchCharts();
+    return () => {
+      cancelled = true;
+    };
+  }, [chartPeriod]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
@@ -186,10 +298,82 @@ export default function AdminDashboardPage() {
         </div>
       ) : null}
 
+      {/* Trend Charts */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            Activity trends
+          </h2>
+          <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+            {(["7d", "30d", "90d"] as const).map((period) => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setChartPeriod(period)}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  chartPeriod === period
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {chartData ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <MiniChart
+                data={chartData.daily_users}
+                color="hsl(262, 83%, 58%)"
+                label="New users"
+              />
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <MiniChart
+                data={chartData.daily_listings}
+                color="hsl(152, 69%, 45%)"
+                label="New listings"
+              />
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <MiniChart
+                data={chartData.daily_messages}
+                color="hsl(217, 91%, 60%)"
+                label="Messages"
+              />
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <MiniChart
+                data={chartData.daily_reports}
+                color="hsl(0, 84%, 60%)"
+                label="Reports"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-card p-4 h-32 animate-pulse"
+              >
+                <div className="h-3 w-20 rounded bg-muted" />
+                <div className="mt-4 h-16 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Quick Links */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Quick access</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {QUICK_LINKS.map((link) => {
             const Icon = link.icon;
             return (

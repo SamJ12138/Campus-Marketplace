@@ -9,6 +9,7 @@ import {
   Users,
   KeyRound,
   ScrollText,
+  Package,
   Menu,
   X,
   Shield,
@@ -21,6 +22,7 @@ const sidebarLinks = [
   { href: "/admin", label: t.admin.dashboard, icon: LayoutDashboard },
   { href: "/admin/reports", label: t.admin.reportsQueue, icon: Flag },
   { href: "/admin/users", label: t.admin.userManagement, icon: Users },
+  { href: "/admin/listings", label: "Content", icon: Package },
   { href: "/admin/keywords", label: "Keywords", icon: KeyRound },
   { href: "/admin/audit-log", label: t.admin.auditLog, icon: ScrollText },
 ];
