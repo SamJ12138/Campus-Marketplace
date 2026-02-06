@@ -12,7 +12,7 @@ import {
   LogIn,
   User as UserIcon,
   ListOrdered,
-  Bookmark,
+  Heart,
   Settings,
   Shield,
   Mail,
@@ -255,7 +255,7 @@ export function Header() {
                     />
                     <DropdownLink
                       href="/saved"
-                      icon={Bookmark}
+                      icon={Heart}
                       label={t.profile.savedListings}
                       onClick={() => setDropdownOpen(false)}
                     />

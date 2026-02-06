@@ -353,7 +353,7 @@ export default function ProfilePage() {
         </Link>
 
         <Link
-          href="/profile/saved"
+          href="/saved"
           className={cn(
             "flex items-center gap-3 rounded-lg border border-border bg-card p-4",
             "hover:bg-accent/50 transition-colors",
@@ -365,7 +365,7 @@ export default function ProfilePage() {
           <div>
             <p className="text-sm font-medium">{t.profile.savedListings}</p>
             <p className="text-xs text-muted-foreground">
-              Your favorites
+              Your favourites
             </p>
           </div>
         </Link>

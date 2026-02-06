@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { Suspense, useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -128,7 +128,7 @@ function ThreadRow({ thread }: { thread: MessageThread }) {
   );
 }
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listingId = searchParams.get("listing");
@@ -174,7 +174,6 @@ export default function MessagesPage() {
   }, [router]);
 
   return (
-    <ProtectedPage>
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3">
@@ -295,6 +294,26 @@ export default function MessagesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <ProtectedPage>
+      <Suspense fallback={
+        <div className="mx-auto max-w-2xl">
+          <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
+            <h1 className="text-lg font-semibold">{t.messages.inboxTitle}</h1>
+          </div>
+          <div className="divide-y divide-border">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <ThreadSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      }>
+        <MessagesPageContent />
+      </Suspense>
     </ProtectedPage>
   );
 }

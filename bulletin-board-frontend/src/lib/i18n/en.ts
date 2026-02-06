@@ -136,7 +136,7 @@ export const en = {
 
   profile: {
     myListings: "My Offers",
-    savedListings: "Saved",
+    savedListings: "My Favourites",
     settings: "Settings",
     editProfile: "Edit Profile",
     memberSince: "Member since {date}",
