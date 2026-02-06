@@ -74,7 +74,8 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
     hasPhoto && listing.photos[activePhotoIndex]
       ? listing.photos[activePhotoIndex]
       : null;
-  const thumbnailUrl = currentPhoto?.thumbnail_url ?? null;
+  // Fallback to url if thumbnail_url is not set
+  const thumbnailUrl = currentPhoto?.thumbnail_url ?? currentPhoto?.url ?? null;
 
   const handleImageMouseMove = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
