@@ -136,6 +136,7 @@ async def confirm_upload(
             photo = ListingPhoto(
                 listing_id=pending.listing_id,
                 url=result["url"],
+                thumbnail_url=result["url"],  # Use same URL for now (no thumbnail generation)
                 storage_key=result["storage_key"],
                 content_type=result["content_type"],
                 file_size=result["file_size"],
