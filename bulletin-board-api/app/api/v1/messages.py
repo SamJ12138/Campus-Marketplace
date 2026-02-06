@@ -140,7 +140,8 @@ async def start_thread(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Capture listing title before send_message commits (avoids lazy load)
+    # Capture data before send_message commits (avoids detached-instance issues)
+    thread_id = thread.id
     listing_title = thread.listing.title if thread.listing else "a listing"
     recipient_id = (
         thread.recipient_id
@@ -148,18 +149,24 @@ async def start_thread(
         else thread.initiator_id
     )
 
-    message = await service.send_message(
-        thread.id,
-        current_user.id,
-        data.message,
-        flagged=filter_result.flagged,
-    )
+    try:
+        message = await service.send_message(
+            thread_id,
+            current_user.id,
+            data.message,
+            flagged=filter_result.flagged,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
     # Queue email notification (non-blocking background task)
-    await _maybe_queue_email(
-        db, background_tasks, recipient_id, current_user.display_name,
-        listing_title, data.message, thread.id,
-    )
+    try:
+        await _maybe_queue_email(
+            db, background_tasks, recipient_id, current_user.display_name,
+            listing_title, data.message, thread_id,
+        )
+    except Exception:
+        logger.exception("Failed to queue email in start_thread")
 
     # Re-fetch thread with all relationships loaded after commit
     thread = await db.scalar(
@@ -170,7 +177,7 @@ async def start_thread(
             selectinload(MessageThread.recipient),
             selectinload(MessageThread.messages),
         )
-        .where(MessageThread.id == thread.id)
+        .where(MessageThread.id == thread_id)
     )
 
     messages_list = [
@@ -206,7 +213,18 @@ async def get_thread(
 ):
     """Get thread with messages."""
     service = MessageService(db)
-    thread = await db.get(MessageThread, thread_id)
+
+    # Eagerly load all relationships needed by _thread_to_response
+    thread = await db.scalar(
+        select(MessageThread)
+        .options(
+            selectinload(MessageThread.listing),
+            selectinload(MessageThread.initiator),
+            selectinload(MessageThread.recipient),
+            selectinload(MessageThread.messages),
+        )
+        .where(MessageThread.id == thread_id)
+    )
 
     if not thread or current_user.id not in (
         thread.initiator_id,
@@ -219,6 +237,18 @@ async def get_thread(
     )
 
     await service.mark_thread_read(thread_id, current_user.id)
+
+    # Re-fetch after mark_thread_read commits to get fresh state
+    thread = await db.scalar(
+        select(MessageThread)
+        .options(
+            selectinload(MessageThread.listing),
+            selectinload(MessageThread.initiator),
+            selectinload(MessageThread.recipient),
+            selectinload(MessageThread.messages),
+        )
+        .where(MessageThread.id == thread_id)
+    )
 
     thread_response = service._thread_to_response(thread, current_user.id)
 

@@ -70,8 +70,10 @@ export function useStartThread() {
       queryClient.invalidateQueries({ queryKey: messageKeys.threads() });
       toast.success("Message sent!");
     },
-    onError: () => {
-      toast.error("Failed to start conversation. Please try again.");
+    onError: (error) => {
+      const detail =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to start conversation: ${detail}`);
     },
   });
 }
@@ -139,14 +141,16 @@ export function useSendMessage() {
       return { previousThread };
     },
 
-    onError: (_err, { threadId }, context) => {
+    onError: (error, { threadId }, context) => {
       if (context?.previousThread) {
         queryClient.setQueryData(
           messageKeys.threadDetail(threadId),
           context.previousThread,
         );
       }
-      toast.error("Failed to send message. Please try again.");
+      const detail =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to send message: ${detail}`);
     },
 
     onSettled: (_data, _err, { threadId }) => {
