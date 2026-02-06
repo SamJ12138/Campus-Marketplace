@@ -1,16 +1,43 @@
 "use client";
 
-import { Suspense, useMemo, useState, useCallback, useEffect } from "react";
-import Link from "next/link";
+import {
+  Suspense,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type FormEvent,
+} from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { MessageSquare, Loader2, Send, X } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {
+  MessageSquare,
+  Loader2,
+  Send,
+  ArrowLeft,
+  ChevronDown,
+  CheckCheck,
+  Check,
+  ExternalLink,
+  Search,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
-import { useThreads, useStartThread } from "@/lib/hooks/use-messages";
+import {
+  useThreads,
+  useThread,
+  useStartThread,
+  useSendMessage,
+  useMarkRead,
+} from "@/lib/hooks/use-messages";
 import { useListing } from "@/lib/hooks/use-listings";
-import type { MessageThread } from "@/lib/types";
+import type { MessageThread, Message } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
+
+// ─── Utilities ──────────────────────────────────────────────
 
 function formatTimeAgo(dateStr: string): string {
   const now = Date.now();
@@ -30,15 +57,131 @@ function formatTimeAgo(dateStr: string): string {
   });
 }
 
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatDateHeader(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === now.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 function truncate(text: string, maxLen: number): string {
   if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen).trimEnd() + "...";
+  return text.slice(0, maxLen).trimEnd() + "\u2026";
 }
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+/** Group consecutive messages from the same sender within 2 min */
+interface MessageGroup {
+  senderId: string;
+  isOwn: boolean;
+  messages: Message[];
+}
+
+function groupMessages(messages: Message[]): { date: string; groups: MessageGroup[] }[] {
+  const dateMap = new Map<string, Message[]>();
+  for (const msg of messages) {
+    const dateKey = new Date(msg.created_at).toDateString();
+    const existing = dateMap.get(dateKey);
+    if (existing) existing.push(msg);
+    else dateMap.set(dateKey, [msg]);
+  }
+
+  return Array.from(dateMap.entries()).map(([dateKey, msgs]) => {
+    const groups: MessageGroup[] = [];
+    for (const msg of msgs) {
+      const last = groups[groups.length - 1];
+      const timeDiff = last
+        ? new Date(msg.created_at).getTime() -
+          new Date(last.messages[last.messages.length - 1].created_at).getTime()
+        : Infinity;
+
+      if (last && last.senderId === msg.sender_id && timeDiff < 120_000) {
+        last.messages.push(msg);
+      } else {
+        groups.push({
+          senderId: msg.sender_id,
+          isOwn: msg.is_own,
+          messages: [msg],
+        });
+      }
+    }
+    return { date: dateKey, groups };
+  });
+}
+
+// ─── Avatar Component ───────────────────────────────────────
+
+function UserAvatar({
+  url,
+  name,
+  size = 40,
+  className,
+}: {
+  url: string | null;
+  name: string;
+  size?: number;
+  className?: string;
+}) {
+  const sizeClass = size === 32 ? "h-8 w-8" : size === 48 ? "h-12 w-12" : "h-10 w-10";
+  const textSize = size === 32 ? "text-xs" : size === 48 ? "text-base" : "text-sm";
+
+  if (url) {
+    return (
+      <Image
+        src={url}
+        alt={name}
+        width={size}
+        height={size}
+        className={cn(sizeClass, "rounded-full object-cover", className)}
+        unoptimized={url.includes("r2.dev") || url.includes("cloudflare")}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        sizeClass,
+        "flex items-center justify-center rounded-full bg-primary/10 font-medium text-primary",
+        textSize,
+        className,
+      )}
+    >
+      {getInitials(name)}
+    </div>
+  );
+}
+
+// ─── Thread List Skeleton ───────────────────────────────────
 
 function ThreadSkeleton() {
   return (
     <div className="flex items-center gap-3 px-4 py-3 animate-pulse">
-      <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+      <div className="h-11 w-11 shrink-0 rounded-full bg-muted" />
       <div className="flex-1 space-y-2">
         <div className="h-3.5 w-32 rounded bg-muted" />
         <div className="h-3 w-48 rounded bg-muted" />
@@ -48,44 +191,54 @@ function ThreadSkeleton() {
   );
 }
 
-function ThreadRow({ thread }: { thread: MessageThread }) {
-  const avatarUrl = thread.other_user.avatar_url;
-  const initials = thread.other_user.display_name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+// ─── Thread Row ─────────────────────────────────────────────
 
+function ThreadRow({
+  thread,
+  isActive,
+  onClick,
+}: {
+  thread: MessageThread;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   return (
-    <Link
-      href={`/messages/${thread.id}`}
+    <button
+      type="button"
+      onClick={onClick}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50",
-        thread.unread_count > 0 && "bg-accent/30",
+        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+        isActive
+          ? "bg-primary/8 border-l-2 border-primary"
+          : "border-l-2 border-transparent hover:bg-accent/50",
+        thread.unread_count > 0 && !isActive && "bg-accent/20",
       )}
     >
-      {/* Avatar */}
-      <div className="relative h-10 w-10 shrink-0">
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt={thread.other_user.display_name}
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-full object-cover"
-            unoptimized={avatarUrl.includes('r2.dev') || avatarUrl.includes('cloudflare')}
-          />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-            {initials}
+      {/* Avatar with listing thumbnail overlay */}
+      <div className="relative shrink-0">
+        <UserAvatar
+          url={thread.other_user.avatar_url}
+          name={thread.other_user.display_name}
+          size={44}
+          className="h-11 w-11"
+        />
+        {thread.listing?.first_photo_url && (
+          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-md border-2 border-background overflow-hidden">
+            <Image
+              src={thread.listing.first_photo_url}
+              alt=""
+              width={20}
+              height={20}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
           </div>
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
               "text-sm truncate",
@@ -94,206 +247,785 @@ function ThreadRow({ thread }: { thread: MessageThread }) {
           >
             {thread.other_user.display_name}
           </span>
-          {thread.listing && (
-            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-              {thread.listing.title}
+          <span className="text-[11px] text-muted-foreground shrink-0">
+            {formatTimeAgo(thread.last_message_at)}
+          </span>
+        </div>
+        {thread.listing && (
+          <p className="text-xs text-muted-foreground truncate">
+            {thread.listing.title}
+          </p>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <p
+            className={cn(
+              "text-[13px] truncate",
+              thread.unread_count > 0
+                ? "text-foreground font-medium"
+                : "text-muted-foreground",
+            )}
+          >
+            {thread.last_message_preview
+              ? truncate(thread.last_message_preview, 50)
+              : "No messages yet"}
+          </p>
+          {thread.unread_count > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shrink-0">
+              {thread.unread_count > 99 ? "99+" : thread.unread_count}
             </span>
           )}
         </div>
-        <p
-          className={cn(
-            "text-sm truncate",
-            thread.unread_count > 0
-              ? "text-foreground font-medium"
-              : "text-muted-foreground",
-          )}
-        >
-          {thread.last_message_preview
-            ? truncate(thread.last_message_preview, 60)
-            : "No messages yet"}
-        </p>
       </div>
-
-      {/* Meta */}
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className="text-xs text-muted-foreground">
-          {formatTimeAgo(thread.last_message_at)}
-        </span>
-        {thread.unread_count > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-            {thread.unread_count > 99 ? "99+" : thread.unread_count}
-          </span>
-        )}
-      </div>
-    </Link>
+    </button>
   );
 }
 
-function MessagesPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const listingId = searchParams.get("listing");
+// ─── Thread List Panel ──────────────────────────────────────
 
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = useThreads();
-  const { data: listing, isLoading: listingLoading } = useListing(listingId ?? undefined);
-  const startThread = useStartThread();
-
-  const [newMessage, setNewMessage] = useState("");
-  const [showCompose, setShowCompose] = useState(false);
-
-  // Show compose UI when listing param is present
-  useEffect(() => {
-    if (listingId && listing) {
-      setShowCompose(true);
-    }
-  }, [listingId, listing]);
+function ThreadListPanel({
+  activeThreadId,
+  onSelectThread,
+  onCompose,
+  composeListingId,
+}: {
+  activeThreadId: string | null;
+  onSelectThread: (id: string) => void;
+  onCompose: (listingId: string) => void;
+  composeListingId: string | null;
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useThreads();
 
   const threads = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap((page) => page.items);
   }, [data]);
 
-  const handleSendNewMessage = useCallback(async () => {
-    if (!listingId || !newMessage.trim()) return;
-
-    try {
-      const result = await startThread.mutateAsync({
-        listing_id: listingId,
-        content: newMessage.trim(),
-      });
-      // Navigate to the new thread
-      router.replace(`/messages/${result.thread.id}`);
-    } catch {
-      // Error toast is handled in the hook
-    }
-  }, [listingId, newMessage, startThread, router]);
-
-  const handleCancelCompose = useCallback(() => {
-    setShowCompose(false);
-    setNewMessage("");
-    router.replace("/messages");
-  }, [router]);
+  const filteredThreads = useMemo(() => {
+    if (!searchQuery.trim()) return threads;
+    const q = searchQuery.toLowerCase();
+    return threads.filter(
+      (t) =>
+        t.other_user.display_name.toLowerCase().includes(q) ||
+        t.listing?.title.toLowerCase().includes(q) ||
+        t.last_message_preview?.toLowerCase().includes(q),
+    );
+  }, [threads, searchQuery]);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3">
+      <div className="shrink-0 border-b border-border px-4 py-3">
         <h1 className="text-lg font-semibold">{t.messages.inboxTitle}</h1>
       </div>
 
-      {/* New Message Compose (when coming from listing) */}
-      {showCompose && listingId && (
-        <div className="border-b border-border p-4 bg-accent/20">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">
-                {listingLoading ? "Loading..." : `Message about: ${listing?.title}`}
-              </span>
+      {/* Search */}
+      <div className="shrink-0 px-3 py-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search conversations..."
+            className={cn(
+              "flex h-9 w-full rounded-lg border border-input bg-muted/50 pl-9 pr-3 text-sm",
+              "placeholder:text-muted-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Thread list */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading && (
+          <div className="divide-y divide-border">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ThreadSkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {isError && (
+          <div className="flex flex-col items-center gap-2 py-16 text-center px-4">
+            <p className="text-sm text-destructive">{t.common.error}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="text-sm text-primary hover:underline"
+            >
+              {t.common.retry}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !isError && filteredThreads.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-16 text-center px-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
-            <button
-              type="button"
-              onClick={handleCancelCompose}
-              className="p-1 rounded-full hover:bg-muted"
-              aria-label="Cancel"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Write your message..."
-              className="flex-1 min-h-[80px] rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              disabled={startThread.isPending}
-            />
-          </div>
-          <div className="flex justify-end mt-2">
-            <button
-              type="button"
-              onClick={handleSendNewMessage}
-              disabled={!newMessage.trim() || startThread.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {startThread.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {searchQuery ? "No matching conversations" : "No messages yet"}
+              </p>
+              {!searchQuery && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Start a conversation by messaging a seller on any listing.
+                </p>
               )}
-              Send
+            </div>
+          </div>
+        )}
+
+        {filteredThreads.length > 0 && (
+          <div className="divide-y divide-border/50">
+            {filteredThreads.map((thread) => (
+              <ThreadRow
+                key={thread.id}
+                thread={thread}
+                isActive={thread.id === activeThreadId}
+                onClick={() => onSelectThread(thread.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {hasNextPage && (
+          <div className="p-3 text-center">
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+            >
+              {isFetchingNextPage ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                "Load more"
+              )}
             </button>
           </div>
-        </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Listing Context Card ───────────────────────────────────
+
+function ListingContextCard({
+  listing,
+}: {
+  listing: { id: string; title: string; first_photo_url: string | null };
+}) {
+  return (
+    <Link
+      href={`/listings/${listing.id}`}
+      className="flex items-center gap-3 rounded-lg border border-border bg-accent/30 px-3 py-2 transition-colors hover:bg-accent/50"
+    >
+      {listing.first_photo_url && (
+        <Image
+          src={listing.first_photo_url}
+          alt=""
+          width={40}
+          height={40}
+          className="h-10 w-10 rounded-md object-cover shrink-0"
+          unoptimized
+        />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-muted-foreground">About this listing</p>
+        <p className="text-sm font-medium truncate">{listing.title}</p>
+      </div>
+      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+    </Link>
+  );
+}
+
+// ─── Quick Reply Suggestions ────────────────────────────────
+
+const QUICK_REPLIES_BUYER = [
+  "Is this still available?",
+  "What\u2019s the lowest you\u2019ll go?",
+  "Can I pick it up today?",
+  "Where should we meet?",
+];
+
+const QUICK_REPLIES_SELLER = [
+  "Yes, still available!",
+  "When can you pick up?",
+  "I can meet on campus.",
+  "Let me know if interested!",
+];
+
+function QuickReplies({
+  onSelect,
+  messageCount,
+}: {
+  onSelect: (text: string) => void;
+  messageCount: number;
+}) {
+  // Only show for new/short conversations
+  if (messageCount > 4) return null;
+
+  const replies = messageCount === 0 ? QUICK_REPLIES_BUYER : QUICK_REPLIES_SELLER;
+
+  return (
+    <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
+      {replies.map((reply) => (
+        <button
+          key={reply}
+          type="button"
+          onClick={() => onSelect(reply)}
+          className="shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        >
+          {reply}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Message Bubble ─────────────────────────────────────────
+
+function MessageBubble({
+  message,
+  isOwn,
+  isFirst,
+  isLast,
+}: {
+  message: Message;
+  isOwn: boolean;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col max-w-[75%]",
+        isOwn ? "items-end self-end" : "items-start self-start",
+        isFirst ? "mt-3" : "mt-0.5",
+      )}
+    >
+      {/* Sender name for first message in group (received only) */}
+      {isFirst && !isOwn && (
+        <span className="text-[11px] font-medium text-muted-foreground mb-0.5 px-1">
+          {message.sender_name}
+        </span>
       )}
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="divide-y divide-border">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <ThreadSkeleton key={i} />
-          ))}
-        </div>
-      )}
+      <div
+        className={cn(
+          "px-3.5 py-2 text-sm leading-relaxed break-words",
+          isOwn
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-foreground",
+          // Rounded corners based on position in group
+          isOwn
+            ? cn(
+                "rounded-2xl",
+                isFirst && isLast && "rounded-br-md",
+                isFirst && !isLast && "rounded-br-md rounded-bl-2xl",
+                !isFirst && isLast && "rounded-br-md",
+                !isFirst && !isLast && "rounded-br-md rounded-bl-2xl",
+              )
+            : cn(
+                "rounded-2xl",
+                isFirst && isLast && "rounded-bl-md",
+                isFirst && !isLast && "rounded-bl-md",
+                !isFirst && isLast && "rounded-bl-md",
+                !isFirst && !isLast && "rounded-bl-md",
+              ),
+        )}
+      >
+        {message.content}
+      </div>
 
-      {/* Error */}
-      {isError && (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <p className="text-sm text-destructive">{t.common.error}</p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-sm text-primary hover:underline"
-          >
-            {t.common.retry}
-          </button>
-        </div>
-      )}
-
-      {/* Empty */}
-      {!isLoading && !isError && threads.length === 0 && !showCompose && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center px-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <MessageSquare className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {t.messages.emptyInbox}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Start a conversation by messaging a seller on any listing.
-          </p>
-        </div>
-      )}
-
-      {/* Thread List */}
-      {threads.length > 0 && (
-        <div className="divide-y divide-border">
-          {threads.map((thread) => (
-            <ThreadRow key={thread.id} thread={thread} />
-          ))}
-        </div>
-      )}
-
-      {/* Load More Button */}
-      {hasNextPage && (
-        <div className="p-4 text-center">
-          <button
-            type="button"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
-          >
-            {isFetchingNextPage ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
-              </>
+      {/* Timestamp + read receipt on last message in group */}
+      {isLast && (
+        <div className="flex items-center gap-1 px-1 mt-0.5">
+          <span className="text-[10px] text-muted-foreground">
+            {formatTime(message.created_at)}
+          </span>
+          {isOwn &&
+            (message.is_read ? (
+              <CheckCheck className="h-3 w-3 text-primary" />
             ) : (
-              "Load more conversations"
+              <Check className="h-3 w-3 text-muted-foreground" />
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Conversation Panel ─────────────────────────────────────
+
+function ConversationPanel({
+  threadId,
+  onBack,
+  composeListingId,
+  onComposeComplete,
+}: {
+  threadId: string | null;
+  onBack: () => void;
+  composeListingId: string | null;
+  onComposeComplete: (newThreadId: string) => void;
+}) {
+  const { data, isLoading } = useThread(threadId ?? undefined);
+  const sendMutation = useSendMessage();
+  const markReadMutation = useMarkRead();
+  const startThread = useStartThread();
+  const { data: composeListing } = useListing(composeListingId ?? undefined);
+
+  const [messageText, setMessageText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasMarkedRead = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const thread = data?.thread;
+  const messages = useMemo(() => data?.messages?.items ?? [], [data]);
+  const grouped = useMemo(() => groupMessages(messages), [messages]);
+
+  // Track scroll position for scroll-to-bottom button
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const threshold = 100;
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    setShowScrollButton(!isNearBottom);
+  }, []);
+
+  // Auto-scroll on new messages (only if near bottom)
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const threshold = 150;
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length]);
+
+  // Scroll to bottom on thread change
+  useEffect(() => {
+    hasMarkedRead.current = false;
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+    }, 50);
+  }, [threadId]);
+
+  // Mark as read
+  useEffect(() => {
+    if (threadId && thread && thread.unread_count > 0 && !hasMarkedRead.current) {
+      markReadMutation.mutate(threadId, {
+        onSuccess: () => {
+          hasMarkedRead.current = true;
+        },
+      });
+    }
+  }, [threadId, thread, markReadMutation]);
+
+  // Auto-resize textarea
+  const adjustTextarea = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  }, []);
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function handleSend(e?: FormEvent) {
+    e?.preventDefault();
+    const trimmed = messageText.trim();
+    if (!trimmed) return;
+
+    // New conversation flow
+    if (!threadId && composeListingId) {
+      startThread.mutateAsync({
+        listing_id: composeListingId,
+        content: trimmed,
+      }).then((result) => {
+        setMessageText("");
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+        }
+        onComposeComplete(result.thread.id);
+      }).catch(() => {
+        // Error toast handled by hook
+      });
+      return;
+    }
+
+    if (!threadId || sendMutation.isPending) return;
+
+    sendMutation.mutate(
+      { threadId, content: trimmed },
+      {
+        onSuccess: () => {
+          setMessageText("");
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+          }
+        },
+      },
+    );
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  const otherUser = thread?.other_user;
+  const isPending = sendMutation.isPending || startThread.isPending;
+  const isComposing = !threadId && composeListingId;
+
+  // Empty state — no thread selected
+  if (!threadId && !composeListingId) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center text-center px-8">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted mb-4">
+          <MessageSquare className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h2 className="text-lg font-semibold text-muted-foreground">
+          Your messages
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+          Select a conversation from the left to continue chatting, or message a
+          seller from any listing.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 shrink-0">
+        {/* Back button (visible on mobile) */}
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors lg:hidden"
+          aria-label="Back to conversations"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+
+        {otherUser && (
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <UserAvatar
+              url={otherUser.avatar_url}
+              name={otherUser.display_name}
+              size={36}
+              className="h-9 w-9"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">
+                {otherUser.display_name}
+              </p>
+              {thread?.listing && (
+                <Link
+                  href={`/listings/${thread.listing.id}`}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <span className="truncate">{thread.listing.title}</span>
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isComposing && composeListing && (
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 shrink-0">
+              <Send className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">New message</p>
+              <p className="text-xs text-muted-foreground truncate">
+                About: {composeListing.title}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Listing context card */}
+      {thread?.listing && (
+        <div className="shrink-0 px-4 pt-3">
+          <ListingContextCard listing={thread.listing} />
+        </div>
+      )}
+      {isComposing && composeListing && (
+        <div className="shrink-0 px-4 pt-3">
+          <ListingContextCard
+            listing={{
+              id: composeListing.id,
+              title: composeListing.title,
+              first_photo_url: composeListing.photos?.[0]?.thumbnail_url || composeListing.photos?.[0]?.url || null,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Messages area */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="relative flex-1 overflow-y-auto px-4 py-4"
+      >
+        {isLoading && (
+          <div className="flex flex-col gap-4 animate-pulse">
+            <div className="h-10 w-48 rounded-2xl bg-muted self-start" />
+            <div className="h-10 w-36 rounded-2xl bg-muted self-end" />
+            <div className="h-10 w-56 rounded-2xl bg-muted self-start" />
+            <div className="h-10 w-40 rounded-2xl bg-muted self-end" />
+          </div>
+        )}
+
+        {!isLoading && messages.length === 0 && !isComposing && (
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t.messages.threadEmpty}
+            </p>
+          </div>
+        )}
+
+        {isComposing && messages.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              Write your first message below to start the conversation.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && grouped.length > 0 && (
+          <div className="flex flex-col">
+            {grouped.map(({ date, groups }) => (
+              <div key={date}>
+                {/* Date separator */}
+                <div className="flex items-center gap-3 py-3">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {formatDateHeader(groups[0].messages[0].created_at)}
+                  </span>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+
+                {/* Message groups */}
+                {groups.map((group, gi) => (
+                  <div
+                    key={`${date}-${gi}`}
+                    className={cn(
+                      "flex flex-col",
+                      group.isOwn ? "items-end" : "items-start",
+                    )}
+                  >
+                    {group.messages.map((msg, mi) => (
+                      <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        isOwn={group.isOwn}
+                        isFirst={mi === 0}
+                        isLast={mi === group.messages.length - 1}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Scroll to bottom FAB */}
+        {showScrollButton && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-card border border-border shadow-md hover:bg-accent transition-colors z-10"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Quick replies */}
+      <QuickReplies
+        onSelect={(text) => {
+          setMessageText(text);
+          textareaRef.current?.focus();
+        }}
+        messageCount={messages.length}
+      />
+
+      {/* Input bar */}
+      <div className="shrink-0 border-t border-border bg-background px-4 py-3">
+        <form onSubmit={handleSend} className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={messageText}
+            onChange={(e) => {
+              setMessageText(e.target.value);
+              adjustTextarea();
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={t.messages.placeholder}
+            disabled={isPending}
+            rows={1}
+            className={cn(
+              "flex-1 resize-none rounded-2xl border border-input bg-muted/50 px-4 py-2.5 text-sm leading-relaxed",
+              "placeholder:text-muted-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              "max-h-[120px]",
+            )}
+          />
+          <button
+            type="submit"
+            disabled={isPending || !messageText.trim()}
+            className={cn(
+              "inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary shrink-0",
+              "text-primary-foreground",
+              "hover:bg-primary/90 transition-all",
+              "disabled:opacity-40 disabled:pointer-events-none",
+              messageText.trim() && "scale-100",
+              !messageText.trim() && "scale-90",
+            )}
+            aria-label="Send message"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
             )}
           </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────
+
+function MessagesPageContent() {
+  const searchParams = useSearchParams();
+
+  const threadParam = searchParams.get("thread");
+  const listingParam = searchParams.get("listing");
+  const toParam = searchParams.get("to");
+
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(
+    threadParam,
+  );
+  const [composeListingId, setComposeListingId] = useState<string | null>(
+    listingParam,
+  );
+  const [mobileView, setMobileView] = useState<"list" | "conversation">(
+    threadParam || listingParam ? "conversation" : "list",
+  );
+
+  // Sync URL params
+  useEffect(() => {
+    if (threadParam && threadParam !== activeThreadId) {
+      setActiveThreadId(threadParam);
+      setMobileView("conversation");
+    }
+  }, [threadParam]);
+
+  useEffect(() => {
+    if (listingParam && listingParam !== composeListingId) {
+      setComposeListingId(listingParam);
+      setActiveThreadId(null);
+      setMobileView("conversation");
+    }
+  }, [listingParam]);
+
+  function handleSelectThread(id: string) {
+    setActiveThreadId(id);
+    setComposeListingId(null);
+    setMobileView("conversation");
+    // Update URL without navigation
+    window.history.replaceState(null, "", `/messages?thread=${id}`);
+  }
+
+  function handleBack() {
+    setActiveThreadId(null);
+    setComposeListingId(null);
+    setMobileView("list");
+    window.history.replaceState(null, "", "/messages");
+  }
+
+  function handleComposeComplete(newThreadId: string) {
+    setActiveThreadId(newThreadId);
+    setComposeListingId(null);
+    window.history.replaceState(null, "", `/messages?thread=${newThreadId}`);
+  }
+
+  return (
+    <div className="mx-auto h-[calc(100vh-4rem)] max-w-5xl">
+      <div className="flex h-full border-x border-border">
+        {/* Thread list — always visible on desktop, toggle on mobile */}
+        <div
+          className={cn(
+            "h-full border-r border-border bg-background",
+            // Desktop: fixed 320px sidebar
+            "lg:block lg:w-80 lg:shrink-0",
+            // Mobile: full width or hidden
+            mobileView === "list" ? "w-full" : "hidden lg:block",
+          )}
+        >
+          <ThreadListPanel
+            activeThreadId={activeThreadId}
+            onSelectThread={handleSelectThread}
+            onCompose={(id) => {
+              setComposeListingId(id);
+              setActiveThreadId(null);
+              setMobileView("conversation");
+            }}
+            composeListingId={composeListingId}
+          />
         </div>
-      )}
+
+        {/* Conversation — always visible on desktop, toggle on mobile */}
+        <div
+          className={cn(
+            "h-full flex-1 bg-background",
+            mobileView === "conversation" ? "block" : "hidden lg:block",
+          )}
+        >
+          <ConversationPanel
+            threadId={activeThreadId}
+            onBack={handleBack}
+            composeListingId={composeListingId}
+            onComposeComplete={handleComposeComplete}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -301,18 +1033,30 @@ function MessagesPageContent() {
 export default function MessagesPage() {
   return (
     <ProtectedPage>
-      <Suspense fallback={
-        <div className="mx-auto max-w-2xl">
-          <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
-            <h1 className="text-lg font-semibold">{t.messages.inboxTitle}</h1>
+      <Suspense
+        fallback={
+          <div className="mx-auto h-[calc(100vh-4rem)] max-w-5xl">
+            <div className="flex h-full border-x border-border">
+              <div className="w-full lg:w-80 lg:shrink-0 border-r border-border">
+                <div className="border-b border-border px-4 py-3">
+                  <div className="h-6 w-24 rounded bg-muted animate-pulse" />
+                </div>
+                <div className="divide-y divide-border">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <ThreadSkeleton key={i} />
+                  ))}
+                </div>
+              </div>
+              <div className="hidden lg:flex flex-1 items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto h-16 w-16 rounded-full bg-muted animate-pulse mb-3" />
+                  <div className="h-4 w-32 rounded bg-muted animate-pulse mx-auto" />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="divide-y divide-border">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <ThreadSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      }>
+        }
+      >
         <MessagesPageContent />
       </Suspense>
     </ProtectedPage>

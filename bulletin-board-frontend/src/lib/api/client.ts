@@ -167,6 +167,10 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
     "Content-Type": "application/json",
   };
 
+  // Ensure tokens are loaded from localStorage before first request
+  if (!skipAuth && !accessToken) {
+    restoreTokens();
+  }
   if (!skipAuth && accessToken) {
     headers["Authorization"] = `Bearer ${accessToken}`;
   }
@@ -188,22 +192,25 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
   }
 
   // On 401 attempt one token refresh + retry
-  if (res.status === 401 && !skipAuth && refreshToken) {
-    try {
-      const newToken = await getNewAccessToken();
-      headers["Authorization"] = `Bearer ${newToken}`;
+  if (res.status === 401 && !skipAuth) {
+    if (!refreshToken) restoreTokens();
+    if (refreshToken) {
       try {
-        res = await fetch(url.toString(), { method, headers, body: fetchOptions.body });
-      } catch (err) {
-        throw new ApiError(
-          0,
-          err instanceof Error ? err.message : "Network request failed on retry",
-          "network_error",
-        );
+        const newToken = await getNewAccessToken();
+        headers["Authorization"] = `Bearer ${newToken}`;
+        try {
+          res = await fetch(url.toString(), { method, headers, body: fetchOptions.body });
+        } catch (err) {
+          throw new ApiError(
+            0,
+            err instanceof Error ? err.message : "Network request failed on retry",
+            "network_error",
+          );
+        }
+      } catch (refreshErr) {
+        if (refreshErr instanceof ApiError) throw refreshErr;
+        throw new ApiError(401, "Authentication failed", "auth_failed");
       }
-    } catch (refreshErr) {
-      if (refreshErr instanceof ApiError) throw refreshErr;
-      throw new ApiError(401, "Authentication failed", "auth_failed");
     }
   }
 
