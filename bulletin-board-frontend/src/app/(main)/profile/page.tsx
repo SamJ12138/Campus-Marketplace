@@ -142,11 +142,13 @@ export default function ProfilePage() {
         <div className="relative group">
           {user.avatar_url ? (
             <Image
+              key={user.avatar_url}
               src={user.avatar_url}
               alt={user.display_name}
               width={96}
               height={96}
               className="h-24 w-24 rounded-full object-cover"
+              unoptimized
             />
           ) : (
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
