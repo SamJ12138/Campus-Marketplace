@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useAuthStore } from "@/lib/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -28,7 +28,9 @@ export default function MainLayout({
   return (
     <AuthInit>
       <div className="flex min-h-screen flex-col bg-mesh">
-        <Header />
+        <Suspense>
+          <Header />
+        </Suspense>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 pb-24 md:pb-6">
           {children}
         </main>
