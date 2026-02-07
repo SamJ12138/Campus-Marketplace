@@ -4,6 +4,33 @@ import { login as apiLogin, register as apiRegister, logout as apiLogout } from 
 import { getMe } from "@/lib/api/users";
 import { setTokens, clearTokens, getAccessToken, getRefreshToken, restoreTokens } from "@/lib/api/client";
 
+// ---- Cached user for instant page loads ----
+const USER_CACHE_KEY = "cb_user_cache";
+
+function getCachedUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(user: User | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (user) {
+      localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_CACHE_KEY);
+    }
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -39,6 +66,7 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
     setTokens(tokens.access_token, tokens.refresh_token);
 
     const user = await getMe();
+    setCachedUser(user);
     set({ user, isAuthenticated: true, isLoading: false });
   },
 
@@ -73,6 +101,7 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
       // Logout endpoint failure should not block client-side cleanup
     } finally {
       clearTokens();
+      setCachedUser(null);
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
@@ -80,9 +109,11 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
   refreshUser: async () => {
     try {
       const user = await getMe();
+      setCachedUser(user);
       set({ user, isAuthenticated: true });
     } catch {
       clearTokens();
+      setCachedUser(null);
       set({ user: null, isAuthenticated: false });
     }
   },
@@ -92,15 +123,25 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
     restoreTokens();
     const token = getAccessToken();
     if (!token) {
+      setCachedUser(null);
       set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
 
+    // Immediately use cached user so the page renders without waiting for API
+    const cached = getCachedUser();
+    if (cached) {
+      set({ user: cached, isAuthenticated: true, isLoading: false });
+    }
+
+    // Then refresh from server in background
     try {
       const user = await getMe();
+      setCachedUser(user);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       clearTokens();
+      setCachedUser(null);
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

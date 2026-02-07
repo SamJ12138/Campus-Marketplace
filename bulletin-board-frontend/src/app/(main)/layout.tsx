@@ -9,22 +9,14 @@ import { SupportChat } from "@/components/chat/SupportChat";
 import { ReportModal } from "@/components/modals/ReportModal";
 
 function AuthInit({ children }: { children: React.ReactNode }) {
-  const { isLoading, initialize } = useAuthStore();
+  const initialize = useAuthStore((s) => s.initialize);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-mesh">
-        <div className="h-10 w-10 animate-spin rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] p-0.5">
-          <div className="h-full w-full rounded-[14px] bg-background" />
-        </div>
-      </div>
-    );
-  }
-
+  // Render children immediately — don't block the whole page on auth.
+  // Protected pages handle their own loading state via <ProtectedPage>.
   return <>{children}</>;
 }
 
