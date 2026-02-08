@@ -372,6 +372,53 @@ async def get_audit_log(
     ]
 
 
+# ============ EMAIL TEST ============
+
+
+@router.post("/test-email")
+async def test_email(
+    admin_user: User = Depends(require_admin),
+):
+    """Send a test email to the admin's own address to verify email delivery."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    from app.config import get_settings
+    from app.services.email_service import EmailService
+
+    settings = get_settings()
+    logger.info(f"[TEST EMAIL] provider={settings.email_provider}, from={settings.email_from_address}, resend_key_set={bool(settings.resend_api_key)}")
+
+    if not admin_user.email:
+        raise HTTPException(400, "No email address on your account")
+
+    html = f"""
+    <div style="font-family: sans-serif; padding: 20px;">
+        <h2>Campus Board - Email Test</h2>
+        <p>This is a test email sent from the admin panel.</p>
+        <p>If you see this, email delivery is working correctly.</p>
+        <p><strong>Provider:</strong> {settings.email_provider}</p>
+        <p><strong>From:</strong> {settings.email_from_address}</p>
+    </div>
+    """
+
+    service = EmailService(settings)
+    try:
+        success = service.send_email_sync(
+            to_email=admin_user.email,
+            subject="Campus Board - Email Test",
+            html_content=html,
+        )
+    except Exception as e:
+        logger.exception("[TEST EMAIL] Exception during send")
+        raise HTTPException(500, f"Email send threw exception: {type(e).__name__}: {e}")
+
+    if not success:
+        raise HTTPException(500, "Email send returned False — check Render logs for [EMAIL ERROR] details")
+
+    return {"status": "sent", "to": admin_user.email, "provider": settings.email_provider}
+
+
 # ============ STATS ============
 
 
