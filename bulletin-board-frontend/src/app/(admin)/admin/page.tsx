@@ -219,6 +219,9 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // Wait until stats have loaded (backend is warm) before fetching charts
+    if (!stats) return;
+
     let cancelled = false;
 
     async function fetchCharts() {
@@ -230,9 +233,13 @@ export default function AdminDashboardPage() {
         if (!cancelled) setChartData(data);
       } catch (err) {
         if (!cancelled) {
-          setChartError(
-            err instanceof Error ? err.message : "Failed to load chart data",
-          );
+          const detail =
+            err instanceof Error ? err.message : "Unknown error";
+          const status =
+            err && typeof err === "object" && "status" in err
+              ? ` (${(err as { status: number }).status})`
+              : "";
+          setChartError(`${detail}${status}`);
         }
       }
     }
@@ -241,7 +248,7 @@ export default function AdminDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [chartPeriod, chartRetry]);
+  }, [stats, chartPeriod, chartRetry]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">

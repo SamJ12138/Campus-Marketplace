@@ -743,69 +743,41 @@ async def get_stats_charts(
     admin: User = Depends(require_moderator),
 ):
     """Get time-series data for dashboard charts."""
+    import logging
+    from sqlalchemy import Date, cast
+
+    logger = logging.getLogger(__name__)
+
     days = {"7d": 7, "30d": 30, "90d": 90}[period]
     now = datetime.now(timezone.utc)
     start_date = now - timedelta(days=days)
 
-    # Daily new users
-    user_result = await db.execute(
-        select(
-            func.date_trunc("day", User.created_at).label("day"),
-            func.count(User.id).label("count"),
-        )
-        .where(User.created_at >= start_date)
-        .group_by(func.date_trunc("day", User.created_at))
-        .order_by(func.date_trunc("day", User.created_at))
-    )
-    daily_users = [
-        {"date": row.day.isoformat()[:10], "count": row.count}
-        for row in user_result
-    ]
+    async def _daily_counts(table_name: str, col):
+        """Run a daily count query, returning [] on error."""
+        try:
+            day_col = cast(col, Date)
+            result = await db.execute(
+                select(
+                    day_col.label("day"),
+                    func.count().label("cnt"),
+                )
+                .where(col >= start_date)
+                .group_by(day_col)
+                .order_by(day_col)
+            )
+            rows = result.all()
+            return [
+                {"date": str(row.day), "count": row.cnt}
+                for row in rows
+            ]
+        except Exception as exc:
+            logger.exception("Chart query failed for %s: %s", table_name, exc)
+            return []
 
-    # Daily new listings
-    listing_result = await db.execute(
-        select(
-            func.date_trunc("day", Listing.created_at).label("day"),
-            func.count(Listing.id).label("count"),
-        )
-        .where(Listing.created_at >= start_date)
-        .group_by(func.date_trunc("day", Listing.created_at))
-        .order_by(func.date_trunc("day", Listing.created_at))
-    )
-    daily_listings = [
-        {"date": row.day.isoformat()[:10], "count": row.count}
-        for row in listing_result
-    ]
-
-    # Daily messages
-    message_result = await db.execute(
-        select(
-            func.date_trunc("day", Message.created_at).label("day"),
-            func.count(Message.id).label("count"),
-        )
-        .where(Message.created_at >= start_date)
-        .group_by(func.date_trunc("day", Message.created_at))
-        .order_by(func.date_trunc("day", Message.created_at))
-    )
-    daily_messages = [
-        {"date": row.day.isoformat()[:10], "count": row.count}
-        for row in message_result
-    ]
-
-    # Daily reports
-    report_result = await db.execute(
-        select(
-            func.date_trunc("day", Report.created_at).label("day"),
-            func.count(Report.id).label("count"),
-        )
-        .where(Report.created_at >= start_date)
-        .group_by(func.date_trunc("day", Report.created_at))
-        .order_by(func.date_trunc("day", Report.created_at))
-    )
-    daily_reports = [
-        {"date": row.day.isoformat()[:10], "count": row.count}
-        for row in report_result
-    ]
+    daily_users = await _daily_counts("users", User.created_at)
+    daily_listings = await _daily_counts("listings", Listing.created_at)
+    daily_messages = await _daily_counts("messages", Message.created_at)
+    daily_reports = await _daily_counts("reports", Report.created_at)
 
     return {
         "period": period,
