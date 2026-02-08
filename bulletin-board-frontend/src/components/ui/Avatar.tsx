@@ -62,7 +62,7 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
           height={sizePixels[size]}
           className="h-full w-full object-cover"
           onError={() => setImgError(true)}
-          unoptimized={src.includes('r2.dev')}
+          unoptimized={src.includes('r2.dev') || undefined}
         />
       ) : (
         <div

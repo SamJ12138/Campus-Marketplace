@@ -124,7 +124,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
             className="cursor-pointer object-cover"
             onClick={() => setLightboxOpen(true)}
             priority
-            unoptimized={photos[current].url.includes('r2.dev')}
+            unoptimized={photos[current].url.includes('r2.dev') || undefined}
           />
         </div>
 
@@ -191,7 +191,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
                 fill
                 sizes="64px"
                 className="object-cover"
-                unoptimized={(photo.thumbnail_url || photo.url).includes('r2.dev')}
+                unoptimized={(photo.thumbnail_url || photo.url).includes('r2.dev') || undefined}
               />
             </button>
           ))}
@@ -226,7 +226,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
               sizes="90vw"
               className="object-contain"
               priority
-              unoptimized={photos[current].url.includes('r2.dev')}
+              unoptimized={photos[current].url.includes('r2.dev') || undefined}
             />
           </div>
           {photos.length > 1 && (
@@ -551,7 +551,7 @@ export default function ListingDetailPage() {
                   width={48}
                   height={48}
                   className="h-12 w-12 rounded-full object-cover"
-                  unoptimized={listing.user.avatar_url.includes('r2.dev')}
+                  unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
                 />
               ) : (
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-bold text-slate-600">

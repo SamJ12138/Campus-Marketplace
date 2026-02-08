@@ -148,7 +148,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             loading="lazy"
-            unoptimized={thumbnailUrl.includes('r2.dev')}
+            unoptimized={thumbnailUrl.includes('r2.dev') || undefined}
           />
         ) : listing.type === "service" ? (
           <div
@@ -257,7 +257,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               width={24}
               height={24}
               className="h-6 w-6 rounded-full object-cover ring-2 ring-primary/20"
-              unoptimized={listing.user.avatar_url.includes('r2.dev')}
+              unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
             />
           ) : (
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-[hsl(var(--secondary-accent))]/20 text-[10px] font-bold text-primary">

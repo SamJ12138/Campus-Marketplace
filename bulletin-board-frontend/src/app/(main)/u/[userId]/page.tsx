@@ -42,7 +42,7 @@ function ListingGridCard({ listing }: { listing: Listing }) {
             alt={listing.title}
             fill
             className="object-cover"
-            unoptimized={thumbnailUrl.includes('r2.dev')}
+            unoptimized={thumbnailUrl.includes('r2.dev') || undefined}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -192,7 +192,7 @@ export default function PublicUserProfilePage() {
             width={96}
             height={96}
             className="h-24 w-24 rounded-full object-cover shrink-0"
-            unoptimized={profile.avatar_url.includes('r2.dev')}
+            unoptimized={profile.avatar_url.includes('r2.dev') || undefined}
           />
         ) : (
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary shrink-0">

@@ -138,7 +138,7 @@ export default function QuickViewModal({
               sizes="(max-width: 640px) 100vw, 640px"
               className="object-cover"
               priority
-              unoptimized={currentPhoto.url.includes('r2.dev')}
+              unoptimized={currentPhoto.url.includes('r2.dev') || undefined}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -215,7 +215,7 @@ export default function QuickViewModal({
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full object-cover"
-                unoptimized={listing.user.avatar_url.includes('r2.dev')}
+                unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
