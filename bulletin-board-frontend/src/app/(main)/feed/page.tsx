@@ -248,13 +248,13 @@ function FeedContent() {
 
   const {
     data,
-    isLoading,
+    isPending,
     isError,
     refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useListings(filters);
+  } = useListings(filters, { enabled: !authLoading && isAuthenticated });
 
   // Flatten pages into a single array
   const listings: Listing[] = useMemo(
@@ -389,7 +389,7 @@ function FeedContent() {
       />
 
       {/* Content area */}
-      {(authLoading || isLoading) ? (
+      {(authLoading || isPending) ? (
         <ListingGrid listings={[]}>
           {Array.from({ length: 8 }).map((_, i) => (
             <ListingCardSkeleton key={i} />
