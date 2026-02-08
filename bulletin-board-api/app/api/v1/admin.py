@@ -394,7 +394,7 @@ async def test_email(
 
     html = f"""
     <div style="font-family: sans-serif; padding: 20px;">
-        <h2>Campus Board - Email Test</h2>
+        <h2>GimmeDat - Email Test</h2>
         <p>This is a test email sent from the admin panel.</p>
         <p>If you see this, email delivery is working correctly.</p>
         <p><strong>Provider:</strong> {settings.email_provider}</p>
@@ -406,7 +406,7 @@ async def test_email(
     try:
         success = service.send_email_sync(
             to_email=admin_user.email,
-            subject="Campus Board - Email Test",
+            subject="GimmeDat - Email Test",
             html_content=html,
         )
     except Exception as e:

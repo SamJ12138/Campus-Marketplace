@@ -32,13 +32,13 @@ async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
 
     templates = {
         "verify_email": {
-            "subject": "Verify your Campus Board email",
+            "subject": "Verify your GimmeDat email",
         },
         "password_reset": {
             "subject": "Reset your password",
         },
         "new_message": {
-            "subject": "You have a new message on Campus Board",
+            "subject": "You have a new message on GimmeDat",
         },
         "listing_expiring": {
             "subject": "Your listing is expiring soon",
@@ -267,7 +267,7 @@ async def send_new_message_email(ctx, recipient_id: str, thread_id: str):
             await send_sms(
                 ctx,
                 user.phone_number,
-                f"You have a new message on Campus Board. View it here: {thread_url}",
+                f"You have a new message on GimmeDat. View it here: {thread_url}",
             )
 
 

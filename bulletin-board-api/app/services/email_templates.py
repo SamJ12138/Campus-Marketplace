@@ -1,5 +1,5 @@
 """
-Professional email templates for Campus Board (Gimme Dat)
+Professional email templates for GimmeDat
 """
 
 
