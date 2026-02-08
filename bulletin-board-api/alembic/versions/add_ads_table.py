@@ -31,7 +31,7 @@ def upgrade() -> None:
         'ads',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('campus_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('type', sa.Enum('internal_detail', 'external_link', 'coupon', 'event', name='ad_type'), nullable=False, server_default='internal_detail'),
+        sa.Column('type', sa.Enum('internal_detail', 'external_link', 'coupon', 'event', name='ad_type', create_type=False), nullable=False, server_default='internal_detail'),
         sa.Column('title', sa.String(200), nullable=False),
         sa.Column('subtitle', sa.String(500), nullable=True),
         sa.Column('body', sa.Text(), nullable=True),
