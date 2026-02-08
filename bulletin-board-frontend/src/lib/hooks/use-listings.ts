@@ -44,6 +44,7 @@ const listingKeys = {
 
 export function useListings(
   filters: ListingFilters & { q?: string; sort?: string } = {},
+  options?: { enabled?: boolean },
 ) {
   return useInfiniteQuery({
     queryKey: listingKeys.list(filters as Record<string, unknown>),
@@ -54,6 +55,7 @@ export function useListings(
       lastPage.pagination.has_next
         ? lastPage.pagination.page + 1
         : undefined,
+    enabled: options?.enabled,
   });
 }
 

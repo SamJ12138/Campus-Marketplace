@@ -53,6 +53,7 @@ export default function FilterBar({
       if (currentType === type) {
         if (lockedType === type) return;
         onTypeChange(null);
+        onCategoryChange(null);
       } else {
         onTypeChange(type);
         onCategoryChange(null);

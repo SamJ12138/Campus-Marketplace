@@ -254,7 +254,7 @@ function FeedContent() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useListings(filters);
+  } = useListings(filters, { enabled: isAuthenticated });
 
   // Flatten pages into a single array
   const listings: Listing[] = useMemo(

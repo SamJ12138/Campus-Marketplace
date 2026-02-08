@@ -13,7 +13,7 @@ export async function getListings(
 ): Promise<PaginatedResponse<Listing>> {
   return api.get<PaginatedResponse<Listing>>("/api/v1/listings", {
     type: params.type,
-    category_slug: params.category_slug,
+    category: params.category_slug,
     location_type: params.location_type,
     search: params.search,
     q: params.q,
