@@ -109,7 +109,7 @@ const FAQS = [
   {
     question: "Is this an official college service?",
     answer:
-      "Campus Board is a student-created platform designed to serve the college community. It is not officially affiliated with or endorsed by any college or university.",
+      "GimmeDat is a student-created platform designed to serve the college community. It is not officially affiliated with or endorsed by any college or university.",
   },
   {
     question: "How do I price my items or services?",
@@ -134,7 +134,7 @@ const FAQS = [
   {
     question: "Is there a fee to use the platform?",
     answer:
-      "Campus Board is completely free to use. There are no listing fees, transaction fees, or subscription costs. We may show relevant campus ads to keep the platform running.",
+      "GimmeDat is completely free to use. There are no listing fees, transaction fees, or subscription costs. We may show relevant campus ads to keep the platform running.",
   },
 ];
 

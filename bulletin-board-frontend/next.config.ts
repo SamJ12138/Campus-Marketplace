@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "cdn.campusboard.app",
+        hostname: "cdn.gimme-dat.com",
         pathname: "/**",
       },
       {

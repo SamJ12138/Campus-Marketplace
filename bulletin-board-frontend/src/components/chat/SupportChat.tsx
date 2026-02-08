@@ -259,7 +259,7 @@ export function SupportChat() {
             <div className="animate-fade-in space-y-3">
               <div className="rounded-xl bg-card p-4 shadow-sm border border-border">
                 <h4 className="text-sm font-bold text-foreground">
-                  Welcome to Campus Board Support
+                  Welcome to GimmeDat Support
                 </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                   I can help with questions about posting offers, browsing the

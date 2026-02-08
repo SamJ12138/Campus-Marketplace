@@ -552,7 +552,7 @@ export default function LandingPage() {
                 Trade with confidence
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Every layer of Campus Board is designed to keep your campus
+                Every layer of GimmeDat is designed to keep your campus
                 community safe and trusted.
               </p>
 

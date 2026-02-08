@@ -10,7 +10,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 text-primary">
               <GraduationCap className="h-5 w-5" />
-              <span className="font-bold">Campus Board</span>
+              <span className="font-bold">GimmeDat</span>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Your campus marketplace for services, items, and community
@@ -47,7 +47,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Campus Board. A student community
+          &copy; {new Date().getFullYear()} GimmeDat. A student community
           project.
         </div>
       </div>

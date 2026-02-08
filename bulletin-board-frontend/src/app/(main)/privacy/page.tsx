@@ -20,7 +20,7 @@ const SECTIONS = [
     number: "1",
     title: "Introduction",
     content:
-      'Campus Board ("we," "our," or "the Platform") is committed to protecting your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.',
+      'GimmeDat ("we," "our," or "the Platform") is committed to protecting your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.',
   },
   {
     icon: Eye,

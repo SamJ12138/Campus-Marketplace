@@ -97,7 +97,7 @@ const SEED_ADS: Ad[] = [
       src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=500&fit=crop",
       alt: "Students studying together at a library table",
     },
-    body: "Campus Board makes it easy to find peer tutors for any subject. Post a tutoring service listing or browse existing offers from upperclassmen and grad students.\n\nAll tutoring exchanges happen between students — no fees charged through the platform.",
+    body: "GimmeDat makes it easy to find peer tutors for any subject. Post a tutoring service listing or browse existing offers from upperclassmen and grad students.\n\nAll tutoring exchanges happen between students — no fees charged through the platform.",
     priority: 70,
     startsAt: "2025-01-15T00:00:00Z",
     endsAt: "2026-12-31T23:59:59Z",

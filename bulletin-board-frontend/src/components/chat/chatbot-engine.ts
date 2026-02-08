@@ -1,5 +1,5 @@
 /**
- * Chatbot Engine — Campus Board Support
+ * Chatbot Engine — GimmeDat Support
  *
  * Self-contained client-side implementation:
  * - Message classification into 5 categories
@@ -165,19 +165,19 @@ const SYNONYMS: Record<string, string[]> = {
 const KNOWLEDGE_BASE: KBEntry[] = [
   {
     id: "what-is-cb",
-    title: "What is Campus Board?",
+    title: "What is GimmeDat?",
     url: "/how-it-works",
     keywords: [
       "what is",
       "platform",
       "about",
-      "campus board",
+      "gimmedat",
       "what is this",
       "tell me about",
       "marketplace",
     ],
     content:
-      "Campus Board is a campus marketplace that connects college students to buy, sell, and trade items and services within their school community. Each campus is a completely separate, isolated community — you only see offers from students at your own school. It's a safe, trusted space built exclusively for verified .edu email holders.",
+      "GimmeDat is a campus marketplace that connects college students to buy, sell, and trade items and services within their school community. Each campus is a completely separate, isolated community — you only see offers from students at your own school. It's a safe, trusted space built exclusively for verified .edu email holders.",
     excerpt: "Campus marketplace for college students",
   },
   {
@@ -253,7 +253,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "inbox",
     ],
     content:
-      "Campus Board has built-in messaging so you can coordinate with other users without sharing personal contact info. To start a conversation, click \"Message\" on any offer page. All communication stays within the platform. You'll receive notifications for new messages based on your notification preferences.",
+      "GimmeDat has built-in messaging so you can coordinate with other users without sharing personal contact info. To start a conversation, click \"Message\" on any offer page. All communication stays within the platform. You'll receive notifications for new messages based on your notification preferences.",
     excerpt: "In-app messaging system",
   },
   {
@@ -271,7 +271,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "safety features",
     ],
     content:
-      "Campus Board has several safety features: 1) Verified Community — only students with valid .edu email addresses can join. 2) Campus Isolation — each school is a completely separate community; no cross-campus content sharing. 3) In-App Messaging — communicate without sharing personal contact info. 4) Report System — easily report inappropriate behavior or content. 5) Content Moderation — our team reviews reports and enforces community standards.",
+      "GimmeDat has several safety features: 1) Verified Community — only students with valid .edu email addresses can join. 2) Campus Isolation — each school is a completely separate community; no cross-campus content sharing. 3) In-App Messaging — communicate without sharing personal contact info. 4) Report System — easily report inappropriate behavior or content. 5) Content Moderation — our team reviews reports and enforces community standards.",
     excerpt: "Platform safety features",
   },
   {
@@ -323,7 +323,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "community",
     ],
     content:
-      "Each campus on Campus Board is a completely separate community. You can only see and interact with offers and users from your own school. Your profile, offers, and messages are never visible to students at other campuses. This ensures a trusted, tight-knit marketplace where you know everyone is part of your campus community.",
+      "Each campus on GimmeDat is a completely separate community. You can only see and interact with offers and users from your own school. Your profile, offers, and messages are never visible to students at other campuses. This ensures a trusted, tight-knit marketplace where you know everyone is part of your campus community.",
     excerpt: "How campus isolation works",
   },
   {
@@ -340,7 +340,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "filter",
     ],
     content:
-      "Campus Board offers are organized into two types and multiple categories. Items include textbooks, electronics, furniture, clothing, and more. Services include tutoring, transportation, music lessons, tech help, and repairs. Use the filter pills on the Marketplace page to browse by specific categories.",
+      "GimmeDat offers are organized into two types and multiple categories. Items include textbooks, electronics, furniture, clothing, and more. Services include tutoring, transportation, music lessons, tech help, and repairs. Use the filter pills on the Marketplace page to browse by specific categories.",
     excerpt: "Available offer types and categories",
   },
   {
@@ -362,7 +362,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
   },
   {
     id: "eligibility",
-    title: "Who Can Use Campus Board",
+    title: "Who Can Use GimmeDat",
     url: "/how-it-works",
     keywords: [
       "who",
@@ -395,7 +395,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "does it cost",
     ],
     content:
-      "Yes, Campus Board is completely free to use! There are no fees for posting offers, messaging, or browsing. We don't process payments — all transactions are arranged directly between users.",
+      "Yes, GimmeDat is completely free to use! There are no fees for posting offers, messaging, or browsing. We don't process payments — all transactions are arranged directly between users.",
     excerpt: "No fees — the platform is free",
   },
   {
@@ -483,7 +483,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "terms of service",
     ],
     content:
-      "By using Campus Board, you agree to our Terms of Service. Key points: you must be 18+, have a valid .edu email, post only accurate and legal content, and follow community guidelines. The platform is provided as-is and is not liable for transactions between users. See /terms for full details.",
+      "By using GimmeDat, you agree to our Terms of Service. Key points: you must be 18+, have a valid .edu email, post only accurate and legal content, and follow community guidelines. The platform is provided as-is and is not liable for transactions between users. See /terms for full details.",
     excerpt: "Terms of Service overview",
   },
   {
@@ -519,7 +519,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "how to pay",
     ],
     content:
-      "Campus Board connects buyers and sellers but doesn't process payments. All transactions are arranged directly between users. Payment methods (cash, Venmo, etc.) are agreed upon between buyer and seller. We strongly recommend meeting in public, well-lit campus locations for exchanges. The platform is not responsible for the quality, safety, legality, or delivery of items or services.",
+      "GimmeDat connects buyers and sellers but doesn't process payments. All transactions are arranged directly between users. Payment methods (cash, Venmo, etc.) are agreed upon between buyer and seller. We strongly recommend meeting in public, well-lit campus locations for exchanges. The platform is not responsible for the quality, safety, legality, or delivery of items or services.",
     excerpt: "How transactions work",
   },
   {
@@ -553,7 +553,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "night mode",
     ],
     content:
-      "Campus Board supports both light and dark themes. Toggle dark mode using the sun/moon icon button in the header. Your preference is saved automatically.",
+      "GimmeDat supports both light and dark themes. Toggle dark mode using the sun/moon icon button in the header. Your preference is saved automatically.",
     excerpt: "Theme toggle information",
   },
   {
@@ -635,7 +635,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "student project",
     ],
     content:
-      "Campus Board is a student-created platform. It is not officially affiliated with, operated by, or endorsed by any college or university. The platform connects community members for peer-to-peer buying, selling, and trading.",
+      "GimmeDat is a student-created platform. It is not officially affiliated with, operated by, or endorsed by any college or university. The platform connects community members for peer-to-peer buying, selling, and trading.",
     excerpt: "Platform affiliation status",
   },
 ];
@@ -1049,7 +1049,7 @@ export function recordMessage(): void {
 
 // ─── Quick Actions ───────────────────────────────────────────────
 export const QUICK_ACTIONS = [
-  { label: "How it works", question: "How does Campus Board work?" },
+  { label: "How it works", question: "How does GimmeDat work?" },
   { label: "Post an offer", question: "How do I post an offer?" },
   { label: "Safety tips", question: "What safety features does the platform have?" },
   { label: "Is it free?", question: "Is the platform free to use?" },

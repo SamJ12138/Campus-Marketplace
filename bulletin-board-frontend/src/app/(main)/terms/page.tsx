@@ -21,7 +21,7 @@ const SECTIONS = [
     number: "1",
     title: "Acceptance of Terms",
     content:
-      'By creating an account or using Campus Board ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.',
+      'By creating an account or using GimmeDat ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.',
   },
   {
     icon: UserCheck,
@@ -78,7 +78,7 @@ const SECTIONS = [
     number: "6",
     title: "Transactions",
     content:
-      "Campus Board is a platform that connects buyers and sellers. We are not a party to any transaction between users. We do not process payments, guarantee transactions, or provide escrow services.",
+      "GimmeDat is a platform that connects buyers and sellers. We are not a party to any transaction between users. We do not process payments, guarantee transactions, or provide escrow services.",
     bullets: [
       "All transactions are conducted at your own risk.",
       "You are responsible for negotiating terms, arranging payment, and completing exchanges.",
@@ -104,7 +104,7 @@ const SECTIONS = [
     number: "8",
     title: "Intellectual Property",
     content:
-      "The Platform and its original content, features, and functionality are owned by Campus Board and are protected by copyright and other intellectual property laws. You retain ownership of content you post but grant us a non-exclusive license to display and distribute it on the Platform.",
+      "The Platform and its original content, features, and functionality are owned by GimmeDat and are protected by copyright and other intellectual property laws. You retain ownership of content you post but grant us a non-exclusive license to display and distribute it on the Platform.",
   },
   {
     icon: AlertTriangle,
@@ -118,14 +118,14 @@ const SECTIONS = [
     number: "10",
     title: "Limitation of Liability",
     content:
-      'Campus Board is provided "as is" without warranties of any kind. To the maximum extent permitted by law, we are not liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of the Platform, including but not limited to losses from transactions, personal injury, or property damage.',
+      'GimmeDat is provided "as is" without warranties of any kind. To the maximum extent permitted by law, we are not liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of the Platform, including but not limited to losses from transactions, personal injury, or property damage.',
   },
   {
     icon: ShieldCheck,
     number: "11",
     title: "Indemnification",
     content:
-      "You agree to indemnify and hold harmless Campus Board, its creators, and contributors from any claims, damages, or expenses arising from your use of the Platform or violation of these Terms.",
+      "You agree to indemnify and hold harmless GimmeDat, its creators, and contributors from any claims, damages, or expenses arising from your use of the Platform or violation of these Terms.",
   },
   {
     icon: RefreshCw,

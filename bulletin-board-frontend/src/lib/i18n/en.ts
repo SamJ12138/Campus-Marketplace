@@ -1,6 +1,6 @@
 export const en = {
   common: {
-    appName: "Campus Board",
+    appName: "GimmeDat",
     loading: "Loading...",
     error: "An error occurred",
     retry: "Try again",
