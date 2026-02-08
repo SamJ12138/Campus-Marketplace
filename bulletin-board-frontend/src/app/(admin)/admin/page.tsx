@@ -12,6 +12,7 @@ import {
   KeyRound,
   TrendingUp,
   Megaphone,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -190,6 +191,64 @@ const QUICK_LINKS = [
     icon: FileText,
   },
 ] as const;
+
+// ─── Email Test ──────────────────────────────────────────────
+
+function EmailTestCard() {
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleTestEmail() {
+    setStatus("sending");
+    setMessage("");
+    try {
+      const result = await api.post<{ status: string; to: string; provider: string }>(
+        "/api/v1/admin/test-email",
+      );
+      setStatus("success");
+      setMessage(`Sent via ${result.provider} to ${result.to}`);
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Failed to send test email");
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Mail className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Email delivery</h3>
+        </div>
+        <button
+          onClick={handleTestEmail}
+          disabled={status === "sending"}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            status === "sending"
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          {status === "sending" ? "Sending..." : "Send test email"}
+        </button>
+      </div>
+      {message && (
+        <p
+          className={cn(
+            "text-xs",
+            status === "success" ? "text-green-600 dark:text-green-400" : "text-destructive",
+          )}
+        >
+          {message}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Sends a test email to your account to verify notification delivery is working.
+      </p>
+    </div>
+  );
+}
 
 // ─── Main Page ───────────────────────────────────────────────
 
@@ -401,6 +460,9 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Email Diagnostics */}
+      <EmailTestCard />
 
       {/* Quick Links */}
       <div className="space-y-4">
