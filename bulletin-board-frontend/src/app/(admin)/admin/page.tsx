@@ -192,6 +192,8 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "90d">("30d");
   const [error, setError] = useState<string | null>(null);
+  const [chartError, setChartError] = useState<string | null>(null);
+  const [chartRetry, setChartRetry] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,13 +222,18 @@ export default function AdminDashboardPage() {
     let cancelled = false;
 
     async function fetchCharts() {
+      setChartError(null);
       try {
         const data = await api.get<ChartData>("/api/v1/admin/stats/charts", {
           period: chartPeriod,
         });
         if (!cancelled) setChartData(data);
-      } catch {
-        // Charts are non-critical, silently fail
+      } catch (err) {
+        if (!cancelled) {
+          setChartError(
+            err instanceof Error ? err.message : "Failed to load chart data",
+          );
+        }
       }
     }
 
@@ -234,7 +241,7 @@ export default function AdminDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [chartPeriod]);
+  }, [chartPeriod, chartRetry]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
@@ -324,7 +331,18 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {chartData ? (
+        {chartError ? (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-6 text-center">
+            <p className="text-sm text-destructive">{chartError}</p>
+            <button
+              type="button"
+              onClick={() => setChartRetry((n) => n + 1)}
+              className="mt-2 text-xs font-medium text-primary hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        ) : chartData ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
               <MiniChart

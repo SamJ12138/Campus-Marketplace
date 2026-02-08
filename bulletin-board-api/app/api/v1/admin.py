@@ -33,7 +33,22 @@ async def list_reports(
     admin: User = Depends(require_moderator),
 ):
     """List reports for moderation."""
-    query = select(Report).order_by(
+    base_query = select(Report)
+
+    if status:
+        base_query = base_query.where(Report.status == status)
+    if priority:
+        base_query = base_query.where(Report.priority == priority)
+
+    # Total count
+    total = await db.scalar(
+        select(func.count()).select_from(base_query.subquery())
+    ) or 0
+
+    query = base_query.options(
+        selectinload(Report.reporter),
+        selectinload(Report.resolver),
+    ).order_by(
         case(
             (Report.status == "pending", 0),
             (Report.status == "reviewing", 1),
@@ -46,14 +61,8 @@ async def list_reports(
             else_=3,
         ),
         Report.created_at.desc(),
-    )
+    ).offset((page - 1) * per_page).limit(per_page)
 
-    if status:
-        query = query.where(Report.status == status)
-    if priority:
-        query = query.where(Report.priority == priority)
-
-    query = query.offset((page - 1) * per_page).limit(per_page)
     result = await db.execute(query)
     reports = list(result.scalars().all())
 
@@ -69,16 +78,33 @@ async def list_reports(
                 "description": report.description,
                 "status": report.status.value,
                 "priority": report.priority.value,
-                "reporter_id": str(report.reporter_id),
+                "reporter": {
+                    "id": str(report.reporter.id),
+                    "display_name": report.reporter.display_name,
+                } if report.reporter else None,
                 "target_details": target_details,
-                "resolution_type": report.resolution_type,
+                "resolution": report.resolution_type,
                 "resolution_note": report.resolution_note,
+                "resolved_by": {
+                    "id": str(report.resolver.id),
+                    "display_name": report.resolver.display_name,
+                } if report.resolver else None,
                 "resolved_at": report.resolved_at.isoformat() if report.resolved_at else None,
                 "created_at": report.created_at.isoformat(),
             }
         )
 
-    return enriched
+    return {
+        "items": enriched,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_items": total,
+            "total_pages": -(-total // per_page) if total > 0 else 0,
+            "has_next": page * per_page < total,
+            "has_prev": page > 1,
+        },
+    }
 
 
 @router.patch("/reports/{report_id}")

@@ -11,6 +11,7 @@ import {
   Package,
   Shield,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { api } from "@/lib/api/client";
@@ -25,10 +26,10 @@ import type {
 type ReportPriority = "low" | "medium" | "high" | "critical";
 type ReportResolution =
   | "no_action"
-  | "warning"
-  | "remove_content"
-  | "suspend_user"
-  | "ban_user";
+  | "warning_issued"
+  | "content_removed"
+  | "user_suspended"
+  | "user_banned";
 
 interface AdminReport {
   id: string;
@@ -69,10 +70,10 @@ const STATUS_TABS: { label: string; value: ReportStatus | "all" }[] = [
 
 const RESOLUTION_OPTIONS: { label: string; value: ReportResolution }[] = [
   { label: "No Action", value: "no_action" },
-  { label: "Warning", value: "warning" },
-  { label: "Remove Content", value: "remove_content" },
-  { label: t.admin.suspendUserAction, value: "suspend_user" },
-  { label: t.admin.banUserAction, value: "ban_user" },
+  { label: "Warning", value: "warning_issued" },
+  { label: "Remove Content", value: "content_removed" },
+  { label: t.admin.suspendUserAction, value: "user_suspended" },
+  { label: t.admin.banUserAction, value: "user_banned" },
 ];
 
 const PRIORITY_CONFIG: Record<
@@ -432,8 +433,8 @@ export default function AdminReportsPage() {
     setResolvingId(reportId);
 
     try {
-      await api.post(`/api/v1/admin/reports/${reportId}/resolve`, {
-        resolution,
+      await api.patch(`/api/v1/admin/reports/${reportId}`, {
+        resolution_type: resolution,
         resolution_note: note || undefined,
       });
 
@@ -451,8 +452,9 @@ export default function AdminReportsPage() {
         ),
       );
       setExpandedId(null);
-    } catch {
-      // Show error inline would be nice, but keep it simple for now
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to resolve report: ${detail}`);
     } finally {
       setResolvingId(null);
     }
