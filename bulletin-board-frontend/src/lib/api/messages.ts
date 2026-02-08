@@ -37,7 +37,8 @@ export async function getThread(
   });
   return {
     thread: raw.thread,
-    messages: { items: raw.messages, pagination: raw.pagination },
+    // Backend returns newest-first (DESC); reverse to chronological for display
+    messages: { items: [...raw.messages].reverse(), pagination: raw.pagination },
   };
 }
 
