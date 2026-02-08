@@ -2,12 +2,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_current_user
 from app.core.rate_limit import check_listing_rate_limit
 from app.dependencies import get_db, get_redis
-from app.models.listing import Category
+from app.models.listing import Category, Listing, ListingStatus
+from app.models.listing import ListingType as ModelListingType
 from app.models.user import User
 from app.schemas.common import PaginationMeta
 from app.schemas.listing import (
@@ -21,6 +23,50 @@ from app.services.listing_service import ListingService
 from app.services.moderation_service import ModerationService
 
 router = APIRouter(prefix="/listings", tags=["listings"])
+
+
+@router.get("/debug/counts")
+async def debug_listing_counts(db: AsyncSession = Depends(get_db)):
+    """Temporary debug endpoint - listing counts by status and type."""
+    total = await db.scalar(select(func.count()).select_from(Listing)) or 0
+    active = await db.scalar(
+        select(func.count()).select_from(Listing).where(Listing.status == ListingStatus.ACTIVE)
+    ) or 0
+    service = await db.scalar(
+        select(func.count()).select_from(Listing).where(
+            Listing.status == ListingStatus.ACTIVE,
+            Listing.type == ModelListingType.SERVICE,
+        )
+    ) or 0
+    item = await db.scalar(
+        select(func.count()).select_from(Listing).where(
+            Listing.status == ListingStatus.ACTIVE,
+            Listing.type == ModelListingType.ITEM,
+        )
+    ) or 0
+
+    # Also get distinct campus_ids for active listings
+    campus_result = await db.execute(
+        select(Listing.campus_id, func.count()).where(
+            Listing.status == ListingStatus.ACTIVE
+        ).group_by(Listing.campus_id)
+    )
+    campuses = {str(row[0]): row[1] for row in campus_result.all()}
+
+    # Get all statuses
+    status_result = await db.execute(
+        select(Listing.status, func.count()).group_by(Listing.status)
+    )
+    statuses = {str(row[0].value) if hasattr(row[0], 'value') else str(row[0]): row[1] for row in status_result.all()}
+
+    return {
+        "total": total,
+        "active": active,
+        "active_service": service,
+        "active_item": item,
+        "by_campus": campuses,
+        "by_status": statuses,
+    }
 
 
 @router.get("", response_model=ListingListResponse)
