@@ -148,7 +148,7 @@ export interface Message {
 // Reports & moderation
 // ──────────────────────────────────────────────
 
-export type ReportStatus = "pending" | "reviewed" | "resolved" | "dismissed";
+export type ReportStatus = "pending" | "reviewing" | "resolved" | "dismissed";
 
 export interface Report {
   id: string;

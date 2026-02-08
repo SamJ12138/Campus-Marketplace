@@ -35,17 +35,24 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     initialize();
   }, [initialize]);
 
+  const isModOrAdmin =
+    user?.role === "moderator" || user?.role === "admin";
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login");
       return;
     }
-    if (!isLoading && isAuthenticated && user) {
-      if (user.role !== "moderator" && user.role !== "admin") {
-        router.push("/feed");
-      }
+    if (!isLoading && isAuthenticated && user && !isModOrAdmin) {
+      router.push("/feed");
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, isModOrAdmin, router]);
+
+  // If we already have a cached admin/mod user, render immediately
+  // instead of blocking on the background auth refresh
+  if (isLoading && isModOrAdmin) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
@@ -55,7 +62,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated || !user || (user.role !== "moderator" && user.role !== "admin")) {
+  if (!isAuthenticated || !user || !isModOrAdmin) {
     return null;
   }
 

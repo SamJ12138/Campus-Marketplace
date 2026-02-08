@@ -63,7 +63,7 @@ interface AdminReportsResponse {
 const STATUS_TABS: { label: string; value: ReportStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: t.admin.pending, value: "pending" },
-  { label: "Reviewing", value: "reviewed" },
+  { label: "Reviewing", value: "reviewing" },
   { label: t.admin.resolved, value: "resolved" },
   { label: t.admin.dismissed, value: "dismissed" },
 ];
@@ -94,7 +94,7 @@ const STATUS_CONFIG: Record<
   { label: string; className: string }
 > = {
   pending: { label: t.admin.pending, className: "bg-warning/10 text-warning" },
-  reviewed: { label: "Reviewing", className: "bg-primary/10 text-primary" },
+  reviewing: { label: "Reviewing", className: "bg-primary/10 text-primary" },
   resolved: { label: t.admin.resolved, className: "bg-success/10 text-success" },
   dismissed: { label: t.admin.dismissed, className: "bg-muted text-muted-foreground" },
 };

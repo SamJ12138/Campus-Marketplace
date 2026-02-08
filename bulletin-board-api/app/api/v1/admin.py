@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -139,7 +139,7 @@ async def resolve_report(
                 .values(
                     status=UserStatus.SUSPENDED,
                     suspension_reason=data.resolution_note,
-                    suspension_until=datetime.utcnow() + timedelta(days=7),
+                    suspension_until=datetime.now(timezone.utc) + timedelta(days=7),
                 )
             )
 
@@ -156,7 +156,7 @@ async def resolve_report(
     report.resolved_by = admin.id
     report.resolution_type = data.resolution_type.value
     report.resolution_note = data.resolution_note
-    report.resolved_at = datetime.utcnow()
+    report.resolved_at = datetime.now(timezone.utc)
 
     audit = AdminAction(
         admin_id=admin.id,
@@ -381,7 +381,7 @@ async def get_stats(
     admin: User = Depends(require_moderator),
 ):
     """Get dashboard statistics."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -744,7 +744,7 @@ async def get_stats_charts(
 ):
     """Get time-series data for dashboard charts."""
     days = {"7d": 7, "30d": 30, "90d": 90}[period]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     start_date = now - timedelta(days=days)
 
     # Daily new users
