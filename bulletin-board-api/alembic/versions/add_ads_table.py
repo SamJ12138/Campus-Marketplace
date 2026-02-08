@@ -19,19 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create the ad_type enum
-    ad_type_enum = postgresql.ENUM(
-        'internal_detail', 'external_link', 'coupon', 'event',
-        name='ad_type',
-        create_type=True,
-    )
-    ad_type_enum.create(op.get_bind(), checkfirst=True)
+    # Create enum via raw SQL to safely handle "already exists" from partial prior run
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE ad_type AS ENUM ('internal_detail', 'external_link', 'coupon', 'event');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
 
+    # Use sa.String for the column type to avoid SQLAlchemy's automatic enum creation,
+    # then alter to the real enum type via raw SQL
     op.create_table(
         'ads',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('campus_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('type', sa.Enum('internal_detail', 'external_link', 'coupon', 'event', name='ad_type', create_type=False), nullable=False, server_default='internal_detail'),
+        sa.Column('type', sa.String(50), nullable=False, server_default='internal_detail'),
         sa.Column('title', sa.String(200), nullable=False),
         sa.Column('subtitle', sa.String(500), nullable=True),
         sa.Column('body', sa.Text(), nullable=True),
@@ -55,6 +58,13 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['created_by'], ['users.id']),
     )
 
+    # Now alter the column to use the enum type
+    op.execute("""
+        ALTER TABLE ads
+        ALTER COLUMN type TYPE ad_type USING type::ad_type,
+        ALTER COLUMN type SET DEFAULT 'internal_detail';
+    """)
+
     op.create_index('idx_ads_campus', 'ads', ['campus_id'])
     op.create_index('idx_ads_active', 'ads', ['is_active', 'starts_at', 'ends_at'])
 
@@ -63,7 +73,4 @@ def downgrade() -> None:
     op.drop_index('idx_ads_active', table_name='ads')
     op.drop_index('idx_ads_campus', table_name='ads')
     op.drop_table('ads')
-
-    # Drop the enum type
-    ad_type_enum = postgresql.ENUM(name='ad_type')
-    ad_type_enum.drop(op.get_bind(), checkfirst=True)
+    op.execute('DROP TYPE IF EXISTS ad_type')
