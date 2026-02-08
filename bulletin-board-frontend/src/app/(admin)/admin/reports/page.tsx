@@ -175,7 +175,7 @@ function ReportRow({
     minute: "2-digit",
   });
 
-  const canResolve = report.status === "pending" || report.status === "reviewed";
+  const canResolve = report.status === "pending" || report.status === "reviewing";
 
   return (
     <div className="border-b border-border last:border-0">
