@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Ad } from "@/lib/types/ads";
 import { AdsResponseSchema, AdSchema } from "@/lib/types/ads";
+import { api } from "@/lib/api/client";
 
 // ── Query key factory ──
 
@@ -13,29 +14,36 @@ export const adKeys = {
 // ── Fetchers ──
 
 async function fetchAds(campusId?: string, limit?: number): Promise<Ad[]> {
-  const params = new URLSearchParams();
-  if (campusId) params.set("campusId", campusId);
-  if (limit) params.set("limit", String(limit));
+  const params: Record<string, string> = {};
+  if (campusId) params.campus_id = campusId;
+  if (limit) params.limit = String(limit);
 
-  const qs = params.toString();
-  const url = `/api/ads${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch ads");
+  try {
+    // Try backend API first
+    const data = await api.get<Ad[]>("/api/v1/ads", params);
+    return AdsResponseSchema.parse(data);
+  } catch {
+    // Fall back to seed data route if backend is unavailable
+    const qs = new URLSearchParams();
+    if (campusId) qs.set("campusId", campusId);
+    if (limit) qs.set("limit", String(limit));
+    const url = `/api/ads${qs.toString() ? `?${qs}` : ""}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch ads");
+    const json = await res.json();
+    return AdsResponseSchema.parse(json);
   }
-
-  const json = await res.json();
-  return AdsResponseSchema.parse(json);
 }
 
 async function fetchAd(id: string): Promise<Ad | null> {
-  // For MVP, fetch all ads and find by ID.
-  // Replace with a dedicated /api/ads/[id] endpoint when available.
-  const ads = await fetchAds(undefined, 50);
-  const ad = ads.find((a) => a.id === id) ?? null;
-  if (ad) AdSchema.parse(ad);
-  return ad;
+  try {
+    const ad = await api.get<Ad>(`/api/v1/ads/detail/${id}`);
+    return AdSchema.parse(ad);
+  } catch {
+    // Fall back to fetching all and finding by ID
+    const ads = await fetchAds(undefined, 50);
+    return ads.find((a) => a.id === id) ?? null;
+  }
 }
 
 // ── Hooks ──

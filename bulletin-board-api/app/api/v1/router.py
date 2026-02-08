@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     admin,
+    ads,
     auth,
     blocks,
     campuses,
@@ -26,4 +27,5 @@ api_router.include_router(reports.router)
 api_router.include_router(blocks.router)
 api_router.include_router(uploads.router)
 api_router.include_router(admin.router)
+api_router.include_router(ads.router)
 api_router.include_router(categories.router)

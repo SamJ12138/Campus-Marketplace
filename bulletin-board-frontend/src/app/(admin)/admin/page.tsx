@@ -11,6 +11,7 @@ import {
   Shield,
   KeyRound,
   TrendingUp,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -169,6 +170,12 @@ const QUICK_LINKS = [
     title: "Content Management",
     description: "Browse and moderate all listings",
     icon: Package,
+  },
+  {
+    href: "/admin/ads",
+    title: "Ads Management",
+    description: "Manage featured carousel ads",
+    icon: Megaphone,
   },
   {
     href: "/admin/keywords",

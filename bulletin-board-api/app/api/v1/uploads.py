@@ -21,7 +21,7 @@ UPLOAD_EXPIRY_MINUTES = 10
 
 
 class PresignedUploadRequest(BaseModel):
-    purpose: str = Field(..., pattern="^(listing_photo|avatar)$")
+    purpose: str = Field(..., pattern="^(listing_photo|avatar|ad_image)$")
     content_type: str
     file_size: int = Field(..., gt=0)
     listing_id: UUID | None = None
@@ -61,6 +61,11 @@ async def get_presigned_upload_url(
         )
         if photo_count >= settings.max_photos_per_listing:
             raise HTTPException(400, "Maximum photos reached")
+
+    if data.purpose == "ad_image":
+        # Only moderators/admins can upload ad images
+        if current_user.role not in ("moderator", "admin"):
+            raise HTTPException(403, "Only moderators can upload ad images")
 
     try:
         result = await storage.create_presigned_upload(
@@ -163,6 +168,18 @@ async def confirm_upload(
             await db.commit()
 
             return {"avatar_url": result["url"]}
+
+        elif pending.purpose == "ad_image":
+            result = await storage.validate_and_move_upload(
+                pending.storage_key,
+                "ads",
+            )
+
+            # Delete the pending upload record
+            await db.delete(pending)
+            await db.commit()
+
+            return {"image_url": result["url"]}
 
     except ValueError as e:
         raise HTTPException(400, str(e))

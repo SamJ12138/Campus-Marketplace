@@ -9,6 +9,7 @@ from app.models.report import Report
 from app.models.admin import AdminAction, BannedKeyword
 from app.models.notification import NotificationPreference
 from app.models.pending_upload import PendingUpload
+from app.models.ad import Ad, AdType
 
 __all__ = [
     "Base",
@@ -29,4 +30,6 @@ __all__ = [
     "BannedKeyword",
     "NotificationPreference",
     "PendingUpload",
+    "Ad",
+    "AdType",
 ]
