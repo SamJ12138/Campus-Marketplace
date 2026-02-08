@@ -132,9 +132,9 @@ async def admin_list_ads(
     elif status == "inactive":
         query = query.where(Ad.is_active == False)
     elif status == "scheduled":
-        query = query.where(Ad.is_active == True, Ad.starts_at \!= None, Ad.starts_at > now)
+        query = query.where(Ad.is_active == True, Ad.starts_at != None, Ad.starts_at > now)
     elif status == "expired":
-        query = query.where(Ad.ends_at \!= None, Ad.ends_at <= now)
+        query = query.where(Ad.ends_at != None, Ad.ends_at <= now)
 
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
 
