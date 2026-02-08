@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -170,7 +170,7 @@ function SignInPrompt() {
 // ----------------------------------------------------------------
 // Main feed page
 // ----------------------------------------------------------------
-export default function FeedPage() {
+function FeedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -437,5 +437,13 @@ export default function FeedPage() {
         onClose={handleCloseQuickView}
       />
     </div>
+  );
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense>
+      <FeedContent />
+    </Suspense>
   );
 }
