@@ -450,7 +450,7 @@ export default function ListingDetailPage() {
       {/* Back navigation */}
       <button
         type="button"
-        onClick={() => { window.history.length > 1 ? router.back() : router.push("/feed"); }}
+        onClick={() => { if (window.history.length > 1) { router.back(); } else { router.push("/feed"); } }}
         className="mb-6 flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
         <ArrowLeft className="h-4 w-4" />

@@ -257,7 +257,7 @@ export default function CreateListingPage() {
       );
       if (!confirmed) return;
     }
-    window.history.length > 1 ? router.back() : router.push("/feed");
+    if (window.history.length > 1) { router.back(); } else { router.push("/feed"); }
   }, [isDirty, router]);
 
   return (
