@@ -219,6 +219,8 @@ function AdSlide({
 // Main carousel component
 // ──────────────────────────────────────────────
 
+const AUTO_ADVANCE_MS = 6000;
+
 export default function AdHeroBoard() {
   const user = useAuthStore((s) => s.user);
   const campusId = user?.campus_slug;
@@ -226,6 +228,7 @@ export default function AdHeroBoard() {
   const { data: ads, isLoading, isError } = useAds(campusId);
 
   const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const total = ads?.length ?? 0;
@@ -247,18 +250,52 @@ export default function AdHeroBoard() {
   const prev = useCallback(() => goTo(current - 1), [goTo, current]);
   const next = useCallback(() => goTo(current + 1), [goTo, current]);
 
+  // Auto-advance every 6 seconds, pause on hover or manual interaction
+  useEffect(() => {
+    if (total <= 1 || paused) return;
+    const timer = setInterval(() => {
+      setCurrent((c) => (c + 1) % total);
+    }, AUTO_ADVANCE_MS);
+    return () => clearInterval(timer);
+  }, [total, paused]);
+
+  // Pause auto-advance briefly after manual navigation
+  const interactAndPause = useCallback(() => {
+    setPaused(true);
+    const t = setTimeout(() => setPaused(false), AUTO_ADVANCE_MS * 2);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    prev();
+    interactAndPause();
+  }, [prev, interactAndPause]);
+
+  const handleNext = useCallback(() => {
+    next();
+    interactAndPause();
+  }, [next, interactAndPause]);
+
+  const handleGoTo = useCallback(
+    (index: number) => {
+      goTo(index);
+      interactAndPause();
+    },
+    [goTo, interactAndPause],
+  );
+
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        prev();
+        handlePrev();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        next();
+        handleNext();
       }
     },
-    [prev, next],
+    [handlePrev, handleNext],
   );
 
   // ── Loading state ──
@@ -278,6 +315,8 @@ export default function AdHeroBoard() {
       ref={containerRef}
       onKeyDown={handleKeyDown}
       tabIndex={0}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {/* Slides track */}
@@ -296,7 +335,7 @@ export default function AdHeroBoard() {
         <>
           <button
             type="button"
-            onClick={prev}
+            onClick={handlePrev}
             aria-label="Previous ad"
             className={cn(
               "absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
@@ -310,7 +349,7 @@ export default function AdHeroBoard() {
 
           <button
             type="button"
-            onClick={next}
+            onClick={handleNext}
             aria-label="Next ad"
             className={cn(
               "absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
@@ -338,7 +377,7 @@ export default function AdHeroBoard() {
               role="tab"
               aria-selected={i === current}
               aria-label={`Go to ad ${i + 1}: ${ad.title}`}
-              onClick={() => goTo(i)}
+              onClick={() => handleGoTo(i)}
               className={cn(
                 "h-2 rounded-full transition-all",
                 i === current
