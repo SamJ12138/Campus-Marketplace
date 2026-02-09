@@ -86,6 +86,7 @@ export default function PublicUserProfilePage() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const { data: listingsData, isLoading: isLoadingListings } = useListings({
     status: "active",
@@ -189,7 +190,7 @@ export default function PublicUserProfilePage() {
       {/* Profile Header */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
         {/* Avatar */}
-        {profile.avatar_url ? (
+        {profile.avatar_url && !avatarError ? (
           <Image
             src={profile.avatar_url}
             alt={profile.display_name}
@@ -197,6 +198,7 @@ export default function PublicUserProfilePage() {
             height={96}
             className="h-24 w-24 rounded-full object-cover shrink-0"
             unoptimized={profile.avatar_url.includes('r2.dev') || undefined}
+            onError={() => setAvatarError(true)}
           />
         ) : (
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary shrink-0">

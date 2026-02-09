@@ -38,6 +38,11 @@ const nextConfig = {
         hostname: "*.r2.dev",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "pub-b9d0508754c44c88aeebcbb954d14b4d.r2.dev",
+        pathname: "/**",
+      },
     ],
     // Minimize image size in development
     minimumCacheTTL: 60,

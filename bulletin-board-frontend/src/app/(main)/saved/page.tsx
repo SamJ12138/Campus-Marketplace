@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, HeartOff, Package, Loader2, ArrowLeft } from "lucide-react";
@@ -19,6 +19,7 @@ function FavoriteCard({
   onUnfavorite: (id: string) => void;
   isUnfavoriting: boolean;
 }) {
+  const [avatarError, setAvatarError] = useState(false);
   const thumbnailUrl =
     listing.photos.length > 0
       ? listing.photos[0].thumbnail_url || listing.photos[0].url
@@ -96,13 +97,15 @@ function FavoriteCard({
         </Link>
 
         <div className="flex items-center gap-2">
-          {listing.user.avatar_url ? (
+          {listing.user.avatar_url && !avatarError ? (
             <Image
               src={listing.user.avatar_url}
               alt={listing.user.display_name}
               width={20}
               height={20}
               className="h-5 w-5 rounded-full object-cover ring-1 ring-primary/20"
+              unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
+              onError={() => setAvatarError(true)}
             />
           ) : (
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-[hsl(var(--secondary-accent))]/20 text-[8px] font-bold text-primary">

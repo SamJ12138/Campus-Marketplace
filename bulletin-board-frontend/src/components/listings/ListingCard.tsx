@@ -69,6 +69,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
   const isPopular = listing.view_count > 50;
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [avatarError, setAvatarError] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
 
   const currentPhoto =
@@ -250,7 +251,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         )}
 
         <div className="mt-auto flex items-center gap-2 pt-1">
-          {listing.user.avatar_url ? (
+          {listing.user.avatar_url && !avatarError ? (
             <Image
               src={listing.user.avatar_url}
               alt={listing.user.display_name}
@@ -258,6 +259,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               height={24}
               className="h-6 w-6 rounded-full object-cover ring-2 ring-primary/20"
               unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
+              onError={() => setAvatarError(true)}
             />
           ) : (
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-[hsl(var(--secondary-accent))]/20 text-[10px] font-bold text-primary">

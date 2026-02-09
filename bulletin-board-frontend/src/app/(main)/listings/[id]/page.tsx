@@ -360,6 +360,7 @@ export default function ListingDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmSold, setConfirmSold] = useState(false);
   const [shareToast, setShareToast] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Handle share
   const handleShare = useCallback(async () => {
@@ -559,7 +560,7 @@ export default function ListingDetailPage() {
           {/* Poster card */}
           <div className="rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-3">
-              {listing.user.avatar_url ? (
+              {listing.user.avatar_url && !avatarError ? (
                 <Image
                   src={listing.user.avatar_url}
                   alt={listing.user.display_name}
@@ -567,9 +568,10 @@ export default function ListingDetailPage() {
                   height={48}
                   className="h-12 w-12 rounded-full object-cover"
                   unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-bold text-slate-600">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold text-muted-foreground">
                   {listing.user.display_name.charAt(0).toUpperCase()}
                 </div>
               )}

@@ -21,10 +21,12 @@ export default function QuickViewModal({
   const panelRef = useRef<HTMLDivElement>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
-  // Reset photo index when listing changes
+  // Reset state when listing changes
   useEffect(() => {
     setPhotoIndex(0);
+    setAvatarError(false);
   }, [listing?.id]);
 
   // Animate in
@@ -208,7 +210,7 @@ export default function QuickViewModal({
 
           {/* Poster */}
           <div className="flex items-center gap-2">
-            {listing.user.avatar_url ? (
+            {listing.user.avatar_url && !avatarError ? (
               <Image
                 src={listing.user.avatar_url}
                 alt={listing.user.display_name}
@@ -216,6 +218,7 @@ export default function QuickViewModal({
                 height={32}
                 className="h-8 w-8 rounded-full object-cover"
                 unoptimized={listing.user.avatar_url.includes('r2.dev') || undefined}
+                onError={() => setAvatarError(true)}
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
