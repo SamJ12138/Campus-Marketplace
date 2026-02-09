@@ -11,6 +11,7 @@ import {
   ScrollText,
   Package,
   Megaphone,
+  MessageSquarePlus,
   Menu,
   X,
   Shield,
@@ -25,6 +26,7 @@ const sidebarLinks = [
   { href: "/admin/users", label: t.admin.userManagement, icon: Users },
   { href: "/admin/listings", label: "Content", icon: Package },
   { href: "/admin/ads", label: "Ads", icon: Megaphone },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquarePlus },
   { href: "/admin/keywords", label: "Keywords", icon: KeyRound },
   { href: "/admin/audit-log", label: t.admin.auditLog, icon: ScrollText },
 ];

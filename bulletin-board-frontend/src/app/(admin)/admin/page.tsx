@@ -179,6 +179,12 @@ const QUICK_LINKS = [
     icon: Megaphone,
   },
   {
+    href: "/admin/feedback",
+    title: "Feedback",
+    description: "View user feedback submissions",
+    icon: MessageSquare,
+  },
+  {
     href: "/admin/keywords",
     title: "Keyword Filters",
     description: "Manage blocked words and phrases",

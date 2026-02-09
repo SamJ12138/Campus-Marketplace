@@ -8,6 +8,7 @@ from app.api.v1 import (
     campuses,
     categories,
     favorites,
+    feedback,
     listings,
     messages,
     reports,
@@ -29,3 +30,4 @@ api_router.include_router(uploads.router)
 api_router.include_router(admin.router)
 api_router.include_router(ads.router)
 api_router.include_router(categories.router)
+api_router.include_router(feedback.router)

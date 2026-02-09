@@ -11,6 +11,7 @@ from app.models.notification import NotificationPreference
 from app.models.pending_upload import PendingUpload
 from app.models.ad import Ad, AdType
 from app.models.ad_event import AdEvent
+from app.models.feedback import Feedback, FeedbackStatus
 
 __all__ = [
     "Base",
@@ -34,4 +35,6 @@ __all__ = [
     "Ad",
     "AdType",
     "AdEvent",
+    "Feedback",
+    "FeedbackStatus",
 ]

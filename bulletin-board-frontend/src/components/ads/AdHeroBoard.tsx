@@ -152,27 +152,38 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const [error, setError] = useState<string | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) return;
 
     setIsSending(true);
+    setError(null);
 
-    // Build mailto link as a simple feedback mechanism
-    const contactEmail = email || user?.email || "anonymous";
-    const subject = encodeURIComponent("GimmeDat Feedback");
-    const body = encodeURIComponent(
-      `From: ${contactEmail}\n\n${message}`
-    );
-    window.open(
-      `mailto:gimmedat@gettysburg.edu?subject=${subject}&body=${body}`,
-      "_blank"
-    );
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/feedback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: message.trim(),
+            email: !user ? email || undefined : undefined,
+          }),
+        }
+      );
 
-    // Brief delay so user sees the sending state
-    await new Promise((r) => setTimeout(r, 500));
-    setIsSending(false);
-    setSubmitted(true);
+      if (!res.ok) {
+        throw new Error("Failed to submit");
+      }
+
+      setIsSending(false);
+      setSubmitted(true);
+    } catch {
+      setIsSending(false);
+      setError("Something went wrong. You can also email gimmedat@gettysburg.edu directly.");
+    }
   }
 
   return (
@@ -188,10 +199,10 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
               <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-lg font-semibold">Thanks for your feedback!</h3>
+            <h3 className="text-lg font-semibold">We got your feedback!</h3>
             <p className="text-sm text-muted-foreground">
-              Your email client should have opened with the feedback pre-filled.
-              You can also reach us on Instagram @gimmedatapp.
+              Thanks for taking the time to write to us. Our team reviews every
+              submission and it directly shapes what we build next.
             </p>
             <Button onClick={onClose} className="mt-2">
               Close
@@ -216,6 +227,12 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             <p className="text-sm text-muted-foreground">
               Bug report, feature idea, or just a thought — we read every message.
             </p>
+
+            {error && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {!user && (
