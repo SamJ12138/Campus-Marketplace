@@ -14,6 +14,7 @@ const SEED_ADS: Ad[] = [
     subtitle:
       "Your campus marketplace built by Gettysburg students, for Gettysburg students. Buy, sell, and trade textbooks, services, and more with people you trust.",
     ctaText: "Start Browsing",
+    ctaUrl: "/feed",
     image: {
       src: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=500&fit=crop",
       alt: "Gettysburg College campus with students walking",
@@ -33,6 +34,7 @@ const SEED_ADS: Ad[] = [
     subtitle:
       "GimmeDat started as a class project and grew into something real. We wanted to solve the problem of students not having a trusted place to trade on campus.",
     ctaText: "Learn More",
+    ctaUrl: "/how-it-works",
     image: {
       src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=500&fit=crop",
       alt: "Students collaborating at a table",
@@ -52,6 +54,7 @@ const SEED_ADS: Ad[] = [
     subtitle:
       "Found a bug? Have an idea? We are actively building and your feedback directly impacts what we work on next.",
     ctaText: "Give Feedback",
+    ctaUrl: "action:feedback",
     image: {
       src: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=800&h=500&fit=crop",
       alt: "Person typing feedback on a laptop",
@@ -71,6 +74,7 @@ const SEED_ADS: Ad[] = [
     subtitle:
       "Tap your profile icon, go to Settings, and hit Send Feedback. You can also email us directly or DM us on Instagram. Every message gets read.",
     ctaText: "Open Settings",
+    ctaUrl: "/profile/settings",
     image: {
       src: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=500&fit=crop",
       alt: "Hand holding phone showing a feedback form",
@@ -90,6 +94,7 @@ const SEED_ADS: Ad[] = [
     subtitle:
       "The more students who join, the better GimmeDat gets for everyone. Share the word with your friends, roommates, and study groups.",
     ctaText: "Invite Friends",
+    ctaUrl: "action:share",
     image: {
       src: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&h=500&fit=crop",
       alt: "Group of college friends smiling together",

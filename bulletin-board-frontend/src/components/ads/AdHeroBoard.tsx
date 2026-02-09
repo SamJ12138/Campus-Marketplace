@@ -15,6 +15,12 @@ import {
   Tag,
   CalendarDays,
   Info,
+  Share2,
+  MessageSquarePlus,
+  Check,
+  X,
+  Loader2,
+  Send,
 } from "lucide-react";
 import type { Ad } from "@/lib/types/ads";
 import { useAds } from "@/lib/hooks/use-ads";
@@ -29,6 +35,27 @@ import { Skeleton } from "@/components/ui/Skeleton";
 // ──────────────────────────────────────────────
 
 function getAdAction(ad: Ad) {
+  const ctaUrl = ad.ctaUrl;
+
+  // Special actions
+  if (ctaUrl === "action:share") {
+    return { kind: "share" as const, href: "#" };
+  }
+  if (ctaUrl === "action:feedback") {
+    return { kind: "feedback" as const, href: "#" };
+  }
+
+  // Custom internal URL
+  if (ctaUrl && ctaUrl.startsWith("/")) {
+    return { kind: "internal" as const, href: ctaUrl };
+  }
+
+  // Custom external URL
+  if (ctaUrl && (ctaUrl.startsWith("http://") || ctaUrl.startsWith("https://"))) {
+    return { kind: "external" as const, href: ctaUrl };
+  }
+
+  // Default behavior by type
   switch (ad.type) {
     case "EXTERNAL_LINK":
       return {
@@ -69,6 +96,199 @@ function adTypeBadge(type: Ad["type"]) {
 }
 
 // ──────────────────────────────────────────────
+// Share helper
+// ──────────────────────────────────────────────
+
+async function handleShare(): Promise<"shared" | "copied" | "failed"> {
+  const shareData = {
+    title: "Check out GimmeDat!",
+    text: "GimmeDat is a campus marketplace built by Gettysburg students. Buy, sell, and trade with people you trust!",
+    url: window.location.origin,
+  };
+
+  // Try native share (mobile)
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return "shared";
+    } catch {
+      // User cancelled or error — fall through to clipboard
+    }
+  }
+
+  // Fallback: copy link
+  try {
+    await navigator.clipboard.writeText(
+      `${shareData.text}\n${shareData.url}`
+    );
+    return "copied";
+  } catch {
+    return "failed";
+  }
+}
+
+// ──────────────────────────────────────────────
+// Feedback modal
+// ──────────────────────────────────────────────
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    setIsSending(true);
+
+    // Build mailto link as a simple feedback mechanism
+    const contactEmail = email || user?.email || "anonymous";
+    const subject = encodeURIComponent("GimmeDat Feedback");
+    const body = encodeURIComponent(
+      `From: ${contactEmail}\n\n${message}`
+    );
+    window.open(
+      `mailto:gimmedat@gettysburg.edu?subject=${subject}&body=${body}`,
+      "_blank"
+    );
+
+    // Brief delay so user sees the sending state
+    await new Promise((r) => setTimeout(r, 500));
+    setIsSending(false);
+    setSubmitted(true);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        {submitted ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-lg font-semibold">Thanks for your feedback!</h3>
+            <p className="text-sm text-muted-foreground">
+              Your email client should have opened with the feedback pre-filled.
+              You can also reach us on Instagram @gimmedatapp.
+            </p>
+            <Button onClick={onClose} className="mt-2">
+              Close
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquarePlus className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Send Feedback</h3>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-muted transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Bug report, feature idea, or just a thought — we read every message.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {!user && (
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email (optional)"
+                  className="flex h-10 w-full rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              )}
+
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="What's on your mind?"
+                rows={4}
+                className="flex w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              />
+
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Also: gimmedat@gettysburg.edu
+                </p>
+                <Button
+                  type="submit"
+                  disabled={!message.trim() || isSending}
+                  className="gap-2"
+                >
+                  {isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Send
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Toast notification
+// ──────────────────────────────────────────────
+
+function Toast({
+  message,
+  onDone,
+}: {
+  message: string;
+  onDone: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2500);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-300">
+      <div className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-lg">
+        <Check className="h-4 w-4" />
+        {message}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
 // Skeleton loader
 // ──────────────────────────────────────────────
 
@@ -98,9 +318,13 @@ function AdHeroBoardSkeleton() {
 function AdSlide({
   ad,
   isCurrent,
+  onShare,
+  onFeedback,
 }: {
   ad: Ad;
   isCurrent: boolean;
+  onShare: () => void;
+  onFeedback: () => void;
 }) {
   const router = useRouter();
   const action = getAdAction(ad);
@@ -117,14 +341,33 @@ function AdSlide({
   const handleCta = useCallback(() => {
     trackAdClick(ad.id);
 
-    if (action.kind === "external") {
-      window.open(action.href, "_blank", "noopener,noreferrer");
-    } else {
-      router.push(action.href);
+    switch (action.kind) {
+      case "external":
+        window.open(action.href, "_blank", "noopener,noreferrer");
+        break;
+      case "share":
+        onShare();
+        break;
+      case "feedback":
+        onFeedback();
+        break;
+      case "internal":
+        router.push(action.href);
+        break;
     }
-  }, [ad.id, action, router]);
+  }, [ad.id, action, router, onShare, onFeedback]);
 
   const accentColor = ad.theme?.accent;
+
+  // Choose the right icon for the CTA button
+  const ctaIcon =
+    action.kind === "external" ? (
+      <ExternalLink className="h-4 w-4" />
+    ) : action.kind === "share" ? (
+      <Share2 className="h-4 w-4" />
+    ) : action.kind === "feedback" ? (
+      <MessageSquarePlus className="h-4 w-4" />
+    ) : null;
 
   return (
     <div
@@ -175,21 +418,8 @@ function AdSlide({
             style={accentColor ? { backgroundColor: accentColor } : undefined}
           >
             {ad.ctaText}
-            {action.kind === "external" && (
-              <ExternalLink className="h-4 w-4" />
-            )}
+            {ctaIcon}
           </Button>
-
-          {action.kind === "internal" && (
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => router.push(action.href)}
-              className="text-muted-foreground"
-            >
-              View details
-            </Button>
-          )}
         </div>
 
         {/* Disclaimer */}
@@ -229,6 +459,8 @@ export default function AdHeroBoard() {
 
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const total = ads?.length ?? 0;
@@ -284,6 +516,23 @@ export default function AdHeroBoard() {
     [goTo, interactAndPause],
   );
 
+  // Share handler
+  const handleShareAction = useCallback(async () => {
+    const result = await handleShare();
+    if (result === "copied") {
+      setToast("Link copied to clipboard!");
+    } else if (result === "shared") {
+      setToast("Shared successfully!");
+    } else {
+      setToast("Couldn't share — try copying the URL manually.");
+    }
+  }, []);
+
+  // Feedback handler
+  const handleFeedbackAction = useCallback(() => {
+    setShowFeedback(true);
+  }, []);
+
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -309,86 +558,102 @@ export default function AdHeroBoard() {
   }
 
   return (
-    <section
-      aria-roledescription="carousel"
-      aria-label="Advertisements"
-      ref={containerRef}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
-      {/* Slides track */}
-      <div
-        className="flex transition-transform duration-500 ease-out"
-        style={{ transform: `translateX(-${current * 100}%)` }}
-        aria-live="polite"
+    <>
+      <section
+        aria-roledescription="carousel"
+        aria-label="Advertisements"
+        ref={containerRef}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        {ads.map((ad, i) => (
-          <AdSlide key={ad.id} ad={ad} isCurrent={i === current} />
-        ))}
-      </div>
-
-      {/* Navigation arrows (visible on hover / focus) */}
-      {total > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous ad"
-            className={cn(
-              "absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
-              "text-foreground/70 transition hover:bg-background hover:text-foreground",
-              "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next ad"
-            className={cn(
-              "absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
-              "text-foreground/70 transition hover:bg-background hover:text-foreground",
-              "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </>
-      )}
-
-      {/* Pagination dots */}
-      {total > 1 && (
+        {/* Slides track */}
         <div
-          className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5"
-          role="tablist"
-          aria-label="Ad slides"
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${current * 100}%)` }}
+          aria-live="polite"
         >
           {ads.map((ad, i) => (
-            <button
+            <AdSlide
               key={ad.id}
-              type="button"
-              role="tab"
-              aria-selected={i === current}
-              aria-label={`Go to ad ${i + 1}: ${ad.title}`}
-              onClick={() => handleGoTo(i)}
-              className={cn(
-                "h-2 rounded-full transition-all",
-                i === current
-                  ? "w-6 bg-primary"
-                  : "w-2 bg-foreground/20 hover:bg-foreground/40",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-              )}
+              ad={ad}
+              isCurrent={i === current}
+              onShare={handleShareAction}
+              onFeedback={handleFeedbackAction}
             />
           ))}
         </div>
+
+        {/* Navigation arrows (visible on hover / focus) */}
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous ad"
+              className={cn(
+                "absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
+                "text-foreground/70 transition hover:bg-background hover:text-foreground",
+                "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next ad"
+              className={cn(
+                "absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
+                "text-foreground/70 transition hover:bg-background hover:text-foreground",
+                "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
+
+        {/* Pagination dots */}
+        {total > 1 && (
+          <div
+            className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5"
+            role="tablist"
+            aria-label="Ad slides"
+          >
+            {ads.map((ad, i) => (
+              <button
+                key={ad.id}
+                type="button"
+                role="tab"
+                aria-selected={i === current}
+                aria-label={`Go to ad ${i + 1}: ${ad.title}`}
+                onClick={() => handleGoTo(i)}
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  i === current
+                    ? "w-6 bg-primary"
+                    : "w-2 bg-foreground/20 hover:bg-foreground/40",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                )}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Toast notification */}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {/* Feedback modal */}
+      {showFeedback && (
+        <FeedbackModal onClose={() => setShowFeedback(false)} />
       )}
-    </section>
+    </>
   );
 }

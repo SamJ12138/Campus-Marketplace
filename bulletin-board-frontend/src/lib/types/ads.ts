@@ -17,6 +17,7 @@ export interface Ad {
   title: string;
   subtitle?: string;
   ctaText: string;
+  ctaUrl?: string;
   image: { src: string; alt: string };
   theme?: { accent?: string };
   externalUrl?: string;
@@ -40,6 +41,7 @@ export const AdSchema = z.object({
   title: z.string(),
   subtitle: z.string().optional(),
   ctaText: z.string(),
+  ctaUrl: z.string().optional(),
   image: z.object({
     src: z.string(),
     alt: z.string(),
