@@ -117,9 +117,14 @@ export function Header() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] shadow-md shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold font-display tracking-tight gradient-text-primary">
-            {isAuthenticated && user?.campus_name ? user.campus_name : t.common.appName}
-          </span>
+          <div className="flex flex-col leading-none">
+            <span className="text-lg font-bold font-display tracking-tight gradient-text-primary">
+              {t.common.appName}
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wide">
+              Gettysburg Community
+            </span>
+          </div>
         </Link>
 
         <div className="hidden flex-1 md:block">
