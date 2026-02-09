@@ -32,6 +32,11 @@ class ListingService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    @staticmethod
+    def _escape_like(value: str) -> str:
+        """Escape special characters for LIKE/ILIKE patterns."""
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     async def search_listings(
         self,
         campus_id: UUID | None = None,
@@ -50,17 +55,28 @@ class ListingService:
             .where(Listing.status == ListingStatus.ACTIVE)
         )
 
+        # Always join Category so we can search/filter on it
+        category_joined = False
+
         if campus_id:
             base_query = base_query.where(Listing.campus_id == campus_id)
         if type:
             base_query = base_query.where(Listing.type == type)
         if category_slug:
             base_query = base_query.join(Category).where(Category.slug == category_slug)
+            category_joined = True
         if query:
+            safe_query = self._escape_like(query)
+            if not category_joined:
+                base_query = base_query.join(Category)
+                category_joined = True
             base_query = base_query.where(
                 or_(
-                    Listing.title.ilike(f"%{query}%"),
-                    Listing.description.ilike(f"%{query}%"),
+                    Listing.title.ilike(f"%{safe_query}%"),
+                    Listing.description.ilike(f"%{safe_query}%"),
+                    Category.name.ilike(f"%{safe_query}%"),
+                    Listing.price_hint.ilike(f"%{safe_query}%"),
+                    Listing.location_hint.ilike(f"%{safe_query}%"),
                 )
             )
 
