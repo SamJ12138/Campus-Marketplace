@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Plus,
   Pencil,
@@ -14,6 +14,10 @@ import {
   Info,
   X,
   Upload,
+  BarChart3,
+  MousePointerClick,
+  Download,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
@@ -51,6 +55,35 @@ interface AdminAd {
 interface AdminAdsResponse {
   items: AdminAd[];
   total: number;
+}
+
+interface DailyBreakdown {
+  date: string;
+  impressions: number;
+  clicks: number;
+}
+
+interface AdAnalytics {
+  ad_id: string;
+  title: string;
+  type: string;
+  is_active: boolean;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  unique_impressions: number;
+  unique_clicks: number;
+  daily_breakdown: DailyBreakdown[];
+}
+
+interface AnalyticsResponse {
+  ads: AdAnalytics[];
+  totals: {
+    total_impressions: number;
+    total_clicks: number;
+    overall_ctr: number;
+  };
+  period_days: number;
 }
 
 const AD_TYPE_OPTIONS: { value: AdTypeValue; label: string; icon: typeof Info }[] = [
@@ -651,15 +684,271 @@ function DeleteConfirmModal({
   );
 }
 
+// ── Mini Bar Chart (CSS-only) ──
+
+function MiniBarChart({ data }: { data: DailyBreakdown[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="flex h-16 items-center justify-center text-xs text-muted-foreground">
+        No data yet
+      </div>
+    );
+  }
+
+  const maxVal = Math.max(...data.map((d) => d.impressions), 1);
+
+  return (
+    <div className="flex h-16 items-end gap-px">
+      {data.map((d) => {
+        const impressionH = (d.impressions / maxVal) * 100;
+        const clickH = d.impressions > 0 ? (d.clicks / d.impressions) * impressionH : 0;
+        return (
+          <div
+            key={d.date}
+            className="group relative flex-1 min-w-[3px]"
+            title={`${d.date}: ${d.impressions} imp, ${d.clicks} clicks`}
+          >
+            <div
+              className="w-full rounded-t-sm bg-primary/20"
+              style={{ height: `${Math.max(impressionH, 2)}%` }}
+            >
+              <div
+                className="w-full rounded-t-sm bg-primary"
+                style={{ height: `${clickH}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Analytics Summary Cards ──
+
+function AnalyticsSummary({
+  analytics,
+  activeAdCount,
+}: {
+  analytics: AnalyticsResponse;
+  activeAdCount: number;
+}) {
+  const cards = [
+    {
+      label: "Total Impressions",
+      value: analytics.totals.total_impressions.toLocaleString(),
+      icon: Eye,
+    },
+    {
+      label: "Total Clicks",
+      value: analytics.totals.total_clicks.toLocaleString(),
+      icon: MousePointerClick,
+    },
+    {
+      label: "Overall CTR",
+      value: `${analytics.totals.overall_ctr}%`,
+      icon: TrendingUp,
+    },
+    {
+      label: "Active Ads",
+      value: activeAdCount,
+      icon: Megaphone,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cards.map((c) => {
+        const Icon = c.icon;
+        return (
+          <div
+            key={c.label}
+            className="rounded-lg border border-border bg-card p-4 space-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">{c.label}</p>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-xl font-bold">{c.value}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Analytics Table ──
+
+type SortKey = "impressions" | "clicks" | "ctr";
+
+function AnalyticsTable({
+  analytics,
+}: {
+  analytics: AnalyticsResponse;
+}) {
+  const [sortBy, setSortBy] = useState<SortKey>("impressions");
+  const [sortDesc, setSortDesc] = useState(true);
+
+  const sorted = useMemo(() => {
+    return [...analytics.ads].sort((a, b) => {
+      const diff = a[sortBy] - b[sortBy];
+      return sortDesc ? -diff : diff;
+    });
+  }, [analytics.ads, sortBy, sortDesc]);
+
+  function handleSort(key: SortKey) {
+    if (sortBy === key) {
+      setSortDesc(!sortDesc);
+    } else {
+      setSortBy(key);
+      setSortDesc(true);
+    }
+  }
+
+  function sortIndicator(key: SortKey) {
+    if (sortBy !== key) return "";
+    return sortDesc ? " \u2193" : " \u2191";
+  }
+
+  if (analytics.ads.length === 0) return null;
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/50">
+            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Ad</th>
+            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
+            <th
+              className="px-4 py-2.5 text-right font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+              onClick={() => handleSort("impressions")}
+            >
+              Impressions{sortIndicator("impressions")}
+            </th>
+            <th
+              className="px-4 py-2.5 text-right font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+              onClick={() => handleSort("clicks")}
+            >
+              Clicks{sortIndicator("clicks")}
+            </th>
+            <th
+              className="px-4 py-2.5 text-right font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+              onClick={() => handleSort("ctr")}
+            >
+              CTR{sortIndicator("ctr")}
+            </th>
+            <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">
+              Daily Trend
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((ad) => (
+            <tr key={ad.ad_id} className="border-b border-border last:border-0">
+              <td className="px-4 py-3">
+                <p className="font-medium truncate max-w-[200px]">{ad.title}</p>
+                <p className="text-xs text-muted-foreground">{ad.type}</p>
+              </td>
+              <td className="px-4 py-3">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                    ad.is_active
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {ad.is_active ? "Active" : "Inactive"}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right tabular-nums">
+                {ad.impressions.toLocaleString()}
+                <span className="block text-xs text-muted-foreground">
+                  {ad.unique_impressions.toLocaleString()} unique
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right tabular-nums">
+                {ad.clicks.toLocaleString()}
+                <span className="block text-xs text-muted-foreground">
+                  {ad.unique_clicks.toLocaleString()} unique
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right tabular-nums font-medium">
+                {ad.ctr}%
+              </td>
+              <td className="px-4 py-3">
+                <div className="w-32 ml-auto">
+                  <MiniBarChart data={ad.daily_breakdown} />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── CSV Export ──
+
+function exportAnalyticsCsv(analytics: AnalyticsResponse) {
+  const rows: string[] = [
+    "Ad Title,Type,Status,Impressions,Unique Impressions,Clicks,Unique Clicks,CTR %",
+  ];
+
+  for (const ad of analytics.ads) {
+    rows.push(
+      [
+        `"${ad.title.replace(/"/g, '""')}"`,
+        ad.type,
+        ad.is_active ? "Active" : "Inactive",
+        ad.impressions,
+        ad.unique_impressions,
+        ad.clicks,
+        ad.unique_clicks,
+        ad.ctr,
+      ].join(","),
+    );
+  }
+
+  // Add blank line and daily breakdown
+  rows.push("");
+  rows.push("Daily Breakdown");
+  rows.push("Ad Title,Date,Impressions,Clicks");
+
+  for (const ad of analytics.ads) {
+    for (const day of ad.daily_breakdown) {
+      rows.push(
+        [
+          `"${ad.title.replace(/"/g, '""')}"`,
+          day.date,
+          day.impressions,
+          day.clicks,
+        ].join(","),
+      );
+    }
+  }
+
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ad-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Ad Card ──
 
 function AdCard({
   ad,
+  adAnalytics,
   onEdit,
   onDelete,
   onToggle,
 }: {
   ad: AdminAd;
+  adAnalytics?: AdAnalytics;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
@@ -741,8 +1030,8 @@ function AdCard({
             </div>
           </div>
 
-          {/* Meta row */}
-          <div className="mt-auto flex items-center gap-3 pt-2 text-xs text-muted-foreground">
+          {/* Meta row + analytics */}
+          <div className="mt-auto flex items-center gap-3 pt-2 text-xs text-muted-foreground flex-wrap">
             {ad.starts_at && (
               <span>From {new Date(ad.starts_at).toLocaleDateString()}</span>
             )}
@@ -754,6 +1043,22 @@ function AdCard({
                 {ad.cta_text}
               </span>
             )}
+            {adAnalytics && (
+              <>
+                <span className="flex items-center gap-1" title="Impressions">
+                  <Eye className="h-3 w-3" />
+                  {adAnalytics.impressions.toLocaleString()}
+                </span>
+                <span className="flex items-center gap-1" title="Clicks">
+                  <MousePointerClick className="h-3 w-3" />
+                  {adAnalytics.clicks.toLocaleString()}
+                </span>
+                <span className="flex items-center gap-1 font-medium" title="CTR">
+                  <TrendingUp className="h-3 w-3" />
+                  {adAnalytics.ctr}%
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -763,11 +1068,20 @@ function AdCard({
 
 // ── Main Page ──
 
+type PageTab = "manage" | "analytics";
+type AnalyticsPeriod = 7 | 30 | 90;
+
 export default function AdminAdsPage() {
   const [ads, setAds] = useState<AdminAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(true);
+
+  // Analytics state
+  const [activeTab, setActiveTab] = useState<PageTab>("manage");
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>(30);
 
   // Modal state
   const [showForm, setShowForm] = useState(false);
@@ -789,9 +1103,33 @@ export default function AdminAdsPage() {
     }
   }, [showInactive]);
 
+  const fetchAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await api.get<AnalyticsResponse>("/api/v1/ads/admin/analytics", {
+        days: analyticsPeriod,
+      });
+      setAnalytics(data);
+    } catch {
+      toast.error("Failed to load analytics");
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [analyticsPeriod]);
+
   useEffect(() => {
     fetchAds();
   }, [fetchAds]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  // Build analytics lookup map by ad_id
+  const analyticsMap = useMemo(() => {
+    if (!analytics) return new Map<string, AdAnalytics>();
+    return new Map(analytics.ads.map((a) => [a.ad_id, a]));
+  }, [analytics]);
 
   async function toggleActive(ad: AdminAd) {
     try {
@@ -809,7 +1147,7 @@ export default function AdminAdsPage() {
   const inactiveAds = ads.filter((a) => !a.is_active);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -835,6 +1173,34 @@ export default function AdminAdsPage() {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+        <button
+          onClick={() => setActiveTab("manage")}
+          className={cn(
+            "flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+            activeTab === "manage"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Megaphone className="mr-2 inline h-4 w-4" />
+          Manage Ads
+        </button>
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={cn(
+            "flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+            activeTab === "analytics"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <BarChart3 className="mr-2 inline h-4 w-4" />
+          Analytics
+        </button>
+      </div>
+
       {/* Error */}
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -845,88 +1211,146 @@ export default function AdminAdsPage() {
         </div>
       )}
 
-      {/* Loading */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-32 animate-pulse rounded-xl border border-border bg-card"
-            />
-          ))}
-        </div>
-      ) : ads.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed border-border p-12 text-center">
-          <Megaphone className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <h3 className="mt-4 text-lg font-semibold">No ads yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create your first ad to display in the featured carousel on the main feed.
-          </p>
-          <button
-            onClick={() => {
-              setEditingAd(null);
-              setShowForm(true);
-            }}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Create Ad
-          </button>
-        </div>
-      ) : (
+      {/* ── Analytics Tab ── */}
+      {activeTab === "analytics" && (
         <div className="space-y-6">
-          {/* Active ads */}
-          <div className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              <Eye className="h-4 w-4" />
-              Active ({activeAds.length})
-            </h2>
-            {activeAds.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                No active ads. Users won&apos;t see the carousel.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {activeAds.map((ad) => (
-                  <AdCard
-                    key={ad.id}
-                    ad={ad}
-                    onEdit={() => {
-                      setEditingAd(ad);
-                      setShowForm(true);
-                    }}
-                    onDelete={() => setDeletingAd(ad)}
-                    onToggle={() => toggleActive(ad)}
-                  />
-                ))}
-              </div>
-            )}
+          {/* Period selector + export */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+              {([7, 30, 90] as AnalyticsPeriod[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setAnalyticsPeriod(d)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    analyticsPeriod === d
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => analytics && exportAnalyticsCsv(analytics)}
+              disabled={!analytics || analytics.ads.length === 0}
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download CSV
+            </button>
           </div>
 
-          {/* Inactive ads */}
-          {inactiveAds.length > 0 && (
-            <div className="space-y-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                <EyeOff className="h-4 w-4" />
-                Inactive ({inactiveAds.length})
-              </h2>
-              <div className="space-y-3">
-                {inactiveAds.map((ad) => (
-                  <AdCard
-                    key={ad.id}
-                    ad={ad}
-                    onEdit={() => {
-                      setEditingAd(ad);
-                      setShowForm(true);
-                    }}
-                    onDelete={() => setDeletingAd(ad)}
-                    onToggle={() => toggleActive(ad)}
-                  />
+          {analyticsLoading ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-lg border border-border bg-card" />
                 ))}
               </div>
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+            </div>
+          ) : analytics ? (
+            <>
+              <AnalyticsSummary
+                analytics={analytics}
+                activeAdCount={activeAds.length}
+              />
+              <AnalyticsTable analytics={analytics} />
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* ── Manage Tab ── */}
+      {activeTab === "manage" && (
+        <>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-32 animate-pulse rounded-xl border border-border bg-card"
+                />
+              ))}
+            </div>
+          ) : ads.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-border p-12 text-center">
+              <Megaphone className="mx-auto h-12 w-12 text-muted-foreground/40" />
+              <h3 className="mt-4 text-lg font-semibold">No ads yet</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create your first ad to display in the featured carousel on the main feed.
+              </p>
+              <button
+                onClick={() => {
+                  setEditingAd(null);
+                  setShowForm(true);
+                }}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" />
+                Create Ad
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Active ads */}
+              <div className="space-y-2">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  <Eye className="h-4 w-4" />
+                  Active ({activeAds.length})
+                </h2>
+                {activeAds.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No active ads. Users won&apos;t see the carousel.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeAds.map((ad) => (
+                      <AdCard
+                        key={ad.id}
+                        ad={ad}
+                        adAnalytics={analyticsMap.get(ad.id)}
+                        onEdit={() => {
+                          setEditingAd(ad);
+                          setShowForm(true);
+                        }}
+                        onDelete={() => setDeletingAd(ad)}
+                        onToggle={() => toggleActive(ad)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Inactive ads */}
+              {inactiveAds.length > 0 && (
+                <div className="space-y-2">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    <EyeOff className="h-4 w-4" />
+                    Inactive ({inactiveAds.length})
+                  </h2>
+                  <div className="space-y-3">
+                    {inactiveAds.map((ad) => (
+                      <AdCard
+                        key={ad.id}
+                        ad={ad}
+                        adAnalytics={analyticsMap.get(ad.id)}
+                        onEdit={() => {
+                          setEditingAd(ad);
+                          setShowForm(true);
+                        }}
+                        onDelete={() => setDeletingAd(ad)}
+                        onToggle={() => toggleActive(ad)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Form Modal */}
@@ -937,7 +1361,10 @@ export default function AdminAdsPage() {
             setShowForm(false);
             setEditingAd(null);
           }}
-          onSaved={fetchAds}
+          onSaved={() => {
+            fetchAds();
+            fetchAnalytics();
+          }}
         />
       )}
 
@@ -949,6 +1376,7 @@ export default function AdminAdsPage() {
           onConfirm={() => {
             setDeletingAd(null);
             fetchAds();
+            fetchAnalytics();
           }}
         />
       )}

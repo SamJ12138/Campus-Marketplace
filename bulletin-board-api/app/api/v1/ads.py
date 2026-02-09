@@ -1,14 +1,16 @@
-from datetime import datetime, timezone
+import hashlib
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select, func
+from sqlalchemy import cast, or_, select, func, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin, require_moderator
 from app.dependencies import get_db
 from app.models.ad import Ad, AdType
+from app.models.ad_event import AdEvent
 from app.models.admin import AdminAction
 from app.models.user import User
 
@@ -56,6 +58,54 @@ async def get_public_ad(
     if not ad:
         raise HTTPException(404, "Ad not found")
     return _ad_to_public_response(ad)
+
+
+# ============ TRACKING ENDPOINT ============
+
+
+class TrackEventRequest(BaseModel):
+    adId: str
+    event: str = Field(..., pattern="^(impression|click)$")
+
+
+@router.post("/track")
+async def track_ad_event(
+    data: TrackEventRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+):
+    """Record an ad impression or click event."""
+    try:
+        ad_id = UUID(data.adId)
+    except ValueError:
+        return {"ok": True}
+
+    ad = await db.get(Ad, ad_id)
+    if not ad:
+        return {"ok": True}
+
+    # Hash the IP for dedup without storing raw IPs
+    ip_hash = None
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if not client_ip:
+        client_ip = request.client.host if request.client else None
+    if client_ip:
+        ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+
+    user_agent = request.headers.get("user-agent", "")[:500] or None
+
+    event = AdEvent(
+        ad_id=ad_id,
+        event_type=data.event,
+        user_id=user.id if user else None,
+        ip_hash=ip_hash,
+        user_agent=user_agent,
+    )
+    db.add(event)
+    await db.commit()
+
+    return {"ok": True}
 
 
 # ============ ADMIN ENDPOINTS ============
@@ -154,6 +204,125 @@ async def admin_list_ads(
             "has_next": page * per_page < total,
             "has_prev": page > 1,
         },
+    }
+
+
+@router.get("/admin/analytics")
+async def admin_ad_analytics(
+    ad_id: UUID | None = Query(None),
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_moderator),
+):
+    """Get aggregated ad analytics (impressions, clicks, CTR)."""
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Base query for ads
+    ads_query = select(Ad)
+    if ad_id:
+        ads_query = ads_query.where(Ad.id == ad_id)
+    ads_query = ads_query.order_by(Ad.priority.desc(), Ad.created_at.desc())
+
+    result = await db.execute(ads_query)
+    all_ads = list(result.scalars().all())
+
+    if ad_id and not all_ads:
+        raise HTTPException(404, "Ad not found")
+
+    ad_stats = []
+    total_impressions = 0
+    total_clicks = 0
+
+    for ad in all_ads:
+        # Aggregate counts for this ad in the period
+        impressions_q = select(func.count()).select_from(AdEvent).where(
+            AdEvent.ad_id == ad.id,
+            AdEvent.event_type == "impression",
+            AdEvent.created_at >= since,
+        )
+        clicks_q = select(func.count()).select_from(AdEvent).where(
+            AdEvent.ad_id == ad.id,
+            AdEvent.event_type == "click",
+            AdEvent.created_at >= since,
+        )
+        unique_impressions_q = select(func.count(func.distinct(AdEvent.ip_hash))).select_from(AdEvent).where(
+            AdEvent.ad_id == ad.id,
+            AdEvent.event_type == "impression",
+            AdEvent.created_at >= since,
+            AdEvent.ip_hash != None,
+        )
+        unique_clicks_q = select(func.count(func.distinct(AdEvent.ip_hash))).select_from(AdEvent).where(
+            AdEvent.ad_id == ad.id,
+            AdEvent.event_type == "click",
+            AdEvent.created_at >= since,
+            AdEvent.ip_hash != None,
+        )
+
+        impressions = await db.scalar(impressions_q) or 0
+        clicks = await db.scalar(clicks_q) or 0
+        unique_impressions = await db.scalar(unique_impressions_q) or 0
+        unique_clicks = await db.scalar(unique_clicks_q) or 0
+
+        total_impressions += impressions
+        total_clicks += clicks
+
+        # Daily breakdown
+        daily_q = (
+            select(
+                cast(AdEvent.created_at, Date).label("date"),
+                AdEvent.event_type,
+                func.count().label("count"),
+            )
+            .where(
+                AdEvent.ad_id == ad.id,
+                AdEvent.created_at >= since,
+            )
+            .group_by(cast(AdEvent.created_at, Date), AdEvent.event_type)
+            .order_by(cast(AdEvent.created_at, Date))
+        )
+        daily_result = await db.execute(daily_q)
+        daily_rows = daily_result.all()
+
+        daily_map: dict[str, dict[str, int]] = {}
+        for row in daily_rows:
+            date_str = str(row.date)
+            if date_str not in daily_map:
+                daily_map[date_str] = {"impressions": 0, "clicks": 0}
+            if row.event_type == "impression":
+                daily_map[date_str]["impressions"] = row.count
+            elif row.event_type == "click":
+                daily_map[date_str]["clicks"] = row.count
+
+        daily_breakdown = [
+            {"date": d, "impressions": v["impressions"], "clicks": v["clicks"]}
+            for d, v in sorted(daily_map.items())
+        ]
+
+        ctr = round((clicks / impressions * 100), 2) if impressions > 0 else 0.0
+
+        ad_stats.append({
+            "ad_id": str(ad.id),
+            "title": ad.title,
+            "type": ad.type.value if hasattr(ad.type, "value") else ad.type,
+            "is_active": ad.is_active,
+            "impressions": impressions,
+            "clicks": clicks,
+            "ctr": ctr,
+            "unique_impressions": unique_impressions,
+            "unique_clicks": unique_clicks,
+            "daily_breakdown": daily_breakdown,
+        })
+
+    overall_ctr = round((total_clicks / total_impressions * 100), 2) if total_impressions > 0 else 0.0
+
+    return {
+        "ads": ad_stats,
+        "totals": {
+            "total_impressions": total_impressions,
+            "total_clicks": total_clicks,
+            "overall_ctr": overall_ctr,
+        },
+        "period_days": days,
     }
 
 

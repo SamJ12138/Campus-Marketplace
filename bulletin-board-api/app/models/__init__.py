@@ -10,6 +10,7 @@ from app.models.admin import AdminAction, BannedKeyword
 from app.models.notification import NotificationPreference
 from app.models.pending_upload import PendingUpload
 from app.models.ad import Ad, AdType
+from app.models.ad_event import AdEvent
 
 __all__ = [
     "Base",
@@ -32,4 +33,5 @@ __all__ = [
     "PendingUpload",
     "Ad",
     "AdType",
+    "AdEvent",
 ]
