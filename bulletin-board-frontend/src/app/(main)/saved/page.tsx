@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, HeartOff, Package, Loader2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 import { useFavorites, useToggleFavorite } from "@/lib/hooks/use-listings";
 import type { Listing } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
@@ -19,7 +20,9 @@ function FavoriteCard({
   isUnfavoriting: boolean;
 }) {
   const thumbnailUrl =
-    listing.photos.length > 0 ? listing.photos[0].thumbnail_url : null;
+    listing.photos.length > 0
+      ? listing.photos[0].thumbnail_url || listing.photos[0].url
+      : null;
 
   return (
     <div className="group relative rounded-2xl border border-border/50 glass overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30">
@@ -32,6 +35,7 @@ function FavoriteCard({
               alt={listing.title}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"
+              unoptimized={thumbnailUrl.includes('r2.dev') || undefined}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/50">
@@ -54,7 +58,7 @@ function FavoriteCard({
           {/* Price */}
           {listing.price_hint && (
             <span className="absolute bottom-2 left-2 rounded-xl bg-foreground/90 px-3 py-1.5 text-sm font-bold text-background shadow-lg backdrop-blur-sm">
-              {listing.price_hint}
+              {formatPrice(listing.price_hint)}
             </span>
           )}
         </div>

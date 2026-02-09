@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Search, PlusCircle, Mail, User, LogIn } from "lucide-react";
+import { LayoutGrid, Heart, HelpCircle, PlusCircle, Mail, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/hooks/use-auth";
 import { useThreads } from "@/lib/hooks/use-messages";
@@ -22,7 +22,7 @@ export function MobileNav() {
 
   const authedItems = [
     { href: "/feed", label: "Home", icon: LayoutGrid },
-    { href: "/search", label: t.common.search, icon: Search },
+    { href: "/saved", label: "Saved", icon: Heart },
     { href: "/listings/new", label: "Create", icon: PlusCircle, highlight: true },
     { href: "/messages", label: t.messages.inboxTitle, icon: Mail, showBadge: true },
     { href: "/profile", label: t.profile.editProfile.replace("Edit ", ""), icon: User },
@@ -30,7 +30,7 @@ export function MobileNav() {
 
   const guestItems = [
     { href: "/feed", label: "Home", icon: LayoutGrid },
-    { href: "/search", label: t.common.search, icon: Search },
+    { href: "/how-it-works", label: "How It Works", icon: HelpCircle },
     { href: `/login?redirect=${encodeURIComponent(pathname)}`, label: "Sign in", icon: LogIn, highlight: true },
   ];
 

@@ -248,7 +248,7 @@ export function Header() {
                       onClick={() => setDropdownOpen(false)}
                     />
                     <DropdownLink
-                      href="/my-listings"
+                      href="/profile/listings"
                       icon={ListOrdered}
                       label={t.profile.myListings}
                       onClick={() => setDropdownOpen(false)}

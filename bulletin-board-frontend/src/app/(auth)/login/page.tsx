@@ -3,8 +3,9 @@
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, LogIn, GraduationCap } from "lucide-react";
+import { Loader2, LogIn, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { safeRedirect } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth";
@@ -13,7 +14,7 @@ import { ApiError } from "@/lib/api/client";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/feed";
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -21,6 +22,7 @@ function LoginContent() {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginInput, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -129,24 +131,35 @@ function LoginContent() {
                 {t.auth.forgotPassword}
               </Link>
             </div>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              disabled={isSubmitting}
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                errors.password
-                  ? "border-destructive focus-visible:ring-destructive"
-                  : "border-input",
-              )}
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={isSubmitting}
+                className={cn(
+                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 pr-10 text-sm",
+                  "placeholder:text-muted-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                  errors.password
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : "border-input",
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-xs text-destructive">{errors.password}</p>
             )}

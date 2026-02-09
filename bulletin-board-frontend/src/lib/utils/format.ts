@@ -9,3 +9,16 @@ export function formatPrice(priceHint: string): string {
   }
   return `$${trimmed}`;
 }
+
+/**
+ * Sanitize a redirect URL to prevent open redirect attacks.
+ * Only allows relative paths starting with "/". Falls back to the provided default.
+ */
+export function safeRedirect(redirect: string | null, fallback = "/feed"): string {
+  if (!redirect) return fallback;
+  // Must start with "/" and not "//" (protocol-relative URL)
+  if (redirect.startsWith("/") && !redirect.startsWith("//")) {
+    return redirect;
+  }
+  return fallback;
+}

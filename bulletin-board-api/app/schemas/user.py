@@ -53,3 +53,19 @@ class UpdateProfileRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8, max_length=72)
+
+
+class NotificationPreferencesResponse(BaseModel):
+    email_messages: bool
+    email_listing_replies: bool
+    email_report_updates: bool
+    email_marketing: bool
+
+    model_config = {"from_attributes": True}
+
+
+class UpdateNotificationPreferencesRequest(BaseModel):
+    email_messages: bool | None = None
+    email_listing_replies: bool | None = None
+    email_report_updates: bool | None = None
+    email_marketing: bool | None = None

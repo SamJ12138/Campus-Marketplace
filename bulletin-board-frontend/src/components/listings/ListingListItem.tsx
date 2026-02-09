@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Heart, Eye, MapPin, ShoppingBag } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { formatPrice } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useToggleFavorite } from "@/lib/hooks/use-listings";
 import { useRequireAuth } from "@/lib/hooks/use-require-auth";
@@ -23,7 +24,9 @@ export default function ListingListItem({
   const toggleFavorite = useToggleFavorite();
   const { requireAuth } = useRequireAuth();
   const hasPhoto = listing.photos.length > 0;
-  const thumbnailUrl = hasPhoto ? listing.photos[0].thumbnail_url : null;
+  const thumbnailUrl = hasPhoto
+    ? listing.photos[0].thumbnail_url || listing.photos[0].url
+    : null;
   const timeAgo = formatDistanceToNow(new Date(listing.created_at), {
     addSuffix: true,
   });
@@ -62,15 +65,16 @@ export default function ListingListItem({
       )}
     >
       {/* Thumbnail */}
-      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+      <div className="relative h-20 w-20 min-h-[80px] min-w-[80px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
         {thumbnailUrl ? (
           <Image
             src={thumbnailUrl}
             alt={listing.title}
-            fill
-            sizes="80px"
-            className="object-cover"
+            width={80}
+            height={80}
+            className="h-full w-full object-cover"
             loading="lazy"
+            unoptimized
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -88,7 +92,7 @@ export default function ListingListItem({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {listing.price_hint && (
             <span className="font-bold text-foreground">
-              {listing.price_hint}
+              {formatPrice(listing.price_hint)}
             </span>
           )}
           {listing.location_hint && (

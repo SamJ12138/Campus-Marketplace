@@ -42,7 +42,7 @@ function VerifyEmailContent() {
         setState("success");
         setTimeout(() => {
           router.push("/login");
-        }, 3000);
+        }, 5000);
       } catch (err) {
         setState("error");
         if (err instanceof ApiError) {
@@ -108,11 +108,17 @@ function VerifyEmailContent() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-2">
               <p className="text-lg font-medium">Email verified!</p>
               <p className="text-sm text-muted-foreground">
                 Redirecting to login...
               </p>
+              <a
+                href="/login"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Click here if not redirected
+              </a>
             </div>
           </div>
         )}

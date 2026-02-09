@@ -43,3 +43,20 @@ export async function getBlockedUsers(): Promise<UserBrief[]> {
 export async function deleteAccount(): Promise<void> {
   return api.delete("/api/v1/users/me");
 }
+
+export interface NotificationPreferences {
+  email_messages: boolean;
+  email_listing_replies: boolean;
+  email_report_updates: boolean;
+  email_marketing: boolean;
+}
+
+export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+  return api.get<NotificationPreferences>("/api/v1/users/me/notifications");
+}
+
+export async function updateNotificationPreferences(
+  data: Partial<NotificationPreferences>,
+): Promise<NotificationPreferences> {
+  return api.patch<NotificationPreferences>("/api/v1/users/me/notifications", data);
+}

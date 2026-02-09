@@ -480,7 +480,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* ── Safety ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-16 text-white sm:px-6 lg:px-8">
+      <section id="safety" className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-16 text-white sm:px-6 lg:px-8">
         <div className="pointer-events-none absolute inset-0 opacity-20">
           <div className="absolute -left-32 top-0 h-64 w-64 rounded-full bg-primary/30 blur-3xl" />
           <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
@@ -521,7 +521,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="bg-muted/40 px-4 py-16 sm:px-6 lg:px-8">
+      <section id="faq" className="bg-muted/40 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl">
           <div className="text-center">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">

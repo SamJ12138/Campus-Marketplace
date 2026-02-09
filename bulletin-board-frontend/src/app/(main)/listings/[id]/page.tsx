@@ -362,13 +362,28 @@ export default function ListingDetailPage() {
   const [shareToast, setShareToast] = useState(false);
 
   // Handle share
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     const url = `${window.location.origin}/listings/${listingId}`;
-    navigator.clipboard.writeText(url).then(() => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: listing?.title ?? "Check this out", url });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2500);
+      }
+    } catch {
+      // Fallback: select a temporary input
+      const input = document.createElement("input");
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
       setShareToast(true);
       setTimeout(() => setShareToast(false), 2500);
-    });
-  }, [listingId]);
+    }
+  }, [listingId, listing?.title]);
 
   // Handle favorite
   const handleToggleFavorite = useCallback(() => {
@@ -435,7 +450,7 @@ export default function ListingDetailPage() {
       {/* Back navigation */}
       <button
         type="button"
-        onClick={() => router.back()}
+        onClick={() => { window.history.length > 1 ? router.back() : router.push("/feed"); }}
         className="mb-6 flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
         <ArrowLeft className="h-4 w-4" />

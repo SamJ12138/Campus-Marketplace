@@ -125,12 +125,16 @@ export default function PublicUserProfilePage() {
 
   async function handleBlock() {
     if (!profile) return;
+    const confirmed = window.confirm(
+      `Block ${profile.display_name}? They won't be able to message you or see your listings.`,
+    );
+    if (!confirmed) return;
     setIsBlocking(true);
     try {
       await blockUser(profile.id);
       setIsBlocked(true);
     } catch {
-      // Silently handle
+      alert("Failed to block user. Please try again.");
     } finally {
       setIsBlocking(false);
     }

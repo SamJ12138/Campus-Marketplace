@@ -346,7 +346,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
   {
     id: "favorites",
     title: "Saving Offers",
-    url: "/profile/saved",
+    url: "/saved",
     keywords: [
       "favorite",
       "save",

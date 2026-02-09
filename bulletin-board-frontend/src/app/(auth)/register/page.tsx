@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, UserPlus, GraduationCap, Check, X, Phone } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { safeRedirect } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { registerSchema } from "@/lib/validation/auth";
@@ -33,7 +34,7 @@ const PASSWORD_RULES: PasswordRule[] = [
 function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "";
+  const redirectTo = safeRedirect(searchParams.get("redirect"), "");
   const { register } = useAuth();
 
   const [campuses, setCampuses] = useState<Campus[]>([]);

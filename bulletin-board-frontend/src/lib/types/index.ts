@@ -88,7 +88,7 @@ export interface CategoryBrief {
 export interface ListingPhoto {
   id: string;
   url: string;
-  thumbnail_url: string;
+  thumbnail_url: string | null;
   position: number;
 }
 

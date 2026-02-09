@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Briefcase,
@@ -256,7 +257,7 @@ export default function CreateListingPage() {
       );
       if (!confirmed) return;
     }
-    router.back();
+    window.history.length > 1 ? router.back() : router.push("/feed");
   }, [isDirty, router]);
 
   return (
@@ -615,6 +616,30 @@ export default function CreateListingPage() {
               </p>
             </div>
           )}
+
+          {/* Disclaimer checkbox */}
+          <div className="space-y-1.5">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register("disclaimer_accepted")}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+              <span className="text-sm text-slate-600">
+                I confirm this listing is accurate and complies with the{" "}
+                <Link href="/how-it-works" className="font-medium text-blue-600 hover:underline" target="_blank">
+                  community guidelines
+                </Link>
+                . I understand that misleading or prohibited content may result in removal and account suspension.
+              </span>
+            </label>
+            {errors.disclaimer_accepted && (
+              <p className="flex items-center gap-1 text-xs text-red-600 ml-7">
+                <AlertCircle className="h-3 w-3" />
+                {errors.disclaimer_accepted.message}
+              </p>
+            )}
+          </div>
 
           {/* Form actions */}
           <div className="flex items-center gap-3 border-t border-slate-200 pt-6">

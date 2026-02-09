@@ -266,7 +266,7 @@ export default function ProfilePage() {
                   )}
                 >
                   <option value="">No class year</option>
-                  {Array.from({ length: 12 }, (_, i) => 2024 + i).map(
+                  {Array.from({ length: 12 }, (_, i) => new Date().getFullYear() + i).map(
                     (year) => (
                       <option key={year} value={String(year)}>
                         Class of {year}

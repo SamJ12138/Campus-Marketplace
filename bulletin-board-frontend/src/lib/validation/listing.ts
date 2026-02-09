@@ -44,6 +44,10 @@ export const listingCreateSchema = z
     }),
     is_regulated: z.boolean().default(false),
     disclaimer_accepted: z.boolean().default(false),
+  })
+  .refine((data) => data.disclaimer_accepted === true, {
+    message: "You must accept the terms to post a listing",
+    path: ["disclaimer_accepted"],
   });
 
 export const listingUpdateSchema = z.object({

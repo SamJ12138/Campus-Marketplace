@@ -7,9 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_active_user
 from app.core.security import hash_password, verify_password
 from app.dependencies import get_db
+from app.models.notification import NotificationPreference
 from app.models.user import User, UserStatus
 from app.schemas.user import (
     ChangePasswordRequest,
+    NotificationPreferencesResponse,
+    UpdateNotificationPreferencesRequest,
     UpdateProfileRequest,
     UserMeResponse,
     UserProfileResponse,
@@ -89,6 +92,56 @@ async def change_password(
 
     current_user.password_hash = hash_password(data.new_password)
     await db.commit()
+
+
+@router.get("/me/notifications", response_model=NotificationPreferencesResponse)
+async def get_notification_preferences(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Get current user's notification preferences."""
+    prefs = await db.scalar(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id
+        )
+    )
+    if not prefs:
+        # Create default preferences if they don't exist
+        prefs = NotificationPreference(user_id=current_user.id)
+        db.add(prefs)
+        await db.commit()
+        await db.refresh(prefs)
+    return prefs
+
+
+@router.patch("/me/notifications", response_model=NotificationPreferencesResponse)
+async def update_notification_preferences(
+    data: UpdateNotificationPreferencesRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update current user's notification preferences."""
+    prefs = await db.scalar(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id
+        )
+    )
+    if not prefs:
+        prefs = NotificationPreference(user_id=current_user.id)
+        db.add(prefs)
+
+    if data.email_messages is not None:
+        prefs.email_messages = data.email_messages
+    if data.email_listing_replies is not None:
+        prefs.email_listing_replies = data.email_listing_replies
+    if data.email_report_updates is not None:
+        prefs.email_report_updates = data.email_report_updates
+    if data.email_marketing is not None:
+        prefs.email_marketing = data.email_marketing
+
+    await db.commit()
+    await db.refresh(prefs)
+    return prefs
 
 
 @router.get("/{user_id}", response_model=UserProfileResponse)

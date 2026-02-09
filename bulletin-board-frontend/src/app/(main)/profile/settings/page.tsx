@@ -14,7 +14,8 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { changePasswordSchema } from "@/lib/validation/auth";
-import { changePassword, deleteAccount } from "@/lib/api/users";
+import { changePassword, deleteAccount, getNotificationPreferences, updateNotificationPreferences } from "@/lib/api/users";
+import type { NotificationPreferences } from "@/lib/api/users";
 import { getBlockedUsers, unblockUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/client";
 import type { UserBrief } from "@/lib/types";
@@ -195,9 +196,46 @@ function ChangePasswordSection() {
 }
 
 function NotificationPreferencesSection() {
-  const [emailNewMessage, setEmailNewMessage] = useState(true);
-  const [emailListingResponse, setEmailListingResponse] = useState(true);
-  const [emailDigest, setEmailDigest] = useState(false);
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    getNotificationPreferences()
+      .then(setPrefs)
+      .catch(() => {
+        // Default values if preferences can't be loaded
+        setPrefs({
+          email_messages: true,
+          email_listing_replies: true,
+          email_report_updates: true,
+          email_marketing: false,
+        });
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  async function handleToggle(key: keyof NotificationPreferences, value: boolean) {
+    if (!prefs) return;
+    const prev = { ...prefs };
+    setPrefs({ ...prefs, [key]: value });
+    setIsSaving(true);
+    try {
+      const updated = await updateNotificationPreferences({ [key]: value });
+      setPrefs(updated);
+    } catch {
+      setPrefs(prev);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const emailOptions = [
+    { key: "email_messages" as const, label: "New messages", desc: "Receive an email when someone messages you" },
+    { key: "email_listing_replies" as const, label: "Listing activity", desc: "Receive an email when someone responds to your listing" },
+    { key: "email_report_updates" as const, label: "Report updates", desc: "Receive an email when a report you filed is reviewed" },
+    { key: "email_marketing" as const, label: "Campus updates", desc: "Occasional updates about new features and campus activity" },
+  ];
 
   return (
     <section className="space-y-4">
@@ -207,54 +245,31 @@ function NotificationPreferencesSection() {
       </div>
 
       <div className="space-y-5 max-w-md">
-        {/* Email notifications */}
         <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground">Email</p>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={emailNewMessage}
-              onChange={(e) => setEmailNewMessage(e.target.checked)}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-            />
-            <div>
-              <p className="text-sm font-medium">New messages</p>
-              <p className="text-xs text-muted-foreground">
-                Receive an email when someone messages you
-              </p>
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading preferences...
             </div>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={emailListingResponse}
-              onChange={(e) => setEmailListingResponse(e.target.checked)}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-            />
-            <div>
-              <p className="text-sm font-medium">Listing activity</p>
-              <p className="text-xs text-muted-foreground">
-                Receive an email when someone responds to your listing
-              </p>
-            </div>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={emailDigest}
-              onChange={(e) => setEmailDigest(e.target.checked)}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-            />
-            <div>
-              <p className="text-sm font-medium">Weekly digest</p>
-              <p className="text-xs text-muted-foreground">
-                Get a weekly summary of new listings on your campus
-              </p>
-            </div>
-          </label>
+          ) : prefs ? (
+            emailOptions.map((opt) => (
+              <label key={opt.key} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={prefs[opt.key]}
+                  onChange={(e) => handleToggle(opt.key, e.target.checked)}
+                  disabled={isSaving}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary disabled:opacity-50"
+                />
+                <div>
+                  <p className="text-sm font-medium">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                </div>
+              </label>
+            ))
+          ) : null}
         </div>
 
         {/* SMS notifications - Coming Soon */}
@@ -296,12 +311,6 @@ function NotificationPreferencesSection() {
             </div>
           </label>
         </div>
-
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 px-3 py-2">
-          <p className="text-xs text-amber-800 dark:text-amber-200">
-            Email notification preferences are currently being set up. Your selections will be saved once the backend integration is complete.
-          </p>
-        </div>
       </div>
     </section>
   );
@@ -311,6 +320,7 @@ function BlockedUsersSection() {
   const [blockedUsers, setBlockedUsers] = useState<UserBrief[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  const [unblockError, setUnblockError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -332,11 +342,12 @@ function BlockedUsersSection() {
 
   async function handleUnblock(userId: string) {
     setUnblockingId(userId);
+    setUnblockError(null);
     try {
       await unblockUser(userId);
       setBlockedUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch {
-      // Silently handle error; user can retry
+      setUnblockError("Failed to unblock user. Please try again.");
     } finally {
       setUnblockingId(null);
     }
@@ -416,6 +427,10 @@ function BlockedUsersSection() {
             );
           })}
         </ul>
+      )}
+
+      {unblockError && (
+        <p className="text-sm text-destructive">{unblockError}</p>
       )}
     </section>
   );

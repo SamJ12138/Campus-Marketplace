@@ -95,6 +95,10 @@ export function useCreateListing() {
     mutationFn: (data: CreateListingRequest) => createListing(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Listing created successfully");
+    },
+    onError: () => {
+      toast.error("Failed to create listing");
     },
   });
 }
@@ -111,6 +115,10 @@ export function useUpdateListing() {
         updatedListing,
       );
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Listing updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update listing");
     },
   });
 }
@@ -123,6 +131,10 @@ export function useDeleteListing() {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: listingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Listing deleted");
+    },
+    onError: () => {
+      toast.error("Failed to delete listing");
     },
   });
 }
@@ -138,6 +150,10 @@ export function useRenewListing() {
         updatedListing,
       );
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Listing renewed successfully");
+    },
+    onError: () => {
+      toast.error("Failed to renew listing");
     },
   });
 }
@@ -153,6 +169,10 @@ export function useMarkSold() {
         updatedListing,
       );
       queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Marked as sold");
+    },
+    onError: () => {
+      toast.error("Failed to mark as sold");
     },
   });
 }

@@ -3,7 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, KeyRound, CheckCircle2, GraduationCap } from "lucide-react";
+import { Loader2, KeyRound, CheckCircle2, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { resetPasswordSchema } from "@/lib/validation/auth";
@@ -21,6 +21,7 @@ function ResetPasswordContent() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,7 +52,7 @@ function ResetPasswordContent() {
       setIsSuccess(true);
       setTimeout(() => {
         router.push("/login");
-      }, 3000);
+      }, 5000);
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.detail);
@@ -105,11 +106,17 @@ function ResetPasswordContent() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-2">
               <p className="text-lg font-medium">Password reset!</p>
               <p className="text-sm text-muted-foreground">
                 Redirecting to login...
               </p>
+              <a
+                href="/login"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Click here if not redirected
+              </a>
             </div>
           </div>
         ) : (
@@ -143,24 +150,35 @@ function ResetPasswordContent() {
                 >
                   {t.auth.newPasswordLabel}
                 </label>
-                <input
-                  id="new_password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter your new password"
-                  disabled={isSubmitting}
-                  className={cn(
-                    "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                    "placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                    errors.new_password
-                      ? "border-destructive"
-                      : "border-input",
-                  )}
-                />
+                <div className="relative">
+                  <input
+                    id="new_password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter your new password"
+                    disabled={isSubmitting}
+                    className={cn(
+                      "flex h-10 w-full rounded-md border bg-background px-3 py-2 pr-10 text-sm",
+                      "placeholder:text-muted-foreground",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                      errors.new_password
+                        ? "border-destructive"
+                        : "border-input",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {errors.new_password && (
                   <p className="text-xs text-destructive">
                     {errors.new_password}

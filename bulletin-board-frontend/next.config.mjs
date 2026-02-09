@@ -33,6 +33,11 @@ const nextConfig = {
         hostname: "www.gimme-dat.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "*.r2.dev",
+        pathname: "/**",
+      },
     ],
     // Minimize image size in development
     minimumCacheTTL: 60,

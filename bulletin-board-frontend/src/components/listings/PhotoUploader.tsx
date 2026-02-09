@@ -19,7 +19,7 @@ import { uploadFile } from "@/lib/api/uploads";
 interface ManagedPhoto {
   id: string;
   url: string;
-  thumbnail_url: string;
+  thumbnail_url: string | null;
   position: number;
 }
 
@@ -96,7 +96,7 @@ export default function PhotoUploader({
     initialPhotos.map((p) => ({
       localId: p.id,
       file: null as unknown as File,
-      previewUrl: p.thumbnail_url,
+      previewUrl: p.thumbnail_url ?? p.url,
       progress: 100,
       error: null,
       uploaded: p,
