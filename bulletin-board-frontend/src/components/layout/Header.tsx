@@ -141,14 +141,7 @@ export function Header() {
         </div>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <Link
-            href="/feed"
-            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
-          >
-            All Offers
-          </Link>
-          <MegaDropdown type="item" label="Items" />
-          <MegaDropdown type="service" label="Services" />
+          <MarketplaceDropdown />
           <Link
             href="/how-it-works"
             className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
@@ -314,11 +307,12 @@ export function Header() {
   );
 }
 
-function MegaDropdown({ type, label }: { type: "item" | "service"; label: string }) {
+function MarketplaceDropdown() {
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
-  const { data: categories } = useCategories(type);
+  const { data: itemCategories } = useCategories("item");
+  const { data: serviceCategories } = useCategories("service");
 
   useEffect(() => {
     setOpen(false);
@@ -346,36 +340,72 @@ function MegaDropdown({ type, label }: { type: "item" | "service"; label: string
       onMouseLeave={handleMouseLeave}
     >
       <Link
-        href={`/feed?type=${type}`}
-        className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+        href="/feed"
+        className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
       >
-        {label}
+        Marketplace
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")} />
       </Link>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-2xl border border-border/50 glass-strong p-2 shadow-xl animate-dropdown-in">
+        <div className="absolute left-1/2 top-full z-50 mt-1 w-64 -translate-x-1/2 rounded-2xl border border-border/50 glass-strong p-2 shadow-xl animate-dropdown-in">
           <Link
-            href={`/feed?type=${type}`}
+            href="/feed"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
           >
-            View All {label}
+            All Offers
           </Link>
-          {categories && categories.length > 0 && (
-            <>
-              <div className="my-1 h-px bg-border/50" />
-              {categories.map((cat: Category) => (
+          <div className="my-1 h-px bg-border/50" />
+
+          {/* Items section */}
+          <Link
+            href="/feed?type=item"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+          >
+            Items
+          </Link>
+          {itemCategories && itemCategories.length > 0 && (
+            <div className="ml-2">
+              {itemCategories.map((cat: Category) => (
                 <Link
                   key={cat.id}
-                  href={`/feed?type=${type}&category=${cat.slug}`}
+                  href={`/feed?type=item&category=${cat.slug}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
                 >
                   {cat.icon && <span className="text-base">{cat.icon}</span>}
                   {cat.name}
                 </Link>
               ))}
-            </>
+            </div>
+          )}
+
+          <div className="my-1 h-px bg-border/50" />
+
+          {/* Services section */}
+          <Link
+            href="/feed?type=service"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+          >
+            Services
+          </Link>
+          {serviceCategories && serviceCategories.length > 0 && (
+            <div className="ml-2">
+              {serviceCategories.map((cat: Category) => (
+                <Link
+                  key={cat.id}
+                  href={`/feed?type=service&category=${cat.slug}`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                >
+                  {cat.icon && <span className="text-base">{cat.icon}</span>}
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       )}
