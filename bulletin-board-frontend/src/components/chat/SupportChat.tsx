@@ -351,11 +351,11 @@ export function SupportChat() {
                     Need more help?
                   </p>
                   <a
-                    href="mailto:support@gimme-dat.com"
+                    href="mailto:feedback@gimme-dat.com"
                     className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-200 dark:bg-amber-800/30 dark:text-amber-300 dark:hover:bg-amber-800/50"
                   >
                     <Mail className="h-3 w-3" />
-                    Email us at support@gimme-dat.com
+                    Email us at feedback@gimme-dat.com
                   </a>
                 </div>
               )}
@@ -429,7 +429,7 @@ export function SupportChat() {
         <div className="border-t border-border bg-muted/30 px-4 py-2 text-center">
           <p className="text-[10px] text-muted-foreground">
             <a
-              href="mailto:support@gimme-dat.com"
+              href="mailto:feedback@gimme-dat.com"
               className="font-medium text-primary hover:underline"
             >
               Email Support

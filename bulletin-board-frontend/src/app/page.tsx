@@ -949,7 +949,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="mailto:support@gimme-dat.com"
+                    href="mailto:feedback@gimme-dat.com"
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <Mail className="h-3.5 w-3.5" />

@@ -602,7 +602,7 @@ const KNOWLEDGE_BASE: KBEntry[] = [
       "support team",
     ],
     content:
-      "For general questions, try this support chat first. For account-specific issues or anything the chatbot can't help with, email us at support@gimme-dat.com — we'll get back to you as soon as possible. For privacy-related requests, see the Privacy Policy page. For urgent safety concerns, contact Campus Safety at (717) 337-6911.",
+      "For general questions, try this support chat first. For account-specific issues or anything the chatbot can't help with, email us at feedback@gimme-dat.com — we'll get back to you as soon as possible. For privacy-related requests, see the Privacy Policy page. For urgent safety concerns, contact Campus Safety at (717) 337-6911.",
     excerpt: "How to reach support",
   },
   {
@@ -735,7 +735,7 @@ function retrieveFromKB(query: string): KBResult {
   if (topMatches.length === 0) {
     return {
       answer:
-        "I couldn't find specific information about that. You can browse our How It Works page or reach out through support at support@gimme-dat.com.",
+        "I couldn't find specific information about that. You can browse our How It Works page or reach out through support at feedback@gimme-dat.com.",
       confidence: 0.2,
       sources: [
         {
@@ -861,7 +861,7 @@ function handleAccountSpecific(message: string): ChatResponse {
     return {
       replyText:
         kbResult.answer +
-        "\n\nFor account-specific actions or issues that require identity verification, please use support at support@gimme-dat.com or contact your campus administrator.",
+        "\n\nFor account-specific actions or issues that require identity verification, please use support at feedback@gimme-dat.com or contact your campus administrator.",
       category: "ACCOUNT_SPECIFIC",
       confidence: kbResult.confidence,
       sources: [
@@ -883,7 +883,7 @@ function handleAccountSpecific(message: string): ChatResponse {
       "- **Email not verified?** Check your spam folder.\n" +
       "- **Update profile?** Visit your Profile page.\n" +
       "- **Delete account?** Go to your account settings.\n\n" +
-      "For issues that require manual help, please reach out through support at support@gimme-dat.com.",
+      "For issues that require manual help, please reach out through support at feedback@gimme-dat.com.",
     category: "ACCOUNT_SPECIFIC",
     confidence: 1.0,
     sources: [
@@ -918,7 +918,7 @@ function handlePolicyLegal(message: string): ChatResponse {
       "For specific policy or legal questions, please review our official documentation:\n\n" +
       "- **Terms of Service:** /terms\n" +
       "- **Privacy Policy:** /privacy\n\n" +
-      "If you need clarification, please reach out through support at support@gimme-dat.com.",
+      "If you need clarification, please reach out through support at feedback@gimme-dat.com.",
     category: "POLICY_LEGAL",
     confidence: 0.5,
     sources: [
@@ -970,7 +970,7 @@ function handleGeneralFAQ(message: string): ChatResponse {
       "- **How It Works:** /how-it-works\n" +
       "- **Terms of Service:** /terms\n" +
       "- **Privacy Policy:** /privacy\n\n" +
-      "You can also try rephrasing your question, or reach out through support at support@gimme-dat.com.",
+      "You can also try rephrasing your question, or reach out through support at feedback@gimme-dat.com.",
     category: "FAQ_GENERAL",
     confidence: kbResult.confidence,
     sources: [
