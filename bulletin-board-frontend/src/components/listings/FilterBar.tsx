@@ -12,9 +12,13 @@ interface FilterBarProps {
   currentCategory: string | null;
   currentSort: string;
   lockedType?: ListingType | null;
+  minPrice: string;
+  maxPrice: string;
   onTypeChange: (type: ListingType | null) => void;
   onCategoryChange: (categorySlug: string | null) => void;
   onSortChange: (sort: string) => void;
+  onMinPriceChange: (value: string) => void;
+  onMaxPriceChange: (value: string) => void;
 }
 
 const SORT_OPTIONS = [
@@ -28,9 +32,13 @@ export default function FilterBar({
   currentCategory,
   currentSort,
   lockedType,
+  minPrice,
+  maxPrice,
   onTypeChange,
   onCategoryChange,
   onSortChange,
+  onMinPriceChange,
+  onMaxPriceChange,
 }: FilterBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: categories, isLoading: categoriesLoading } = useCategories(
@@ -40,13 +48,17 @@ export default function FilterBar({
   const hasActiveFilters =
     (currentType !== null && currentType !== lockedType) ||
     currentCategory !== null ||
-    currentSort !== "newest";
+    currentSort !== "newest" ||
+    minPrice !== "" ||
+    maxPrice !== "";
 
   const handleClearFilters = useCallback(() => {
     if (!lockedType) onTypeChange(null);
     onCategoryChange(null);
     onSortChange("newest");
-  }, [lockedType, onTypeChange, onCategoryChange, onSortChange]);
+    onMinPriceChange("");
+    onMaxPriceChange("");
+  }, [lockedType, onTypeChange, onCategoryChange, onSortChange, onMinPriceChange, onMaxPriceChange]);
 
   const handleTypeToggle = useCallback(
     (type: ListingType) => {
@@ -182,6 +194,41 @@ export default function FilterBar({
             ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+
+        <div className="h-6 w-px flex-shrink-0 bg-border/50" />
+
+        <div className="flex flex-shrink-0 items-center gap-1.5 snap-start">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">$</span>
+          <input
+            type="number"
+            min="0"
+            placeholder="Min"
+            value={minPrice}
+            onChange={(e) => onMinPriceChange(e.target.value)}
+            aria-label="Minimum price"
+            className={cn(
+              "w-16 rounded-full border border-border/50 glass py-2 px-3 text-sm text-foreground placeholder:text-muted-foreground",
+              "transition-all duration-200 ease-spring hover:border-primary/30",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+            )}
+          />
+          <span className="text-xs text-muted-foreground">–</span>
+          <input
+            type="number"
+            min="0"
+            placeholder="Max"
+            value={maxPrice}
+            onChange={(e) => onMaxPriceChange(e.target.value)}
+            aria-label="Maximum price"
+            className={cn(
+              "w-16 rounded-full border border-border/50 glass py-2 px-3 text-sm text-foreground placeholder:text-muted-foreground",
+              "transition-all duration-200 ease-spring hover:border-primary/30",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+            )}
+          />
         </div>
 
         {hasActiveFilters && (

@@ -276,6 +276,8 @@ export interface ListingFilters {
   location_type?: LocationType;
   search?: string;
   status?: ListingStatus;
+  min_price?: number;
+  max_price?: number;
   page?: number;
   per_page?: number;
 }

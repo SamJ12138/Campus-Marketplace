@@ -188,6 +188,10 @@ function FeedContent() {
   const [sort, setSort] = useState(initialSort);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState("");
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState("");
 
   // View mode (grid / list) — persisted in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -222,6 +226,15 @@ function FeedContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Debounce price inputs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMinPrice(minPrice);
+      setDebouncedMaxPrice(maxPrice);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [minPrice, maxPrice]);
+
   // Sync filter changes to URL
   useEffect(() => {
     const params = new URLSearchParams();
@@ -242,8 +255,10 @@ function FeedContent() {
       category_slug: category ?? undefined,
       sort,
       q: debouncedSearch || undefined,
+      min_price: debouncedMinPrice ? Number(debouncedMinPrice) : undefined,
+      max_price: debouncedMaxPrice ? Number(debouncedMaxPrice) : undefined,
     }),
-    [type, category, sort, debouncedSearch],
+    [type, category, sort, debouncedSearch, debouncedMinPrice, debouncedMaxPrice],
   );
 
   const {
@@ -294,7 +309,9 @@ function FeedContent() {
     type !== null ||
     category !== null ||
     sort !== "newest" ||
-    debouncedSearch !== "";
+    debouncedSearch !== "" ||
+    debouncedMinPrice !== "" ||
+    debouncedMaxPrice !== "";
 
   if (!authLoading && !isAuthenticated) {
     return <SignInPrompt />;
@@ -383,9 +400,13 @@ function FeedContent() {
         currentCategory={category}
         currentSort={sort}
         lockedType={initialType}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
         onTypeChange={setType}
         onCategoryChange={setCategory}
         onSortChange={setSort}
+        onMinPriceChange={setMinPrice}
+        onMaxPriceChange={setMaxPrice}
       />
 
       {/* Content area */}

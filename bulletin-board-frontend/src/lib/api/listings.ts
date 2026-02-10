@@ -18,6 +18,8 @@ export async function getListings(
     search: params.search,
     q: params.q,
     status: params.status,
+    min_price: params.min_price,
+    max_price: params.max_price,
     sort: params.sort,
     page: params.page,
     per_page: params.per_page,

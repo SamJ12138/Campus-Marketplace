@@ -108,14 +108,17 @@ class StorageService:
                 )
                 raise ValueError("Image dimensions too large")
 
+            # Strip EXIF / metadata for privacy (re-save clean image)
+            clean_bytes = self._strip_exif(img, detected_type)
+            if clean_bytes:
+                file_bytes = clean_bytes
+
             permanent_key = temp_key.replace("tmp/", f"{destination_prefix}/")
-            await s3.copy_object(
+            await s3.put_object(
                 Bucket=self.settings.s3_bucket_name,
-                CopySource={
-                    "Bucket": self.settings.s3_bucket_name,
-                    "Key": temp_key,
-                },
                 Key=permanent_key,
+                Body=file_bytes,
+                ContentType=detected_type,
             )
             await s3.delete_object(
                 Bucket=self.settings.s3_bucket_name, Key=temp_key
@@ -129,6 +132,29 @@ class StorageService:
                 "width": img.size[0],
                 "height": img.size[1],
             }
+
+    @staticmethod
+    def _strip_exif(img: Image.Image, content_type: str) -> bytes | None:
+        """Re-save image without EXIF metadata. Returns cleaned bytes or None on failure."""
+        try:
+            buf = io.BytesIO()
+            save_format = {
+                "image/jpeg": "JPEG",
+                "image/png": "PNG",
+                "image/webp": "WEBP",
+            }.get(content_type)
+            if not save_format:
+                return None
+            save_kwargs: dict = {"format": save_format}
+            if save_format == "JPEG":
+                save_kwargs["quality"] = 90
+                save_kwargs["optimize"] = True
+            elif save_format == "WEBP":
+                save_kwargs["quality"] = 90
+            img.save(buf, **save_kwargs)
+            return buf.getvalue()
+        except Exception:
+            return None
 
     async def delete_file(self, storage_key: str) -> None:
         """Delete file from S3."""

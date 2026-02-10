@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.config import get_settings
@@ -100,7 +101,38 @@ async def app_exception_handler(request: Request, exc: AppException):
 # Health check
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "version": "1.0.0"}
+    checks: dict = {"api": "ok"}
+    healthy = True
+
+    # Database
+    try:
+        async with app.state.db_session() as db:
+            await db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+        healthy = False
+
+    # Redis
+    try:
+        if app.state.redis:
+            await app.state.redis.ping()
+            checks["redis"] = "ok"
+        else:
+            checks["redis"] = "not configured"
+    except Exception as e:
+        checks["redis"] = f"error: {e}"
+        healthy = False
+
+    status_code = 200 if healthy else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if healthy else "degraded",
+            "version": "1.0.0",
+            "checks": checks,
+        },
+    )
 
 
 # API routes

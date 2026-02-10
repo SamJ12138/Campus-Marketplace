@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import and_, cast, func, or_, select, update, Float
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.dialects.postgresql import TSVECTOR
 
 from app.config import get_settings
 from app.models.admin import AdminAction
@@ -37,12 +38,22 @@ class ListingService:
         """Escape special characters for LIKE/ILIKE patterns."""
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
+    @staticmethod
+    def _build_search_vector_value(title: str, description: str) -> str:
+        """Build raw SQL expression for search_vector from title + description."""
+        return func.to_tsvector(
+            "english",
+            func.coalesce(title, "") + " " + func.coalesce(description, ""),
+        )
+
     async def search_listings(
         self,
         campus_id: UUID | None = None,
         type: ListingType | None = None,
         category_slug: str | None = None,
         query: str | None = None,
+        min_price: float | None = None,
+        max_price: float | None = None,
         page: int = 1,
         per_page: int = 20,
         sort: str = "newest",
@@ -66,19 +77,40 @@ class ListingService:
             base_query = base_query.join(Category).where(Category.slug == category_slug)
             category_joined = True
         if query:
+            # Use full-text search via TSVECTOR (GIN-indexed) with ILIKE fallback
+            # for fields not in the search vector (category name, price, location)
+            ts_query = func.plainto_tsquery("english", query)
             safe_query = self._escape_like(query)
             if not category_joined:
                 base_query = base_query.join(Category)
                 category_joined = True
             base_query = base_query.where(
                 or_(
-                    Listing.title.ilike(f"%{safe_query}%"),
-                    Listing.description.ilike(f"%{safe_query}%"),
+                    Listing.search_vector.op("@@")(ts_query),
                     Category.name.ilike(f"%{safe_query}%"),
                     Listing.price_hint.ilike(f"%{safe_query}%"),
                     Listing.location_hint.ilike(f"%{safe_query}%"),
                 )
             )
+
+        # Price range filter — extract first numeric value from price_hint string
+        if min_price is not None or max_price is not None:
+            # Extract leading number from strings like "$25", "$10/hr", "25.50"
+            numeric_price = cast(
+                func.nullif(
+                    func.regexp_replace(Listing.price_hint, r"[^0-9.]", "", "g"),
+                    "",
+                ),
+                Float,
+            )
+            if min_price is not None:
+                base_query = base_query.where(
+                    and_(Listing.price_hint.isnot(None), numeric_price >= min_price)
+                )
+            if max_price is not None:
+                base_query = base_query.where(
+                    and_(Listing.price_hint.isnot(None), numeric_price <= max_price)
+                )
 
         # Count total
         count_query = select(func.count()).select_from(base_query.subquery())
@@ -189,6 +221,19 @@ class ListingService:
             expires_at=datetime.utcnow() + timedelta(days=settings.listing_expiry_days),
         )
         self.db.add(listing)
+        await self.db.flush()
+
+        # Populate search_vector for full-text search
+        await self.db.execute(
+            update(Listing)
+            .where(Listing.id == listing.id)
+            .values(
+                search_vector=func.to_tsvector(
+                    "english",
+                    func.coalesce(data.title, "") + " " + func.coalesce(data.description, ""),
+                )
+            )
+        )
 
         # Increment user listing count
 
@@ -221,6 +266,19 @@ class ListingService:
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(listing, field, value)
+
+        # Update search_vector if title or description changed
+        if "title" in update_data or "description" in update_data:
+            await self.db.execute(
+                update(Listing)
+                .where(Listing.id == listing_id)
+                .values(
+                    search_vector=func.to_tsvector(
+                        "english",
+                        func.coalesce(listing.title, "") + " " + func.coalesce(listing.description, ""),
+                    )
+                )
+            )
 
         await self.db.commit()
         await self.db.refresh(listing)

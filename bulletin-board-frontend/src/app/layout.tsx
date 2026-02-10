@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Quicksand, Nunito } from "next/font/google";
 import "@/globals.css";
 import { Providers } from "./providers";
 import { OrganizationSchema, WebSiteSchema } from "@/components/seo";
 import { ALL_KEYWORDS, SEO_CONFIG } from "@/lib/constants/seo";
 import { Toaster } from "sonner";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -105,6 +108,17 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>{children}</Providers>
         <Toaster richColors position="top-center" />
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
