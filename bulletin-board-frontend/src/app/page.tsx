@@ -60,6 +60,12 @@ function LandingNav() {
         {/* Center links — hidden on mobile */}
         <div className="hidden items-center gap-1 md:flex">
           <Link
+            href="/"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Home
+          </Link>
+          <Link
             href="/feed"
             className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
