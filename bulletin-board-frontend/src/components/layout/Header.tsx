@@ -154,6 +154,12 @@ export function Header() {
           >
             How It Works
           </Link>
+          <Link
+            href="/join-team"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+          >
+            Join the Team
+          </Link>
 
           {isAuthenticated ? (
             <>
