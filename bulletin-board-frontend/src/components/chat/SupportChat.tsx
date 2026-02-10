@@ -10,6 +10,7 @@ import {
   GraduationCap,
   ExternalLink,
   ChevronDown,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -349,10 +350,13 @@ export function SupportChat() {
                   <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                     Need more help?
                   </p>
-                  <p className="text-[11px] text-amber-600 dark:text-amber-300/80">
-                    For personalized assistance, please reach out through the
-                    platform&apos;s support channels.
-                  </p>
+                  <a
+                    href="mailto:support@gimme-dat.com"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-200 dark:bg-amber-800/30 dark:text-amber-300 dark:hover:bg-amber-800/50"
+                  >
+                    <Mail className="h-3 w-3" />
+                    Email us at support@gimme-dat.com
+                  </a>
                 </div>
               )}
 
@@ -424,7 +428,13 @@ export function SupportChat() {
         {/* ─── Footer ─── */}
         <div className="border-t border-border bg-muted/30 px-4 py-2 text-center">
           <p className="text-[10px] text-muted-foreground">
-            Need more help?{" "}
+            <a
+              href="mailto:support@gimme-dat.com"
+              className="font-medium text-primary hover:underline"
+            >
+              Email Support
+            </a>
+            {" | "}
             <Link
               href="/how-it-works"
               className="text-primary hover:underline"

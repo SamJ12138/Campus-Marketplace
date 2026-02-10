@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Check,
   Heart,
+  Mail,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
@@ -945,6 +946,15 @@ export default function LandingPage() {
                   >
                     Join the Team
                   </Link>
+                </li>
+                <li>
+                  <a
+                    href="mailto:support@gimme-dat.com"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Contact Support
+                  </a>
                 </li>
               </ul>
             </div>
