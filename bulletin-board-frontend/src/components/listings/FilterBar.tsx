@@ -76,6 +76,22 @@ export default function FilterBar({
         <div className="flex flex-shrink-0 items-center gap-2 snap-start">
           <button
             type="button"
+            onClick={() => {
+              onTypeChange(null);
+              onCategoryChange(null);
+            }}
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              currentType === null
+                ? "bg-foreground text-background shadow-md"
+                : "glass border border-border/50 text-foreground hover:border-primary/30 hover:shadow-sm",
+            )}
+          >
+            All Offers
+          </button>
+          <button
+            type="button"
             onClick={() => handleTypeToggle("service")}
             className={cn(
               "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
