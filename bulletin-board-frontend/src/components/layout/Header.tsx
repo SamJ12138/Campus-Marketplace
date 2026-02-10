@@ -141,6 +141,12 @@ export function Header() {
         </div>
 
         <nav className="hidden items-center gap-1 md:flex">
+          <Link
+            href="/"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+          >
+            Home
+          </Link>
           <MarketplaceDropdown />
           <Link
             href="/how-it-works"
