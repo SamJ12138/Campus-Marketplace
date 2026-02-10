@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -7,6 +8,9 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from app.config import get_settings
 from app.core.exceptions import AppException
+
+# Configure logging so info/error messages are visible
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 
 settings = get_settings()
 
@@ -46,6 +50,14 @@ async def lifespan(app: FastAPI):
         print("[STARTUP] Redis + ARQ connected")
     except Exception as e:
         print(f"[STARTUP] Redis unavailable ({e}), running without rate limiting and background jobs")
+
+    # Log email configuration for debugging
+    print(f"[STARTUP] Email provider: {settings.email_provider}")
+    print(f"[STARTUP] Email from: {settings.email_from_name} <{settings.email_from_address}>")
+    if settings.email_provider == "resend" and not settings.resend_api_key:
+        print("[STARTUP] WARNING: EMAIL_PROVIDER=resend but RESEND_API_KEY is not set!")
+    if "resend.dev" in settings.email_from_address:
+        print("[STARTUP] WARNING: EMAIL_FROM_ADDRESS uses sandbox domain 'resend.dev' — emails only go to account owner!")
 
     yield
 

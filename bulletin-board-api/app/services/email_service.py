@@ -75,6 +75,14 @@ class EmailService:
                     logger.error("[EMAIL ERROR] RESEND_API_KEY is not set!")
                     return False
 
+                if "resend.dev" in self.settings.email_from_address:
+                    logger.warning(
+                        "[EMAIL WARNING] Using sandbox from address '%s' — "
+                        "emails will only be delivered to the account owner. "
+                        "Set EMAIL_FROM_ADDRESS to your verified domain.",
+                        self.settings.email_from_address,
+                    )
+
                 resend.api_key = self.settings.resend_api_key
                 from_address = f"{self.settings.email_from_name} <{self.settings.email_from_address}>"
                 logger.info(f"[EMAIL] Resend from: {from_address}")

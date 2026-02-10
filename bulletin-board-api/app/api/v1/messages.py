@@ -44,11 +44,13 @@ def _send_notification_email(
         settings = get_settings()
         html = new_message_email(sender_name, listing_title, message_content, thread_url)
         email_service = EmailService(settings)
-        email_service.send_email_sync(
+        ok = email_service.send_email_sync(
             to_email=recipient_email,
             subject=f"New message from {sender_name} - Gimme Dat",
             html_content=html,
         )
+        if not ok:
+            logger.error("[MSG-NOTIFY] Email send returned failure for %s", recipient_email)
     except Exception:
         logger.exception("Failed to send message notification email")
 
@@ -70,15 +72,18 @@ async def _maybe_queue_email(
             )
         )
         if prefs and not prefs.email_messages:
+            logger.info("[MSG-NOTIFY] Skipped: recipient %s has email_messages disabled", recipient_id)
             return
 
         recipient = await db.get(User, recipient_id)
         if not recipient or not recipient.email:
+            logger.warning("[MSG-NOTIFY] Skipped: recipient %s not found or has no email", recipient_id)
             return
 
         settings = get_settings()
         thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
 
+        logger.info("[MSG-NOTIFY] Queuing email to %s for thread %s", recipient.email, thread_id)
         background_tasks.add_task(
             _send_notification_email,
             recipient.email,
