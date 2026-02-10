@@ -119,7 +119,7 @@ const FAQS = [
   {
     question: "What if I have a problem with another user?",
     answer:
-      "Use the report feature on any listing or user profile to flag an issue. Our moderation team reviews all reports. You can also email us at feedback@gimme-dat.com for help. For urgent safety concerns, contact your campus security.",
+      "Use the report feature on any listing or user profile to flag an issue. Our moderation team reviews all reports. You can also email us at support@gimme-dat.com for help. For urgent safety concerns, contact your campus security.",
   },
   {
     question: "Can students from other campuses see my listings?",
