@@ -18,6 +18,15 @@ import {
   Handshake,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
+  Truck,
+  BadgeCheck,
+  EyeOff,
+  BookOpen,
+  MessageSquare,
+  Check,
+  Heart,
+  UserPlus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
@@ -68,6 +77,12 @@ function LandingNav() {
             className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             How It Works
+          </Link>
+          <Link
+            href="/join-team"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Join the Team
           </Link>
         </div>
 
@@ -539,6 +554,166 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── What is GimmeDat? ── */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            What is GimmeDat?
+          </h2>
+          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+            GimmeDat is a <span className="font-semibold text-foreground">free, campus-only marketplace</span> built
+            exclusively for college students. Buy, sell, and trade items and services with verified
+            students at your university — no outsiders, no fees, no hassle.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
+              <BadgeCheck className="h-4 w-4" />
+              .edu verified
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <DollarSign className="h-4 w-4" />
+              100% free
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-4 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
+              <Users className="h-4 w-4" />
+              Campus only
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why not eBay / Facebook Marketplace? ── */}
+      <section className="border-y border-border bg-muted/30 px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              Why not eBay or Facebook Marketplace?
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Built from scratch for the college experience.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: DollarSign,
+                title: "Zero fees",
+                desc: "eBay takes ~13% of every sale. We take nothing. Keep every dollar.",
+                accent: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
+              },
+              {
+                icon: Truck,
+                title: "No shipping hassle",
+                desc: "Meet on campus, hand it over between classes. No boxes, no labels, no waiting.",
+                accent: "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+              },
+              {
+                icon: BadgeCheck,
+                title: "Campus-verified only",
+                desc: "Every user is verified with a .edu email. You know exactly who you're dealing with.",
+                accent: "bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
+              },
+              {
+                icon: EyeOff,
+                title: "Privacy first",
+                desc: "No social media profile needed. No personal info shared with buyers or sellers.",
+                accent: "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
+              },
+              {
+                icon: BookOpen,
+                title: "Built for students",
+                desc: "Categories, features, and pricing designed around campus life — textbooks, dorm gear, tutoring, and more.",
+                accent: "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400",
+              },
+              {
+                icon: MessageSquare,
+                title: "In-app messaging",
+                desc: "Chat directly in the app. No need to share your phone number or personal email.",
+                accent: "bg-teal-100 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex flex-col items-start gap-4 rounded-2xl border border-border bg-card p-7"
+              >
+                <div
+                  className={cn(
+                    "flex h-12 w-12 items-center justify-center rounded-xl",
+                    item.accent,
+                  )}
+                >
+                  <item.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 100% Free. No catch. ── */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            100% Free. No catch.
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            We believe campus commerce should be accessible to every student.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {[
+              "No listing fees",
+              "No transaction fees",
+              "No hidden costs",
+              "No premium tier",
+            ].map((text) => (
+              <div
+                key={text}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4"
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-sm font-medium text-foreground">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Built with your feedback ── */}
+      <section className="border-y border-border bg-muted/30 px-5 py-20">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Heart className="h-6 w-6" />
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Built with your feedback
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            GimmeDat is shaped by students, for students. Every feature request
+            and suggestion helps us build a better marketplace for your campus.
+          </p>
+          <div className="mt-8">
+            <Link
+              href="/how-it-works#feedback"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
+            >
+              Share your feedback
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Safety highlights ── */}
       <section className="px-5 py-20">
         <div className="mx-auto max-w-6xl">
@@ -762,6 +937,14 @@ export default function LandingPage() {
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Safety
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/join-team"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Join the Team
                   </Link>
                 </li>
               </ul>

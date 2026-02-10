@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Megaphone,
   Mail,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -183,6 +184,12 @@ const QUICK_LINKS = [
     title: "Feedback",
     description: "View user feedback submissions",
     icon: MessageSquare,
+  },
+  {
+    href: "/admin/applications",
+    title: "Applications",
+    description: "Review team ambassador applications",
+    icon: UserPlus,
   },
   {
     href: "/admin/keywords",

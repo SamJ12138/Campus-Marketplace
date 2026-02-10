@@ -12,6 +12,7 @@ import {
   Package,
   Megaphone,
   MessageSquarePlus,
+  UserPlus,
   Menu,
   X,
   Shield,
@@ -27,6 +28,7 @@ const sidebarLinks = [
   { href: "/admin/listings", label: "Content", icon: Package },
   { href: "/admin/ads", label: "Ads", icon: Megaphone },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquarePlus },
+  { href: "/admin/applications", label: "Applications", icon: UserPlus },
   { href: "/admin/keywords", label: "Keywords", icon: KeyRound },
   { href: "/admin/audit-log", label: t.admin.auditLog, icon: ScrollText },
 ];

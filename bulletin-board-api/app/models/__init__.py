@@ -12,6 +12,7 @@ from app.models.pending_upload import PendingUpload
 from app.models.ad import Ad, AdType
 from app.models.ad_event import AdEvent
 from app.models.feedback import Feedback, FeedbackStatus
+from app.models.application import Application, ApplicationStatus
 
 __all__ = [
     "Base",
@@ -37,4 +38,6 @@ __all__ = [
     "AdEvent",
     "Feedback",
     "FeedbackStatus",
+    "Application",
+    "ApplicationStatus",
 ]
