@@ -10,7 +10,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Loader2,
-  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { api } from "@/lib/api/client";
