@@ -18,6 +18,8 @@ import {
   TrendingUp,
   Clock,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -97,6 +99,24 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
   const handleImageMouseLeave = useCallback(() => {
     setActivePhotoIndex(0);
   }, []);
+
+  const handlePhotoPrev = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setActivePhotoIndex((prev) => (prev - 1 + photoCount) % photoCount);
+    },
+    [photoCount],
+  );
+
+  const handlePhotoNext = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setActivePhotoIndex((prev) => (prev + 1) % photoCount);
+    },
+    [photoCount],
+  );
 
   const handleFavoriteClick = useCallback(
     (e: MouseEvent<HTMLButtonElement>) => {
@@ -214,19 +234,45 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         )}
 
         {photoCount > 1 && (
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
-            {listing.photos.map((_, idx) => (
-              <span
-                key={idx}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-200",
-                  idx === activePhotoIndex
-                    ? "w-4 bg-white shadow-sm"
-                    : "w-1.5 bg-white/50",
-                )}
-              />
-            ))}
-          </div>
+          <>
+            <button
+              type="button"
+              onClick={handlePhotoPrev}
+              aria-label="Previous photo"
+              className={cn(
+                "absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
+                "opacity-0 transition-opacity duration-200 group-hover:opacity-100",
+                "hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handlePhotoNext}
+              aria-label="Next photo"
+              className={cn(
+                "absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
+                "opacity-0 transition-opacity duration-200 group-hover:opacity-100",
+                "hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+              )}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
+              {listing.photos.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-200",
+                    idx === activePhotoIndex
+                      ? "w-4 bg-white shadow-sm"
+                      : "w-1.5 bg-white/50",
+                  )}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {listing.status === "sold" && (

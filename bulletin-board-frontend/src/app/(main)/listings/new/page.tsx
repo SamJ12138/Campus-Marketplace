@@ -12,7 +12,6 @@ import {
   Building,
   MessageCircle,
   Mail,
-  Phone,
   Loader2,
   AlertCircle,
   Eye,
@@ -554,11 +553,6 @@ export default function CreateListingPage() {
                       value: "email" as ContactPreference,
                       label: t.listings.contactEmail,
                       icon: Mail,
-                    },
-                    {
-                      value: "phone" as ContactPreference,
-                      label: t.listings.contactPhone,
-                      icon: Phone,
                     },
                   ].map((opt) => (
                     <button

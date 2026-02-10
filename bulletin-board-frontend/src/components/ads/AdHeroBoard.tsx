@@ -182,7 +182,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
       setSubmitted(true);
     } catch {
       setIsSending(false);
-      setError("Something went wrong. You can also email gimmedat@gettysburg.edu directly.");
+      setError("Something went wrong. You can also email support@gimme-dat.com directly.");
     }
   }
 
@@ -256,7 +256,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
 
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Also: gimmedat@gettysburg.edu
+                  Also: support@gimme-dat.com
                 </p>
                 <Button
                   type="submit"
@@ -456,7 +456,7 @@ function AdSlide({
           className="object-cover"
         />
         {/* Gradient overlay for visual depth */}
-        <div className="absolute inset-0 bg-gradient-to-r from-card/20 to-transparent md:from-card/10" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/20 to-transparent md:from-card/10" />
       </div>
     </div>
   );
@@ -613,7 +613,6 @@ export default function AdHeroBoard() {
               className={cn(
                 "absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
                 "text-foreground/70 transition hover:bg-background hover:text-foreground",
-                "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
@@ -627,7 +626,6 @@ export default function AdHeroBoard() {
               className={cn(
                 "absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-2 shadow-md backdrop-blur-sm",
                 "text-foreground/70 transition hover:bg-background hover:text-foreground",
-                "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
@@ -651,14 +649,15 @@ export default function AdHeroBoard() {
                 aria-selected={i === current}
                 aria-label={`Go to ad ${i + 1}: ${ad.title}`}
                 onClick={() => handleGoTo(i)}
-                className={cn(
-                  "h-2 rounded-full transition-all",
+                className="flex items-center justify-center p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
+              >
+                <span className={cn(
+                  "block h-2.5 rounded-full transition-all",
                   i === current
-                    ? "w-6 bg-primary"
-                    : "w-2 bg-foreground/20 hover:bg-foreground/40",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                )}
-              />
+                    ? "w-7 bg-primary"
+                    : "w-2.5 bg-foreground/30 hover:bg-foreground/50",
+                )} />
+              </button>
             ))}
           </div>
         )}
