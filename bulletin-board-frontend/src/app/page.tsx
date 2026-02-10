@@ -703,13 +703,13 @@ export default function LandingPage() {
             and suggestion helps us build a better marketplace for your campus.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="mailto:support@gimme-dat.com"
+            <Link
+              href="/contact"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
             >
               <Mail className="h-4 w-4" />
-              support@gimme-dat.com
-            </a>
+              Contact Support
+            </Link>
             <Link
               href="/how-it-works#feedback"
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-accent hover:shadow-md"
@@ -955,13 +955,12 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href="mailto:support@gimme-dat.com"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  <Link
+                    href="/contact"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <Mail className="h-3.5 w-3.5" />
                     Contact Support
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

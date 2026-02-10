@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, Mail } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 export function Footer() {
   return (
@@ -33,15 +33,7 @@ export function Footer() {
             <ul className="mt-3 space-y-2">
               <FooterLink href="/how-it-works#faq">FAQ</FooterLink>
               <FooterLink href="/how-it-works#safety">Safety</FooterLink>
-              <li>
-                <a
-                  href="mailto:support@gimme-dat.com"
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Contact Support
-                </a>
-              </li>
+              <FooterLink href="/contact">Contact Support</FooterLink>
             </ul>
           </div>
 
