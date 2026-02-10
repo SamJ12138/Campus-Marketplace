@@ -80,7 +80,7 @@ const SEED_ADS: Ad[] = [
       alt: "Hand holding phone showing a feedback form",
     },
     theme: { accent: "#10b981" },
-    body: "Three easy ways to reach us:\n\n1. In-app: Profile > Settings > Send Feedback\n2. Email: gimmedat@gettysburg.edu\n3. Instagram DM: @gimmedatapp\n\nWhether it is a quick thought or a detailed suggestion, we want to hear it. Screenshots of bugs are especially helpful!",
+    body: "Three easy ways to reach us:\n\n1. In-app: Profile > Settings > Send Feedback\n2. Email: support@gimme-dat.com\n3. Instagram DM: @gimmedatapp\n\nWhether it is a quick thought or a detailed suggestion, we want to hear it. Screenshots of bugs are especially helpful!",
     priority: 85,
     startsAt: "2025-01-01T00:00:00Z",
     endsAt: "2027-12-31T23:59:59Z",

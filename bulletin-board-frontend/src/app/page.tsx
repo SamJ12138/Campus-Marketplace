@@ -702,12 +702,19 @@ export default function LandingPage() {
             GimmeDat is shaped by students, for students. Every feature request
             and suggestion helps us build a better marketplace for your campus.
           </p>
-          <div className="mt-8">
-            <Link
-              href="/how-it-works#feedback"
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="mailto:support@gimme-dat.com"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
             >
-              Share your feedback
+              <Mail className="h-4 w-4" />
+              support@gimme-dat.com
+            </a>
+            <Link
+              href="/how-it-works#feedback"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-accent hover:shadow-md"
+            >
+              Learn more
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
