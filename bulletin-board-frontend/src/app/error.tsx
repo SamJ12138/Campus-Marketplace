@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -44,7 +45,7 @@ export default function GlobalError({
             <RotateCcw className="h-4 w-4" />
             Try again
           </button>
-          <a
+          <Link
             href="/"
             className={cn(
               "inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input px-5 py-2",
@@ -55,7 +56,7 @@ export default function GlobalError({
           >
             <Home className="h-4 w-4" />
             Go Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
