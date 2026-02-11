@@ -1,15 +1,16 @@
 """initial schema with phone and sms prefs
 
 Revision ID: c928df889c07
-Revises: 
+Revises:
 Create Date: 2026-02-03 15:14:05.309931
 
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'c928df889c07'

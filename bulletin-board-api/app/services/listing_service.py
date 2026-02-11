@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, cast, func, or_, select, update, Float
+from sqlalchemy import Float, and_, cast, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.dialects.postgresql import TSVECTOR
 
 from app.config import get_settings
 from app.models.admin import AdminAction
@@ -12,10 +11,10 @@ from app.models.favorite import Favorite
 from app.models.listing import (
     Category,
     Listing,
-    ListingPhoto,
     ListingStatus,
     ListingType,
 )
+from app.models.user import User
 from app.schemas.listing import (
     CategoryBrief,
     ListingCreate,
@@ -23,7 +22,6 @@ from app.schemas.listing import (
     ListingUpdate,
     PhotoResponse,
 )
-from app.models.user import User
 from app.schemas.user import UserBrief
 
 settings = get_settings()
@@ -62,7 +60,11 @@ class ListingService:
         """Search listings with filters and pagination."""
         base_query = (
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(Listing.status == ListingStatus.ACTIVE)
         )
 
@@ -135,7 +137,7 @@ class ListingService:
             fav_result = await self.db.execute(
                 select(Favorite.listing_id).where(
                     Favorite.user_id == viewer_id,
-                    Favorite.listing_id.in_([l.id for l in listings]),
+                    Favorite.listing_id.in_([item.id for item in listings]),
                 )
             )
             favorited_ids = {row[0] for row in fav_result.all()}
@@ -156,7 +158,11 @@ class ListingService:
         """Get a single listing by ID."""
         query = (
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(Listing.id == listing_id)
         )
         if campus_id:
@@ -230,7 +236,9 @@ class ListingService:
             .values(
                 search_vector=func.to_tsvector(
                     "english",
-                    func.coalesce(data.title, "") + " " + func.coalesce(data.description, ""),
+                    func.coalesce(data.title, "")
+                    + " "
+                    + func.coalesce(data.description, ""),
                 )
             )
         )
@@ -255,7 +263,11 @@ class ListingService:
         """Update an existing listing. Owner only."""
         result = await self.db.execute(
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(Listing.id == listing_id, Listing.user_id == user_id)
         )
         listing = result.scalar_one_or_none()
@@ -275,7 +287,9 @@ class ListingService:
                 .values(
                     search_vector=func.to_tsvector(
                         "english",
-                        func.coalesce(listing.title, "") + " " + func.coalesce(listing.description, ""),
+                        func.coalesce(listing.title, "")
+                        + " "
+                        + func.coalesce(listing.description, ""),
                     )
                 )
             )
@@ -315,7 +329,11 @@ class ListingService:
         """Renew listing for another expiry period."""
         result = await self.db.execute(
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(
                 Listing.id == listing_id,
                 Listing.user_id == user_id,
@@ -340,7 +358,11 @@ class ListingService:
         """Mark an item listing as sold."""
         result = await self.db.execute(
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(
                 Listing.id == listing_id,
                 Listing.user_id == user_id,
@@ -366,7 +388,11 @@ class ListingService:
         """Get all listings for a user."""
         query = (
             select(Listing)
-            .options(selectinload(Listing.user), selectinload(Listing.category), selectinload(Listing.photos))
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
             .where(Listing.user_id == user_id)
         )
 
@@ -377,7 +403,7 @@ class ListingService:
         result = await self.db.execute(query)
         listings = list(result.scalars().all())
 
-        return [self._to_response(l, user_id, set()) for l in listings]
+        return [self._to_response(item, user_id, set()) for item in listings]
 
     async def admin_remove_listing(
         self,
@@ -448,7 +474,12 @@ class ListingService:
                 class_year=listing.user.class_year,
             )
             if listing.user
-            else UserBrief(id=listing.user_id, display_name="Unknown", avatar_url=None, class_year=None),
+            else UserBrief(
+                id=listing.user_id,
+                display_name="Unknown",
+                avatar_url=None,
+                class_year=None,
+            ),
             is_favorited=listing.id in favorited_ids,
             is_own=viewer_id is not None and listing.user_id == viewer_id,
             created_at=listing.created_at,

@@ -1,10 +1,11 @@
+from unittest.mock import AsyncMock
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from unittest.mock import AsyncMock
 
 from app.config import get_settings
 from app.dependencies import get_db, get_redis

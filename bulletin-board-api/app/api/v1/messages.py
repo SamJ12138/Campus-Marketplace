@@ -72,12 +72,18 @@ async def _maybe_queue_email(
             )
         )
         if prefs and not prefs.email_messages:
-            logger.info("[MSG-NOTIFY] Skipped: recipient %s has email_messages disabled", recipient_id)
+            logger.info(
+                "[MSG-NOTIFY] Skipped: recipient %s has email_messages disabled",
+                recipient_id,
+            )
             return
 
         recipient = await db.get(User, recipient_id)
         if not recipient or not recipient.email:
-            logger.warning("[MSG-NOTIFY] Skipped: recipient %s not found or has no email", recipient_id)
+            logger.warning(
+                "[MSG-NOTIFY] Skipped: recipient %s not found or has no email",
+                recipient_id,
+            )
             return
 
         settings = get_settings()
@@ -189,7 +195,10 @@ async def start_thread(
         MessageResponse(
             id=message.id,
             sender_id=message.sender_id,
-            sender_name=message.sender.display_name if message.sender else current_user.display_name,
+            sender_name=(
+                message.sender.display_name if message.sender
+                else current_user.display_name
+            ),
             content=message.content,
             is_read=message.is_read,
             is_own=True,
@@ -203,7 +212,8 @@ async def start_thread(
         thread=thread_response,
         messages=messages_list,
         pagination=PaginationMeta(
-            page=1, per_page=50, total_items=1, total_pages=1, has_next=False, has_prev=False
+            page=1, per_page=50, total_items=1,
+            total_pages=1, has_next=False, has_prev=False
         ),
     )
 
@@ -322,7 +332,10 @@ async def send_message(
     return MessageResponse(
         id=message.id,
         sender_id=message.sender_id,
-        sender_name=message.sender.display_name if message.sender else current_user.display_name,
+        sender_name=(
+            message.sender.display_name if message.sender
+            else current_user.display_name
+        ),
         content=message.content,
         is_read=message.is_read,
         is_own=True,

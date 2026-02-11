@@ -1,4 +1,4 @@
-class AppException(Exception):
+class AppException(Exception):  # noqa: N818
     def __init__(
         self,
         message: str,

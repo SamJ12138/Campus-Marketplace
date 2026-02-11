@@ -2,9 +2,9 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import cast, or_, select, func, Date
+from sqlalchemy import Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin, require_moderator
@@ -32,13 +32,13 @@ async def list_public_ads(
 
     query = (
         select(Ad)
-        .where(Ad.is_active == True)
-        .where(or_(Ad.starts_at == None, Ad.starts_at <= now))
-        .where(or_(Ad.ends_at == None, Ad.ends_at > now))
+        .where(Ad.is_active.is_(True))
+        .where(or_(Ad.starts_at.is_(None), Ad.starts_at <= now))
+        .where(or_(Ad.ends_at.is_(None), Ad.ends_at > now))
     )
 
     if campus_id:
-        query = query.where(or_(Ad.campus_id == campus_id, Ad.campus_id == None))
+        query = query.where(or_(Ad.campus_id == campus_id, Ad.campus_id.is_(None)))
 
     query = query.order_by(Ad.priority.desc(), Ad.created_at.desc()).limit(limit)
 
@@ -64,8 +64,10 @@ async def get_public_ad(
 
 
 class TrackEventRequest(BaseModel):
-    adId: str
+    ad_id: str = Field(..., alias="adId")
     event: str = Field(..., pattern="^(impression|click)$")
+
+    model_config = {"populate_by_name": True}
 
 
 @router.post("/track")
@@ -77,7 +79,7 @@ async def track_ad_event(
 ):
     """Record an ad impression or click event."""
     try:
-        ad_id = UUID(data.adId)
+        ad_id = UUID(data.ad_id)
     except ValueError:
         return {"ok": True}
 
@@ -175,16 +177,16 @@ async def admin_list_ads(
 
     if status == "active":
         query = query.where(
-            Ad.is_active == True,
-            or_(Ad.starts_at == None, Ad.starts_at <= now),
-            or_(Ad.ends_at == None, Ad.ends_at > now),
+            Ad.is_active.is_(True),
+            or_(Ad.starts_at.is_(None), Ad.starts_at <= now),
+            or_(Ad.ends_at.is_(None), Ad.ends_at > now),
         )
     elif status == "inactive":
-        query = query.where(Ad.is_active == False)
+        query = query.where(Ad.is_active.is_(False))
     elif status == "scheduled":
-        query = query.where(Ad.is_active == True, Ad.starts_at != None, Ad.starts_at > now)
+        query = query.where(Ad.is_active.is_(True), Ad.starts_at.is_not(None), Ad.starts_at > now)
     elif status == "expired":
-        query = query.where(Ad.ends_at != None, Ad.ends_at <= now)
+        query = query.where(Ad.ends_at.is_not(None), Ad.ends_at <= now)
 
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
 
@@ -245,17 +247,25 @@ async def admin_ad_analytics(
             AdEvent.event_type == "click",
             AdEvent.created_at >= since,
         )
-        unique_impressions_q = select(func.count(func.distinct(AdEvent.ip_hash))).select_from(AdEvent).where(
-            AdEvent.ad_id == ad.id,
-            AdEvent.event_type == "impression",
-            AdEvent.created_at >= since,
-            AdEvent.ip_hash != None,
+        unique_impressions_q = (
+            select(func.count(func.distinct(AdEvent.ip_hash)))
+            .select_from(AdEvent)
+            .where(
+                AdEvent.ad_id == ad.id,
+                AdEvent.event_type == "impression",
+                AdEvent.created_at >= since,
+                AdEvent.ip_hash.is_not(None),
+            )
         )
-        unique_clicks_q = select(func.count(func.distinct(AdEvent.ip_hash))).select_from(AdEvent).where(
-            AdEvent.ad_id == ad.id,
-            AdEvent.event_type == "click",
-            AdEvent.created_at >= since,
-            AdEvent.ip_hash != None,
+        unique_clicks_q = (
+            select(func.count(func.distinct(AdEvent.ip_hash)))
+            .select_from(AdEvent)
+            .where(
+                AdEvent.ad_id == ad.id,
+                AdEvent.event_type == "click",
+                AdEvent.created_at >= since,
+                AdEvent.ip_hash.is_not(None),
+            )
         )
 
         impressions = await db.scalar(impressions_q) or 0
@@ -313,7 +323,11 @@ async def admin_ad_analytics(
             "daily_breakdown": daily_breakdown,
         })
 
-    overall_ctr = round((total_clicks / total_impressions * 100), 2) if total_impressions > 0 else 0.0
+    overall_ctr = (
+        round((total_clicks / total_impressions * 100), 2)
+        if total_impressions > 0
+        else 0.0
+    )
 
     return {
         "ads": ad_stats,

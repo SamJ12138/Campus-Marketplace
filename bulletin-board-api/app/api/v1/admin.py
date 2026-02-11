@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import case, delete as sa_delete, func, or_, select, update
+from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,7 +15,6 @@ from app.models.message import Message, MessageThread
 from app.models.report import Report
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.report import ReportResolution, ResolveReportRequest
-from app.schemas.user import UserBrief
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -387,7 +386,12 @@ async def test_email(
     from app.services.email_service import EmailService
 
     settings = get_settings()
-    logger.info(f"[TEST EMAIL] provider={settings.email_provider}, from={settings.email_from_address}, resend_key_set={bool(settings.resend_api_key)}")
+    logger.info(
+        "[TEST EMAIL] provider=%s, from=%s, resend_key_set=%s",
+        settings.email_provider,
+        settings.email_from_address,
+        bool(settings.resend_api_key),
+    )
 
     if not admin_user.email:
         raise HTTPException(400, "No email address on your account")
@@ -414,7 +418,11 @@ async def test_email(
         raise HTTPException(500, f"Email send threw exception: {type(e).__name__}: {e}")
 
     if not success:
-        raise HTTPException(500, "Email send returned False — check Render logs for [EMAIL ERROR] details")
+        raise HTTPException(
+            500,
+            "Email send returned False"
+            " — check Render logs for [EMAIL ERROR] details",
+        )
 
     return {"status": "sent", "to": admin_user.email, "provider": settings.email_provider}
 
@@ -465,7 +473,11 @@ async def _get_target_details(db: AsyncSession, target_type: str, target_id: UUI
             return {
                 "id": str(listing.id),
                 "title": listing.title,
-                "status": listing.status.value if hasattr(listing.status, "value") else listing.status,
+                "status": (
+                    listing.status.value
+                    if hasattr(listing.status, "value")
+                    else listing.status
+                ),
                 "user_id": str(listing.user_id),
             }
     elif target_type == "user":
@@ -543,21 +555,29 @@ async def admin_list_listings(
     return {
         "items": [
             {
-                "id": str(l.id),
-                "title": l.title,
-                "type": l.type.value if hasattr(l.type, "value") else l.type,
-                "status": l.status.value if hasattr(l.status, "value") else l.status,
-                "category_name": l.category.name if l.category else None,
-                "user_id": str(l.user_id),
-                "user_name": l.user.display_name if l.user else "Unknown",
-                "user_email": l.user.email if l.user else None,
-                "view_count": l.view_count,
-                "message_count": l.message_count,
-                "removal_reason": l.removal_reason,
-                "created_at": l.created_at.isoformat(),
-                "expires_at": l.expires_at.isoformat() if l.expires_at else None,
+                "id": str(listing.id),
+                "title": listing.title,
+                "type": (
+                    listing.type.value
+                    if hasattr(listing.type, "value")
+                    else listing.type
+                ),
+                "status": (
+                    listing.status.value
+                    if hasattr(listing.status, "value")
+                    else listing.status
+                ),
+                "category_name": listing.category.name if listing.category else None,
+                "user_id": str(listing.user_id),
+                "user_name": listing.user.display_name if listing.user else "Unknown",
+                "user_email": listing.user.email if listing.user else None,
+                "view_count": listing.view_count,
+                "message_count": listing.message_count,
+                "removal_reason": listing.removal_reason,
+                "created_at": listing.created_at.isoformat(),
+                "expires_at": listing.expires_at.isoformat() if listing.expires_at else None,
             }
-            for l in listings
+            for listing in listings
         ],
         "pagination": {
             "page": page,
@@ -791,6 +811,7 @@ async def get_stats_charts(
 ):
     """Get time-series data for dashboard charts."""
     import logging
+
     from sqlalchemy import Date, cast
 
     logger = logging.getLogger(__name__)

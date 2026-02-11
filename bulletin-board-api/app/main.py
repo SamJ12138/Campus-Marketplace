@@ -36,6 +36,7 @@ async def lifespan(app: FastAPI):
     app.state.arq_pool = None
     try:
         import asyncio
+
         from redis.asyncio import from_url
 
         redis_client = from_url(settings.redis_url, socket_connect_timeout=3)
@@ -50,7 +51,10 @@ async def lifespan(app: FastAPI):
         )
         print("[STARTUP] Redis + ARQ connected")
     except Exception as e:
-        print(f"[STARTUP] Redis unavailable ({e}), running without rate limiting and background jobs")
+        print(
+            f"[STARTUP] Redis unavailable ({e}),"
+            " running without rate limiting and background jobs"
+        )
 
     # Log email configuration for debugging
     print(f"[STARTUP] Email provider: {settings.email_provider}")
@@ -58,7 +62,10 @@ async def lifespan(app: FastAPI):
     if settings.email_provider == "resend" and not settings.resend_api_key:
         print("[STARTUP] WARNING: EMAIL_PROVIDER=resend but RESEND_API_KEY is not set!")
     if "resend.dev" in settings.email_from_address:
-        print("[STARTUP] WARNING: EMAIL_FROM_ADDRESS uses sandbox domain 'resend.dev' — emails only go to account owner!")
+        print(
+            "[STARTUP] WARNING: EMAIL_FROM_ADDRESS uses sandbox"
+            " domain 'resend.dev' — emails only go to account owner!"
+        )
 
     yield
 

@@ -84,7 +84,10 @@ class EmailService:
                     )
 
                 resend.api_key = self.settings.resend_api_key
-                from_address = f"{self.settings.email_from_name} <{self.settings.email_from_address}>"
+                from_address = (
+                    f"{self.settings.email_from_name}"
+                    f" <{self.settings.email_from_address}>"
+                )
                 logger.info(f"[EMAIL] Resend from: {from_address}")
 
                 result = resend.Emails.send(

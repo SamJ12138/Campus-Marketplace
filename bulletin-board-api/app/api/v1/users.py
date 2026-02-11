@@ -17,7 +17,6 @@ from app.schemas.user import (
     UserMeResponse,
     UserProfileResponse,
 )
-from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/users", tags=["users"])
 

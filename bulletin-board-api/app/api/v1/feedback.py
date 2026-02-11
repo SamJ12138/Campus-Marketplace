@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, EmailStr
-from sqlalchemy import func, select, update
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -105,7 +105,10 @@ async def submit_feedback(
 
     return {
         "ok": True,
-        "message": "Thank you for your feedback! We read every submission and it helps us improve GimmeDat.",
+        "message": (
+            "Thank you for your feedback!"
+            " We read every submission and it helps us improve GimmeDat."
+        ),
     }
 
 

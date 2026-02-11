@@ -1,14 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_current_user
 from app.core.rate_limit import check_listing_rate_limit
 from app.dependencies import get_db, get_redis
-from app.models.listing import Category, Listing, ListingStatus
+from app.models.listing import Category
 from app.models.user import User
 from app.schemas.common import PaginationMeta
 from app.schemas.listing import (

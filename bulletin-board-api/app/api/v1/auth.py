@@ -1,20 +1,13 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from redis.asyncio import Redis
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user
 from app.config import get_settings
-from app.services.email_service import EmailService
-from app.services.email_templates import (
-    verification_email,
-    password_reset_email,
-    resend_verification_email,
-)
 from app.core.rate_limit import check_login_rate_limit
 from app.core.security import (
     create_access_token,
@@ -41,6 +34,12 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TokenResponse,
     VerifyEmailRequest,
+)
+from app.services.email_service import EmailService
+from app.services.email_templates import (
+    password_reset_email,
+    resend_verification_email,
+    verification_email,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -388,7 +387,11 @@ async def reset_password(
         )
     )
 
-    if not verification or verification.used_at or verification.expires_at < datetime.now(timezone.utc):
+    if (
+        not verification
+        or verification.used_at
+        or verification.expires_at < datetime.now(timezone.utc)
+    ):
         raise HTTPException(400, "Invalid or expired reset token")
 
     user = await db.get(User, verification.user_id)

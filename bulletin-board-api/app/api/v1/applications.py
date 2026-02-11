@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_current_user, require_moderator
+from app.api.deps import require_moderator
 from app.dependencies import get_db
 from app.models.application import Application, ApplicationStatus
 from app.models.user import User

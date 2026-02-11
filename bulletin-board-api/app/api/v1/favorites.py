@@ -11,7 +11,7 @@ from app.models.favorite import Favorite
 from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.common import PaginationMeta
-from app.schemas.listing import ListingListResponse, ListingResponse
+from app.schemas.listing import ListingListResponse
 from app.services.listing_service import ListingService
 
 router = APIRouter(prefix="/favorites", tags=["favorites"])
@@ -52,7 +52,8 @@ async def list_favorites(
 
     service = ListingService(db)
     items = [
-        service._to_response(l, current_user.id, {l.id}) for l in listings
+        service._to_response(listing, current_user.id, {listing.id})
+        for listing in listings
     ]
 
     return ListingListResponse(
