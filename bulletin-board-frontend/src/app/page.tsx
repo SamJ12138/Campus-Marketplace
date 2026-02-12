@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   GraduationCap,
@@ -31,9 +32,49 @@ import {
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/hooks/use-auth";
-import { useAds } from "@/lib/hooks/use-ads";
-import type { Ad } from "@/lib/types/ads";
 import { en as t } from "@/lib/i18n/en";
+
+// ----------------------------------------------------------------
+// Static branded hero slides — no API call, images preload instantly
+// ----------------------------------------------------------------
+const HERO_SLIDES = [
+  {
+    id: "slide-1",
+    title: "Your Stuff Has Value",
+    subtitle: "Campus Marketplace",
+    body: "That textbook collecting dust, those dorm supplies you\u2019ll never use \u2014 turn them into cash.",
+    image: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1920&h=1080&fit=crop&q=80",
+    ctaText: "Start Selling",
+    ctaHref: "/register",
+  },
+  {
+    id: "slide-2",
+    title: "Got a Skill? Get Paid",
+    subtitle: "Student Services",
+    body: "Tutoring, photography, tech help \u2014 your talent is worth something.",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&h=1080&fit=crop&q=80",
+    ctaText: "Offer a Service",
+    ctaHref: "/register",
+  },
+  {
+    id: "slide-3",
+    title: "Why Let It Go to Waste?",
+    subtitle: "End-of-Semester Deals",
+    body: "Semester\u2019s ending, dorm\u2019s full \u2014 someone on campus wants what you don\u2019t.",
+    image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1920&h=1080&fit=crop&q=80",
+    ctaText: "List It Now",
+    ctaHref: "/register",
+  },
+  {
+    id: "slide-4",
+    title: "Students Helping Students",
+    subtitle: "Your Campus Community",
+    body: "No strangers, no fees, just your campus community.",
+    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&h=1080&fit=crop&q=80",
+    ctaText: "Join Free",
+    ctaHref: "/register",
+  },
+] as const;
 
 // ----------------------------------------------------------------
 // Landing nav — lightweight top bar for the landing page only
@@ -194,13 +235,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 // Main landing page
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
-// Hero carousel
+// Hero carousel — static branded slides with Next.js <Image>
 // ----------------------------------------------------------------
-function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: boolean }) {
+function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const count = ads.length;
+  const count = HERO_SLIDES.length;
 
   const goTo = useCallback((idx: number) => {
     setCurrent(((idx % count) + count) % count);
@@ -220,15 +261,7 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
     };
   }, [paused, count]);
 
-  if (count === 0) return null;
-
-  const ad = ads[current];
-  const ctaHref =
-    ad.type === "EXTERNAL_LINK" && ad.externalUrl
-      ? ad.externalUrl
-      : ad.type === "EVENT"
-        ? `/feed`
-        : `/feed`;
+  const slide = HERO_SLIDES[current];
 
   return (
     <section
@@ -236,16 +269,23 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Background image + overlay */}
-      {ads.map((a, i) => (
+      {/* Background images with Next.js <Image> for instant preloading */}
+      {HERO_SLIDES.map((s, i) => (
         <div
-          key={a.id}
+          key={s.id}
           className={cn(
-            "absolute inset-0 bg-cover bg-center transition-opacity duration-700",
+            "absolute inset-0 transition-opacity duration-700",
             i === current ? "opacity-100" : "opacity-0",
           )}
-          style={{ backgroundImage: `url(${a.image.src})` }}
         >
+          <Image
+            src={s.image}
+            alt={s.title}
+            fill
+            sizes="100vw"
+            className="object-cover"
+            {...(i === 0 ? { priority: true } : {})}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
         </div>
       ))}
@@ -253,25 +293,21 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
       {/* Content overlay */}
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
         <div className="max-w-2xl">
-          {ad.subtitle && (
-            <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
-              {ad.subtitle}
-            </p>
-          )}
+          <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
+            {slide.subtitle}
+          </p>
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
-            {ad.title}
+            {slide.title}
           </h1>
-          {ad.body && (
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
-              {ad.body}
-            </p>
-          )}
+          <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
+            {slide.body}
+          </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
-              href={ctaHref}
+              href={isAuthenticated ? "/listings/new" : slide.ctaHref}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
             >
-              {ad.ctaText}
+              {slide.ctaText}
               <ArrowRight className="h-4 w-4" />
             </Link>
             {isAuthenticated ? (
@@ -319,9 +355,9 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
       {/* Dot indicators */}
       {count > 1 && (
         <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-          {ads.map((a, i) => (
+          {HERO_SLIDES.map((s, i) => (
             <button
-              key={a.id}
+              key={s.id}
               type="button"
               onClick={() => goTo(i)}
               aria-label={`Go to slide ${i + 1}`}
@@ -339,78 +375,8 @@ function HeroCarousel({ ads, isAuthenticated }: { ads: Ad[]; isAuthenticated: bo
   );
 }
 
-// ----------------------------------------------------------------
-// Fallback hero (when no ads are available)
-// ----------------------------------------------------------------
-function FallbackHero({ isAuthenticated }: { isAuthenticated: boolean }) {
-  return (
-    <section className="relative flex min-h-[85vh] items-center overflow-hidden pt-16">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute left-1/2 top-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-primary/3 blur-3xl" />
-      </div>
-      <div className="relative mx-auto max-w-6xl px-5">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
-            <GraduationCap className="h-4 w-4 text-primary" />
-            Your campus, your community
-          </div>
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            The marketplace
-            <br />
-            <span className="text-primary">built for students</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            Buy, sell, and offer services within your verified campus
-            community. No strangers, no spam — just students helping students.
-          </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            {isAuthenticated ? (
-              <>
-                <Link
-                  href="/feed"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
-                >
-                  <Search className="h-4 w-4" />
-                  Browse Marketplace
-                </Link>
-                <Link
-                  href="/listings/new"
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-accent hover:shadow-md"
-                >
-                  <Plus className="h-4 w-4" />
-                  Post an Offer
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
-                >
-                  Get Started Free
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/feed"
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-7 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-accent hover:shadow-md"
-                >
-                  <Search className="h-4 w-4" />
-                  Browse Offers
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function LandingPage() {
   const { isAuthenticated, initialize, isLoading } = useAuthStore();
-  const { data: ads } = useAds(undefined, 10);
 
   useEffect(() => {
     initialize();
@@ -429,11 +395,7 @@ export default function LandingPage() {
       <LandingNav />
 
       {/* ── Hero ── */}
-      {ads && ads.length > 0 ? (
-        <HeroCarousel ads={ads} isAuthenticated={isAuthenticated} />
-      ) : (
-        <FallbackHero isAuthenticated={isAuthenticated} />
-      )}
+      <HeroCarousel isAuthenticated={isAuthenticated} />
 
       {/* ── Direction cards ── */}
       <section className="relative border-t border-border bg-muted/30 px-5 py-20">
