@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     email_provider: Literal["console", "sendgrid", "ses", "resend"] = "console"
     sendgrid_api_key: str | None = None
     resend_api_key: str | None = None
-    email_from_address: str = "noreply@gimme-dat.com"
+    email_from_address: str = "noreply@send.gimme-dat.com"
     email_from_name: str = "GimmeDat"
 
     # Platform Limits
