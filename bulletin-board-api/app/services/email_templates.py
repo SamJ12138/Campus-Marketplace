@@ -29,8 +29,6 @@ def _base_template(content: str, preview_text: str = "") -> str:
             color-scheme: light dark;
             supported-color-schemes: light dark;
         }}
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         @media (prefers-color-scheme: dark) {{
             body, .email-bg {{
                 background-color: #1a1a2e !important;
