@@ -21,7 +21,8 @@ from app.models.base import Base, TimestampMixin
 class MessageThread(Base, TimestampMixin):
     __tablename__ = "message_threads"
     __table_args__ = (
-        UniqueConstraint("listing_id", "initiator_id", "recipient_id", name="uq_thread_unique"),
+        # User-pair uniqueness is enforced via a partial expression index
+        # (LEAST/GREATEST) in the migration, not a simple unique constraint.
         Index("idx_threads_initiator", "initiator_id"),
         Index("idx_threads_recipient", "recipient_id"),
     )
@@ -75,6 +76,9 @@ class Message(Base):
     sender_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
+    listing_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True
+    )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -85,3 +89,4 @@ class Message(Base):
     # Relationships
     thread = relationship("MessageThread", back_populates="messages")
     sender = relationship("User", lazy="selectin")
+    listing = relationship("Listing", lazy="selectin")

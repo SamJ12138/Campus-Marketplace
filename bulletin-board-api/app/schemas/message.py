@@ -14,6 +14,15 @@ class StartThreadRequest(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
+    listing_id: UUID | None = None
+
+
+class ThreadListingBrief(BaseModel):
+    id: UUID
+    title: str
+    first_photo_url: str | None
+
+    model_config = {"from_attributes": True}
 
 
 class MessageResponse(BaseModel):
@@ -23,15 +32,8 @@ class MessageResponse(BaseModel):
     content: str
     is_read: bool
     is_own: bool
+    listing: ThreadListingBrief | None = None
     created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class ThreadListingBrief(BaseModel):
-    id: UUID
-    title: str
-    first_photo_url: str | None
 
     model_config = {"from_attributes": True}
 

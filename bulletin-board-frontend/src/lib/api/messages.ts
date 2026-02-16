@@ -62,9 +62,11 @@ export async function startThread(
 export async function sendMessage(
   threadId: string,
   content: string,
+  listing_id?: string,
 ): Promise<Message> {
   return api.post<Message>(`/api/v1/threads/${threadId}/messages`, {
     content,
+    ...(listing_id ? { listing_id } : {}),
   });
 }
 

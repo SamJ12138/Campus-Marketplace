@@ -21,6 +21,7 @@ from app.schemas.message import (
     StartThreadRequest,
     ThreadDetailResponse,
     ThreadListResponse,
+    ThreadListingBrief,
 )
 from app.services.email_service import EmailService
 from app.services.email_templates import new_message_email
@@ -133,7 +134,7 @@ async def start_thread(
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Start a new conversation about a listing."""
+    """Start a new conversation about a listing (or reuse existing thread with same user)."""
     await check_message_rate_limit(redis, current_user)
 
     moderation = ModerationService(db)
@@ -166,6 +167,7 @@ async def start_thread(
             current_user.id,
             data.message,
             flagged=filter_result.flagged,
+            listing_id=data.listing_id,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -191,6 +193,19 @@ async def start_thread(
         .where(MessageThread.id == thread_id)
     )
 
+    # Build listing brief for the message
+    msg_listing = message.listing
+    listing_brief = None
+    if msg_listing:
+        first_photo = None
+        if hasattr(msg_listing, "photos") and msg_listing.photos:
+            first_photo = msg_listing.photos[0].url
+        listing_brief = ThreadListingBrief(
+            id=msg_listing.id,
+            title=msg_listing.title,
+            first_photo_url=first_photo,
+        )
+
     messages_list = [
         MessageResponse(
             id=message.id,
@@ -202,6 +217,7 @@ async def start_thread(
             content=message.content,
             is_read=message.is_read,
             is_own=True,
+            listing=listing_brief,
             created_at=message.created_at,
         )
     ]
@@ -226,7 +242,12 @@ async def get_thread(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Get thread with messages."""
+    """Get thread with messages.
+
+    NOTE: This endpoint does NOT auto-mark messages as read.
+    Use PATCH /threads/{thread_id}/read explicitly when the user
+    actively opens or views the thread.
+    """
     service = MessageService(db)
 
     # Eagerly load all relationships needed by _thread_to_response
@@ -251,19 +272,7 @@ async def get_thread(
         thread_id, current_user.id, page, per_page
     )
 
-    await service.mark_thread_read(thread_id, current_user.id)
-
-    # Re-fetch after mark_thread_read commits to get fresh state
-    thread = await db.scalar(
-        select(MessageThread)
-        .options(
-            selectinload(MessageThread.listing),
-            selectinload(MessageThread.initiator),
-            selectinload(MessageThread.recipient),
-            selectinload(MessageThread.messages),
-        )
-        .where(MessageThread.id == thread_id)
-    )
+    # mark_thread_read removed from here — handled by explicit PATCH call
 
     thread_response = service._thread_to_response(thread, current_user.id)
 
@@ -307,6 +316,7 @@ async def send_message(
             current_user.id,
             data.content,
             flagged=filter_result.flagged,
+            listing_id=data.listing_id,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -323,10 +333,27 @@ async def send_message(
             if thread.initiator_id == current_user.id
             else thread.initiator_id
         )
-        listing_title = thread.listing.title if thread.listing else "a listing"
+        # Use message-level listing title if available, else thread-level
+        msg_listing = message.listing
+        listing_title = (
+            msg_listing.title if msg_listing
+            else (thread.listing.title if thread.listing else "a listing")
+        )
         await _maybe_queue_email(
             db, background_tasks, recipient_id, current_user.display_name,
             listing_title, data.content, thread_id,
+        )
+
+    # Build listing brief for the response
+    listing_brief = None
+    if message.listing:
+        first_photo = None
+        if hasattr(message.listing, "photos") and message.listing.photos:
+            first_photo = message.listing.photos[0].url
+        listing_brief = ThreadListingBrief(
+            id=message.listing.id,
+            title=message.listing.title,
+            first_photo_url=first_photo,
         )
 
     return MessageResponse(
@@ -339,6 +366,7 @@ async def send_message(
         content=message.content,
         is_read=message.is_read,
         is_own=True,
+        listing=listing_brief,
         created_at=message.created_at,
     )
 
@@ -349,6 +377,12 @@ async def mark_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Mark all messages in thread as read."""
+    """Mark all messages in thread as read.
+
+    Should be called when the user explicitly opens/views a thread:
+    - Clicking on a thread in the contact list
+    - Returning to the tab with a thread open (window focus)
+    - Clicking a notification that links to a thread
+    """
     service = MessageService(db)
     await service.mark_thread_read(thread_id, current_user.id)

@@ -90,10 +90,12 @@ export function useSendMessage() {
     mutationFn: ({
       threadId,
       content,
+      listing_id,
     }: {
       threadId: string;
       content: string;
-    }) => sendMessage(threadId, content),
+      listing_id?: string;
+    }) => sendMessage(threadId, content, listing_id),
 
     onMutate: async ({ threadId, content }) => {
       await queryClient.cancelQueries({
@@ -115,6 +117,7 @@ export function useSendMessage() {
           content,
           is_read: true,
           is_own: true,
+          listing: null,
           created_at: new Date().toISOString(),
         };
 

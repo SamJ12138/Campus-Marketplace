@@ -141,6 +141,7 @@ export interface Message {
   content: string;
   is_read: boolean;
   is_own: boolean;
+  listing: ThreadListingBrief | null;
   created_at: string;
 }
 
@@ -259,6 +260,7 @@ export interface CreateReportRequest {
 
 export interface SendMessageRequest {
   content: string;
+  listing_id?: string;
 }
 
 export interface CreateThreadRequest {

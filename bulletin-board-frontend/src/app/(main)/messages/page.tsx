@@ -23,6 +23,7 @@ import {
   ExternalLink,
   Search,
   X,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -34,7 +35,7 @@ import {
   useMarkRead,
 } from "@/lib/hooks/use-messages";
 import { useListing } from "@/lib/hooks/use-listings";
-import type { MessageThread, Message } from "@/lib/types";
+import type { MessageThread, Message, ThreadListingBrief } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
 // ─── Utilities ──────────────────────────────────────────────
@@ -440,6 +441,27 @@ function ListingContextCard({
   );
 }
 
+// ─── Inline Listing Context (shown in chat when item changes) ───
+
+function InlineListingContext({
+  listing,
+}: {
+  listing: ThreadListingBrief;
+}) {
+  return (
+    <div className="flex items-center justify-center py-2 px-4">
+      <Link
+        href={`/listings/${listing.id}`}
+        className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 transition-colors shadow-sm"
+      >
+        <Package className="h-3 w-3" />
+        <span className="font-medium text-foreground">{listing.title}</span>
+        <ExternalLink className="h-2.5 w-2.5" />
+      </Link>
+    </div>
+  );
+}
+
 // ─── Quick Reply Suggestions ────────────────────────────────
 
 const QUICK_REPLIES_BUYER = [
@@ -621,7 +643,7 @@ function ChatPanel({
     }, 50);
   }, [threadId]);
 
-  // Mark as read
+  // Mark as read when user explicitly opens a thread (not on every poll)
   useEffect(() => {
     if (
       threadId &&
@@ -635,6 +657,18 @@ function ChatPanel({
         },
       });
     }
+  }, [threadId, thread, markReadMutation]);
+
+  // Mark as read when window regains focus (user returns to tab)
+  useEffect(() => {
+    function handleFocus() {
+      if (threadId && thread && thread.unread_count > 0) {
+        hasMarkedRead.current = false; // Allow re-marking
+        markReadMutation.mutate(threadId);
+      }
+    }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [threadId, thread, markReadMutation]);
 
   // Auto-resize textarea
@@ -677,7 +711,11 @@ function ChatPanel({
     if (!threadId || sendMutation.isPending) return;
 
     sendMutation.mutate(
-      { threadId, content: trimmed },
+      {
+        threadId,
+        content: trimmed,
+        listing_id: composeListingId ?? undefined,
+      },
       {
         onSuccess: () => {
           setMessageText("");
@@ -755,12 +793,7 @@ function ChatPanel({
         )}
       </div>
 
-      {/* Listing context (pinned below header) */}
-      {thread?.listing && (
-        <div className="shrink-0 px-4 py-2 bg-background border-b border-border/50">
-          <ListingContextCard listing={thread.listing} />
-        </div>
-      )}
+      {/* Listing context (pinned below header) — only for compose or when no messages yet */}
       {isComposing && composeListing && (
         <div className="shrink-0 px-4 py-2 bg-background border-b border-border/50">
           <ListingContextCard
@@ -817,38 +850,56 @@ function ChatPanel({
 
         {!isLoading && grouped.length > 0 && (
           <div className="flex flex-col">
-            {grouped.map(({ date, groups }) => (
-              <div key={date}>
-                {/* Date separator */}
-                <div className="flex items-center justify-center py-3">
-                  <span className="rounded-md bg-muted/80 px-2.5 py-0.5 text-[11px] text-muted-foreground">
-                    {formatDateHeader(groups[0].messages[0].created_at)}
-                  </span>
-                </div>
-
-                {/* Message groups */}
-                {groups.map((group, gi) => (
-                  <div key={`${date}-${gi}`}>
-                    {group.messages.map((msg, mi) => (
-                      <MessageBubble
-                        key={msg.id}
-                        message={msg}
-                        isOwn={group.isOwn}
-                        isFirst={mi === 0}
-                        isLast={mi === group.messages.length - 1}
-                        showAvatar={mi === 0}
-                        avatarUrl={
-                          group.isOwn
-                            ? null
-                            : otherUser?.avatar_url ?? null
-                        }
-                        senderName={msg.sender_name}
-                      />
-                    ))}
+            {grouped.map(({ date, groups }) => {
+              let lastListingId: string | null | undefined = undefined;
+              return (
+                <div key={date}>
+                  {/* Date separator */}
+                  <div className="flex items-center justify-center py-3">
+                    <span className="rounded-md bg-muted/80 px-2.5 py-0.5 text-[11px] text-muted-foreground">
+                      {formatDateHeader(groups[0].messages[0].created_at)}
+                    </span>
                   </div>
-                ))}
-              </div>
-            ))}
+
+                  {/* Message groups */}
+                  {groups.map((group, gi) => (
+                    <div key={`${date}-${gi}`}>
+                      {group.messages.map((msg, mi) => {
+                        // Show inline listing context when the listing changes
+                        const msgListingId = msg.listing?.id ?? null;
+                        const showListingContext =
+                          msgListingId !== null &&
+                          msgListingId !== lastListingId;
+                        if (msgListingId !== null) {
+                          lastListingId = msgListingId;
+                        }
+
+                        return (
+                          <div key={msg.id}>
+                            {showListingContext && msg.listing && (
+                              <InlineListingContext listing={msg.listing} />
+                            )}
+                            <MessageBubble
+                              message={msg}
+                              isOwn={group.isOwn}
+                              isFirst={mi === 0 || showListingContext}
+                              isLast={mi === group.messages.length - 1}
+                              showAvatar={mi === 0 || showListingContext}
+                              avatarUrl={
+                                group.isOwn
+                                  ? null
+                                  : otherUser?.avatar_url ?? null
+                              }
+                              senderName={msg.sender_name}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}

@@ -38,13 +38,44 @@ class MessageService:
         )
         return block is None
 
+    async def _find_thread_for_user_pair(
+        self, user_a_id: UUID, user_b_id: UUID
+    ) -> MessageThread | None:
+        """Find an existing active thread between two users (either direction)."""
+        return await self.db.scalar(
+            select(MessageThread)
+            .options(
+                selectinload(MessageThread.listing),
+                selectinload(MessageThread.initiator),
+                selectinload(MessageThread.recipient),
+            )
+            .where(
+                MessageThread.status != "archived",
+                or_(
+                    and_(
+                        MessageThread.initiator_id == user_a_id,
+                        MessageThread.recipient_id == user_b_id,
+                    ),
+                    and_(
+                        MessageThread.initiator_id == user_b_id,
+                        MessageThread.recipient_id == user_a_id,
+                    ),
+                ),
+            )
+        )
+
     async def get_or_create_thread(
         self,
         listing_id: UUID,
         initiator_id: UUID,
         campus_id: UUID | None = None,
     ) -> tuple[MessageThread, bool]:
-        """Get existing thread or create new one."""
+        """Get existing thread or create new one.
+
+        Threads are per-user-pair: if a thread already exists between the
+        initiator and the listing owner (in either direction), it is reused
+        regardless of which listing started the original conversation.
+        """
         listing = await self.db.get(Listing, listing_id)
         if not listing or listing.status != ListingStatus.ACTIVE:
             raise ValueError("Listing not found or inactive")
@@ -60,19 +91,8 @@ class MessageService:
         if not await self.can_message(initiator_id, recipient_id):
             raise ValueError("Cannot message this user")
 
-        thread = await self.db.scalar(
-            select(MessageThread)
-            .options(
-                selectinload(MessageThread.listing),
-                selectinload(MessageThread.initiator),
-                selectinload(MessageThread.recipient),
-            )
-            .where(
-                MessageThread.listing_id == listing_id,
-                MessageThread.initiator_id == initiator_id,
-                MessageThread.recipient_id == recipient_id,
-            )
-        )
+        # Look for ANY existing thread between these two users (either direction)
+        thread = await self._find_thread_for_user_pair(initiator_id, recipient_id)
 
         if thread:
             return thread, False
@@ -145,7 +165,10 @@ class MessageService:
 
         result = await self.db.execute(
             select(Message)
-            .options(selectinload(Message.sender))
+            .options(
+                selectinload(Message.sender),
+                selectinload(Message.listing),
+            )
             .where(Message.thread_id == thread_id)
             .order_by(Message.created_at.desc())
             .offset((page - 1) * per_page)
@@ -155,6 +178,16 @@ class MessageService:
 
         items = []
         for msg in messages:
+            listing_brief = None
+            if msg.listing:
+                first_photo = None
+                if hasattr(msg.listing, "photos") and msg.listing.photos:
+                    first_photo = msg.listing.photos[0].url
+                listing_brief = ThreadListingBrief(
+                    id=msg.listing.id,
+                    title=msg.listing.title,
+                    first_photo_url=first_photo,
+                )
             items.append(
                 MessageResponse(
                     id=msg.id,
@@ -163,6 +196,7 @@ class MessageService:
                     content=msg.content,
                     is_read=msg.is_read,
                     is_own=msg.sender_id == user_id,
+                    listing=listing_brief,
                     created_at=msg.created_at,
                 )
             )
@@ -175,6 +209,7 @@ class MessageService:
         sender_id: UUID,
         content: str,
         flagged: bool = False,
+        listing_id: UUID | None = None,
     ) -> Message:
         """Send a message in a thread."""
         thread = await self.db.get(MessageThread, thread_id)
@@ -192,6 +227,7 @@ class MessageService:
             sender_id=sender_id,
             content=content,
             is_flagged=flagged,
+            listing_id=listing_id,
         )
         self.db.add(message)
 
@@ -201,15 +237,17 @@ class MessageService:
         else:
             thread.initiator_unread_count += 1
 
-        if thread.listing_id:
+        # Increment message_count on the specific listing being discussed
+        target_listing_id = listing_id or thread.listing_id
+        if target_listing_id:
             await self.db.execute(
                 update(Listing)
-                .where(Listing.id == thread.listing_id)
+                .where(Listing.id == target_listing_id)
                 .values(message_count=Listing.message_count + 1)
             )
 
         await self.db.commit()
-        await self.db.refresh(message, ["sender"])
+        await self.db.refresh(message, ["sender", "listing"])
 
         return message
 
