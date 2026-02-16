@@ -20,8 +20,8 @@ from app.schemas.message import (
     SendMessageRequest,
     StartThreadRequest,
     ThreadDetailResponse,
-    ThreadListResponse,
     ThreadListingBrief,
+    ThreadListResponse,
 )
 from app.services.email_service import EmailService
 from app.services.email_templates import new_message_email
