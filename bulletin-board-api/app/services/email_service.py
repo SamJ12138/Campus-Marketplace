@@ -14,25 +14,28 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
+        text_content: str | None = None,
     ) -> bool:
         """Send an email synchronously. Use in background tasks / threads."""
-        return self._do_send(to_email, subject, html_content)
+        return self._do_send(to_email, subject, html_content, text_content)
 
     async def send_email(
         self,
         to_email: str,
         subject: str,
         html_content: str,
+        text_content: str | None = None,
     ) -> bool:
         """Send an email. Runs blocking SDK calls in a thread to avoid blocking the event loop."""
         import asyncio
-        return await asyncio.to_thread(self._do_send, to_email, subject, html_content)
+        return await asyncio.to_thread(self._do_send, to_email, subject, html_content, text_content)
 
     def _do_send(
         self,
         to_email: str,
         subject: str,
         html_content: str,
+        text_content: str | None = None,
     ) -> bool:
         """Internal send implementation (blocking)."""
         provider = self.settings.email_provider
@@ -60,6 +63,12 @@ class EmailService:
                     subject=subject,
                     html_content=html_content,
                 )
+                if text_content:
+                    from sendgrid.helpers.mail import Content
+                    message.content = [
+                        Content("text/plain", text_content),
+                        Content("text/html", html_content),
+                    ]
                 sg.send(message)
                 logger.info(f"[EMAIL] Successfully sent via SendGrid to {to_email}")
                 return True
@@ -90,14 +99,27 @@ class EmailService:
                 )
                 logger.info(f"[EMAIL] Resend from: {from_address}")
 
-                result = resend.Emails.send(
-                    {
-                        "from": from_address,
-                        "to": [to_email],
-                        "subject": subject,
-                        "html": html_content,
-                    }
-                )
+                # Build the email payload with proper headers
+                frontend_url = self.settings.primary_frontend_url
+                settings_url = f"{frontend_url}/profile/settings"
+
+                payload: dict = {
+                    "from": from_address,
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_content,
+                    "reply_to": self.settings.email_from_address,
+                    "headers": {
+                        "List-Unsubscribe": f"<{settings_url}>",
+                        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                    },
+                }
+
+                # Include plain text alternative for better deliverability
+                if text_content:
+                    payload["text"] = text_content
+
+                result = resend.Emails.send(payload)
                 logger.info(f"[EMAIL] Resend response: {result}")
                 return True
             except Exception as e:

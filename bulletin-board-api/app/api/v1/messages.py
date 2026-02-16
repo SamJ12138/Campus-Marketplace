@@ -43,12 +43,13 @@ def _send_notification_email(
     """Send email notification in background thread. Called by FastAPI BackgroundTasks."""
     try:
         settings = get_settings()
-        html = new_message_email(sender_name, listing_title, message_content, thread_url)
+        html, text = new_message_email(sender_name, listing_title, message_content, thread_url)
         email_service = EmailService(settings)
         ok = email_service.send_email_sync(
             to_email=recipient_email,
             subject=f"New message from {sender_name} - Gimme Dat",
             html_content=html,
+            text_content=text,
         )
         if not ok:
             logger.error("[MSG-NOTIFY] Email send returned failure for %s", recipient_email)

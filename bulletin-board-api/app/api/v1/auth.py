@@ -120,11 +120,13 @@ async def register(
 
     # Send verification email
     verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
+    html_content, text_content = verification_email(verify_url, user.display_name)
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
-        subject="Welcome to Gimme Dat! Verify your email 🎉",
-        html_content=verification_email(verify_url, user.display_name),
+        subject="Welcome to Gimme Dat - Verify your email",
+        html_content=html_content,
+        text_content=text_content,
     )
 
     return {
@@ -325,11 +327,13 @@ async def resend_verification(
     await db.commit()
 
     verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
+    html_content, text_content = resend_verification_email(verify_url)
     email_svc = EmailService(settings)
     await email_svc.send_email(
         to_email=user.email,
-        subject="Verify your Gimme Dat email ✉️",
-        html_content=resend_verification_email(verify_url),
+        subject="Verify your Gimme Dat email",
+        html_content=html_content,
+        text_content=text_content,
     )
 
     return {"message": "If an account exists, a verification email has been sent."}
@@ -363,11 +367,13 @@ async def forgot_password(
         await db.commit()
 
         reset_url = f"{settings.primary_frontend_url}/reset-password?token={raw_token}"
+        html_content, text_content = password_reset_email(reset_url)
         email_svc = EmailService(settings)
         await email_svc.send_email(
             to_email=user.email,
-            subject="Reset your Gimme Dat password 🔐",
-            html_content=password_reset_email(reset_url),
+            subject="Reset your Gimme Dat password",
+            html_content=html_content,
+            text_content=text_content,
         )
 
     return {"message": "If an account exists, a password reset email has been sent."}
