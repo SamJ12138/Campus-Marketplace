@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import require_admin, require_moderator
+from app.config import get_settings
 from app.dependencies import get_db
 from app.models.admin import AdminAction, BannedKeyword
 from app.models.listing import Category, Listing, ListingStatus
@@ -378,53 +379,69 @@ async def get_audit_log(
 async def test_email(
     admin_user: User = Depends(require_admin),
 ):
-    """Send a test email to the admin's own address to verify email delivery."""
+    """Send test emails to verify delivery. Tests both simple and template paths."""
     import logging
-    logger = logging.getLogger(__name__)
 
-    from app.config import get_settings
     from app.services.email_service import EmailService
+    from app.services.email_templates import new_message_email
 
+    logger = logging.getLogger(__name__)
     settings = get_settings()
-    logger.info(
-        "[TEST EMAIL] provider=%s, from=%s, resend_key_set=%s",
-        settings.email_provider,
-        settings.email_from_address,
-        bool(settings.resend_api_key),
-    )
 
     if not admin_user.email:
         raise HTTPException(400, "No email address on your account")
 
-    html = f"""
-    <div style="font-family: sans-serif; padding: 20px;">
-        <h2>GimmeDat - Email Test</h2>
-        <p>This is a test email sent from the admin panel.</p>
-        <p>If you see this, email delivery is working correctly.</p>
-        <p><strong>Provider:</strong> {settings.email_provider}</p>
-        <p><strong>From:</strong> {settings.email_from_address}</p>
-    </div>
-    """
+    config = {
+        "provider": settings.email_provider,
+        "from_address": settings.email_from_address,
+        "from_name": settings.email_from_name,
+        "resend_key_set": bool(settings.resend_api_key),
+        "frontend_url": settings.primary_frontend_url,
+    }
+    logger.info("[TEST EMAIL] config=%s", config)
 
-    service = EmailService(settings)
+    svc = EmailService(settings)
+    results = {}
+
+    # Test 1: Simple HTML (matches the curl test that worked)
     try:
-        success = service.send_email_sync(
+        ok = svc.send_email_sync(
             to_email=admin_user.email,
-            subject="GimmeDat - Email Test",
-            html_content=html,
+            subject="[Test 1/2] Simple email - Gimme Dat",
+            html_content="<p>Simple diagnostic email.</p>",
+            text_content="Simple diagnostic email.",
         )
+        results["simple"] = {"sent": ok, "error": None}
     except Exception as e:
-        logger.exception("[TEST EMAIL] Exception during send")
-        raise HTTPException(500, f"Email send threw exception: {type(e).__name__}: {e}")
+        logger.exception("[TEST EMAIL] simple send failed")
+        results["simple"] = {"sent": False, "error": str(e)}
 
-    if not success:
-        raise HTTPException(
-            500,
-            "Email send returned False"
-            " — check Render logs for [EMAIL ERROR] details",
+    # Test 2: Full message notification template (the real path)
+    try:
+        thread_url = (
+            f"{settings.primary_frontend_url}"
+            f"/messages?thread=diag-test"
         )
+        html, text = new_message_email(
+            "DiagBot", "Test Listing",
+            "This is a diagnostic message.", thread_url,
+        )
+        ok = svc.send_email_sync(
+            to_email=admin_user.email,
+            subject="[Test 2/2] Template email - Gimme Dat",
+            html_content=html,
+            text_content=text,
+        )
+        results["template"] = {"sent": ok, "error": None}
+    except Exception as e:
+        logger.exception("[TEST EMAIL] template send failed")
+        results["template"] = {"sent": False, "error": str(e)}
 
-    return {"status": "sent", "to": admin_user.email, "provider": settings.email_provider}
+    return {
+        "to": admin_user.email,
+        "config": config,
+        "results": results,
+    }
 
 
 # ============ STATS ============
