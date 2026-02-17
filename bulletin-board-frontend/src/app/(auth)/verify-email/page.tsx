@@ -3,13 +3,13 @@
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Loader2,
   MailCheck,
   CheckCircle2,
   XCircle,
   RefreshCw,
-  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -85,7 +85,7 @@ function VerifyEmailContent() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <GraduationCap className="h-8 w-8" />
+            <Image src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
             {t.auth.verifyEmailTitle}

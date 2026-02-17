@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import NextImage from "next/image";
 import {
   ArrowRight,
-  GraduationCap,
   ShoppingBag,
   Wrench,
   Search,
@@ -93,7 +93,7 @@ function LandingNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-primary" />
+          <NextImage src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
           <span className="text-lg font-bold tracking-tight text-foreground">
             {t.common.appName}
           </span>
@@ -293,6 +293,13 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
       {/* Content overlay */}
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
         <div className="max-w-2xl">
+          <NextImage
+            src="/images/logo.png"
+            alt=""
+            width={64}
+            height={64}
+            className="mb-5 h-16 w-16 object-contain drop-shadow-lg"
+          />
           <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
             {slide.subtitle}
           </p>
@@ -519,6 +526,13 @@ export default function LandingPage() {
       {/* ── What is GimmeDat? ── */}
       <section className="px-5 py-20">
         <div className="mx-auto max-w-3xl text-center">
+          <NextImage
+            src="/images/logo.png"
+            alt="GimmeDat"
+            width={72}
+            height={72}
+            className="mx-auto mb-5 h-[72px] w-[72px] object-contain"
+          />
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
             What is GimmeDat?
           </h2>
@@ -797,6 +811,13 @@ export default function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-2xl text-center">
+          <NextImage
+            src="/images/logo.png"
+            alt=""
+            width={56}
+            height={56}
+            className="mx-auto mb-5 h-14 w-14 object-contain drop-shadow-lg"
+          />
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Ready to join your campus marketplace?
           </h2>
@@ -839,9 +860,9 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 text-primary">
-                <GraduationCap className="h-5 w-5" />
-                <span className="font-bold">{t.common.appName}</span>
+              <div className="flex items-center gap-2">
+                <NextImage src="/images/logo.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="font-bold text-primary">{t.common.appName}</span>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Your campus marketplace for services, items, and community

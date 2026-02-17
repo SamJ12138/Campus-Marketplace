@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   UserPlus,
@@ -15,7 +16,6 @@ import {
   HelpCircle,
   ChevronDown,
   ArrowRight,
-  GraduationCap,
   Package,
   Wrench,
 } from "lucide-react";
@@ -200,7 +200,7 @@ export default function HowItWorksPage() {
 
         <div className="relative mx-auto max-w-3xl text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
-            <GraduationCap className="h-4 w-4" />
+            <Image src="/images/logo.png" alt="GimmeDat" width={16} height={16} className="h-4 w-4 object-contain" />
             Campus Community
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">

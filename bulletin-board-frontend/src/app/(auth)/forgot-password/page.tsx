@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Loader2, ArrowLeft, Mail, GraduationCap } from "lucide-react";
+import Image from "next/image";
+import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { forgotPasswordSchema } from "@/lib/validation/auth";
@@ -41,7 +42,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <GraduationCap className="h-8 w-8" />
+            <Image src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight">

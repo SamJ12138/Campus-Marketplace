@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowRight,
   CheckCircle,
-  GraduationCap,
   ChevronRight,
 } from "lucide-react";
 import {
@@ -98,7 +98,7 @@ export default async function ServiceLandingPage({ params }: Props) {
       <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-primary" />
+            <Image src="/images/logo.png" alt="GimmeDat" width={24} height={24} className="h-6 w-6 object-contain" />
             <span className="text-lg font-bold tracking-tight">Gimme Dat</span>
           </Link>
           <div className="flex items-center gap-4">
@@ -256,7 +256,7 @@ export default async function ServiceLandingPage({ params }: Props) {
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-primary" />
+              <Image src="/images/logo.png" alt="GimmeDat" width={20} height={20} className="h-5 w-5 object-contain" />
               <span className="font-semibold">Gimme Dat</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   Search,
   Plus,
@@ -17,7 +18,6 @@ import {
   Shield,
   Mail,
   ChevronDown,
-  Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
@@ -114,9 +114,13 @@ export function Header() {
           href="/feed"
           className="shrink-0 flex items-center gap-2 group"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--secondary-accent))] shadow-md shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
+          <Image
+            src="/images/logo.png"
+            alt="GimmeDat"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain transition-transform duration-200 group-hover:scale-105"
+          />
           <div className="flex flex-col leading-none">
             <span className="text-lg font-bold font-display tracking-tight gradient-text-primary">
               {t.common.appName}

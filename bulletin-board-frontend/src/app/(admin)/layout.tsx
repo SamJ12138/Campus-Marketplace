@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Flag,
@@ -158,8 +159,9 @@ export default function AdminLayout({
           </button>
           <Link
             href="/feed"
-            className="text-lg font-bold tracking-tight text-primary"
+            className="flex items-center gap-2 text-lg font-bold tracking-tight text-primary"
           >
+            <Image src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
             {t.common.appName}
           </Link>
           <div className="flex items-center gap-2">

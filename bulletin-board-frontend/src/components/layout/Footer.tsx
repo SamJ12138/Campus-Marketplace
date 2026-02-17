@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -8,9 +8,9 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 text-primary">
-              <GraduationCap className="h-5 w-5" />
-              <span className="font-bold">GimmeDat</span>
+            <div className="flex items-center gap-2">
+              <Image src="/images/logo.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
+              <span className="font-bold text-primary">GimmeDat</span>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Your campus marketplace for services, items, and community
