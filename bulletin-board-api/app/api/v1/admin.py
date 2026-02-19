@@ -377,10 +377,11 @@ async def get_audit_log(
 
 @router.post("/test-email")
 async def test_email(
+    to: str | None = Query(None, description="Recipient email (defaults to your own)"),
     admin_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send test emails to verify delivery. Tests simple, template, and notification paths."""
+    """Send test emails to verify delivery. Tests simple and template paths."""
     import logging
 
     from app.models.notification import NotificationPreference
@@ -390,8 +391,9 @@ async def test_email(
     logger = logging.getLogger(__name__)
     settings = get_settings()
 
-    if not admin_user.email:
-        raise HTTPException(400, "No email address on your account")
+    recipient_email = to or admin_user.email
+    if not recipient_email:
+        raise HTTPException(400, "No email address provided")
 
     # Check notification preferences
     prefs = await db.scalar(
@@ -408,10 +410,10 @@ async def test_email(
         "frontend_url": settings.primary_frontend_url,
         "notification_prefs": {
             "exists": prefs is not None,
-            "email_messages": prefs.email_messages if prefs else "no prefs (default=True)",
+            "email_messages": prefs.email_messages if prefs else "no prefs",
         },
     }
-    logger.info("[TEST EMAIL] config=%s", config)
+    logger.info("[TEST EMAIL] to=%s, config=%s", recipient_email, config)
 
     svc = EmailService(settings)
     results = {}
@@ -419,7 +421,7 @@ async def test_email(
     # Test 1: Simple HTML
     try:
         ok = svc.send_email_sync(
-            to_email=admin_user.email,
+            to_email=recipient_email,
             subject="[Test 1/2] Simple email - GimmeDat",
             html_content="<p>Simple diagnostic email from GimmeDat.</p>",
             text_content="Simple diagnostic email from GimmeDat.",
@@ -429,17 +431,19 @@ async def test_email(
         logger.exception("[TEST EMAIL] simple send failed")
         results["simple"] = {"sent": False, "error": str(e)}
 
-    # Test 2: Full message notification template (exact same path as real notifications)
+    # Test 2: Full message notification template
     try:
-        thread_url = f"{settings.primary_frontend_url}/messages?thread=diag-test"
+        thread_url = (
+            f"{settings.primary_frontend_url}/messages?thread=diag-test"
+        )
         html, text = new_message_email(
             "DiagBot", "Test Listing",
-            "Hey! This is a test message to verify email notifications are working."
+            "Hey! This is a test message to verify email notifications."
             " If you see this, the notification system is functional.",
             thread_url,
         )
         ok = svc.send_email_sync(
-            to_email=admin_user.email,
+            to_email=recipient_email,
             subject="New message from DiagBot - GimmeDat",
             html_content=html,
             text_content=text,
@@ -450,7 +454,7 @@ async def test_email(
         results["template"] = {"sent": False, "error": str(e)}
 
     return {
-        "to": admin_user.email,
+        "to": recipient_email,
         "config": config,
         "results": results,
     }
