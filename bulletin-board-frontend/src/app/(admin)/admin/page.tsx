@@ -207,23 +207,49 @@ const QUICK_LINKS = [
 
 // ─── Email Test ──────────────────────────────────────────────
 
+interface TestEmailResult {
+  to: string;
+  config: { provider: string; from_address: string };
+  results: {
+    simple: { sent: boolean; error: string | null };
+    template: { sent: boolean; error: string | null };
+  };
+}
+
 function EmailTestCard() {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [batchStatus, setBatchStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [batchProgress, setBatchProgress] = useState(0);
   const [message, setMessage] = useState("");
 
   async function handleTestEmail() {
     setStatus("sending");
     setMessage("");
     try {
-      const result = await api.post<{ status: string; to: string; provider: string }>(
-        "/api/v1/admin/test-email",
-      );
+      const result = await api.post<TestEmailResult>("/api/v1/admin/test-email");
+      const simple = result.results.simple.sent ? "ok" : "failed";
+      const template = result.results.template.sent ? "ok" : "failed";
       setStatus("success");
-      setMessage(`Sent via ${result.provider} to ${result.to}`);
+      setMessage(
+        `Sent to ${result.to} via ${result.config.provider} (simple: ${simple}, template: ${template})`,
+      );
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Failed to send test email");
     }
+  }
+
+  async function handleBatchSend() {
+    setBatchStatus("sending");
+    setBatchProgress(0);
+    for (let i = 0; i < 5; i++) {
+      try {
+        await api.post<TestEmailResult>("/api/v1/admin/test-email");
+      } catch { /* continue batch */ }
+      setBatchProgress(i + 1);
+      if (i < 4) await new Promise((r) => setTimeout(r, 3000));
+    }
+    setBatchStatus("done");
   }
 
   return (
@@ -233,18 +259,36 @@ function EmailTestCard() {
           <Mail className="h-5 w-5 text-muted-foreground" />
           <h3 className="text-sm font-semibold">Email delivery</h3>
         </div>
-        <button
-          onClick={handleTestEmail}
-          disabled={status === "sending"}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            status === "sending"
-              ? "bg-muted text-muted-foreground"
-              : "bg-primary text-primary-foreground hover:bg-primary/90",
-          )}
-        >
-          {status === "sending" ? "Sending..." : "Send test email"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleBatchSend}
+            disabled={batchStatus === "sending" || status === "sending"}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              batchStatus === "sending"
+                ? "bg-muted text-muted-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+            )}
+          >
+            {batchStatus === "sending"
+              ? `Sending batch ${batchProgress}/5...`
+              : batchStatus === "done"
+                ? "Batch sent (10 emails)"
+                : "Train filter (batch 10)"}
+          </button>
+          <button
+            onClick={handleTestEmail}
+            disabled={status === "sending" || batchStatus === "sending"}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              status === "sending"
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary text-primary-foreground hover:bg-primary/90",
+            )}
+          >
+            {status === "sending" ? "Sending..." : "Send test"}
+          </button>
+        </div>
       </div>
       {message && (
         <p
@@ -257,7 +301,7 @@ function EmailTestCard() {
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Sends a test email to your account to verify notification delivery is working.
+        Send a test email or batch-send 10 emails to train your spam filter.
       </p>
     </div>
   );
