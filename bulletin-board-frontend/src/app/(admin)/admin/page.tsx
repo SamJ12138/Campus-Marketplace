@@ -217,16 +217,21 @@ interface TestEmailResult {
 }
 
 function EmailTestCard() {
+  const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [batchStatus, setBatchStatus] = useState<"idle" | "sending" | "done">("idle");
   const [batchProgress, setBatchProgress] = useState(0);
   const [message, setMessage] = useState("");
 
+  const queryParam = email.trim() ? `?to=${encodeURIComponent(email.trim())}` : "";
+
   async function handleTestEmail() {
     setStatus("sending");
     setMessage("");
     try {
-      const result = await api.post<TestEmailResult>("/api/v1/admin/test-email");
+      const result = await api.post<TestEmailResult>(
+        `/api/v1/admin/test-email${queryParam}`,
+      );
       const simple = result.results.simple.sent ? "ok" : "failed";
       const template = result.results.template.sent ? "ok" : "failed";
       setStatus("success");
@@ -244,7 +249,9 @@ function EmailTestCard() {
     setBatchProgress(0);
     for (let i = 0; i < 5; i++) {
       try {
-        await api.post<TestEmailResult>("/api/v1/admin/test-email");
+        await api.post<TestEmailResult>(
+          `/api/v1/admin/test-email${queryParam}`,
+        );
       } catch { /* continue batch */ }
       setBatchProgress(i + 1);
       if (i < 4) await new Promise((r) => setTimeout(r, 3000));
@@ -252,43 +259,51 @@ function EmailTestCard() {
     setBatchStatus("done");
   }
 
+  const isBusy = status === "sending" || batchStatus === "sending";
+
   return (
     <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Mail className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Email delivery</h3>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleBatchSend}
-            disabled={batchStatus === "sending" || status === "sending"}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              batchStatus === "sending"
-                ? "bg-muted text-muted-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-            )}
-          >
-            {batchStatus === "sending"
-              ? `Sending batch ${batchProgress}/5...`
-              : batchStatus === "done"
-                ? "Batch sent (10 emails)"
-                : "Train filter (batch 10)"}
-          </button>
-          <button
-            onClick={handleTestEmail}
-            disabled={status === "sending" || batchStatus === "sending"}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              status === "sending"
-                ? "bg-muted text-muted-foreground"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
-            )}
-          >
-            {status === "sending" ? "Sending..." : "Send test"}
-          </button>
-        </div>
+      <div className="flex items-center gap-2">
+        <Mail className="h-5 w-5 text-muted-foreground" />
+        <h3 className="text-sm font-semibold">Email delivery</h3>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Recipient email (blank = your account)"
+          disabled={isBusy}
+          className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+        <button
+          onClick={handleTestEmail}
+          disabled={isBusy}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap",
+            isBusy
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          {status === "sending" ? "Sending..." : "Send test"}
+        </button>
+        <button
+          onClick={handleBatchSend}
+          disabled={isBusy}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap",
+            batchStatus === "sending"
+              ? "bg-muted text-muted-foreground"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          )}
+        >
+          {batchStatus === "sending"
+            ? `Batch ${batchProgress}/5...`
+            : batchStatus === "done"
+              ? "Done (10 sent)"
+              : "Batch 10"}
+        </button>
       </div>
       {message && (
         <p
@@ -301,7 +316,7 @@ function EmailTestCard() {
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Send a test email or batch-send 10 emails to train your spam filter.
+        Test email delivery to any address. Leave blank to send to your own account.
       </p>
     </div>
   );
