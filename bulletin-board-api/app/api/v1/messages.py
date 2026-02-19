@@ -42,19 +42,29 @@ def _send_notification_email(
 ) -> None:
     """Send email notification in background thread. Called by FastAPI BackgroundTasks."""
     try:
+        logger.info(
+            "[MSG-NOTIFY] Background task started: sending to %s (sender=%s, listing=%s)",
+            recipient_email, sender_name, listing_title,
+        )
         settings = get_settings()
+        logger.info(
+            "[MSG-NOTIFY] Email config: provider=%s, from=%s, resend_key_set=%s",
+            settings.email_provider, settings.email_from_address, bool(settings.resend_api_key),
+        )
         html, text = new_message_email(sender_name, listing_title, message_content, thread_url)
         email_service = EmailService(settings)
         ok = email_service.send_email_sync(
             to_email=recipient_email,
-            subject=f"New message from {sender_name} - Gimme Dat",
+            subject=f"New message from {sender_name} - GimmeDat",
             html_content=html,
             text_content=text,
         )
-        if not ok:
+        if ok:
+            logger.info("[MSG-NOTIFY] Email sent successfully to %s", recipient_email)
+        else:
             logger.error("[MSG-NOTIFY] Email send returned failure for %s", recipient_email)
     except Exception:
-        logger.exception("Failed to send message notification email")
+        logger.exception("[MSG-NOTIFY] Exception in background email task for %s", recipient_email)
 
 
 async def _maybe_queue_email(
@@ -68,6 +78,11 @@ async def _maybe_queue_email(
 ) -> None:
     """Check preferences and queue email notification as background task."""
     try:
+        logger.info(
+            "[MSG-NOTIFY] Checking notification for recipient=%s, thread=%s, sender=%s",
+            recipient_id, thread_id, sender_name,
+        )
+
         prefs = await db.scalar(
             select(NotificationPreference).where(
                 NotificationPreference.user_id == recipient_id
@@ -80,6 +95,11 @@ async def _maybe_queue_email(
             )
             return
 
+        logger.info(
+            "[MSG-NOTIFY] Prefs check passed (prefs=%s, email_messages=%s)",
+            prefs is not None, prefs.email_messages if prefs else "no prefs (default=True)",
+        )
+
         recipient = await db.get(User, recipient_id)
         if not recipient or not recipient.email:
             logger.warning(
@@ -91,7 +111,10 @@ async def _maybe_queue_email(
         settings = get_settings()
         thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
 
-        logger.info("[MSG-NOTIFY] Queuing email to %s for thread %s", recipient.email, thread_id)
+        logger.info(
+            "[MSG-NOTIFY] Queuing email to %s for thread %s (frontend_url=%s)",
+            recipient.email, thread_id, settings.primary_frontend_url,
+        )
         background_tasks.add_task(
             _send_notification_email,
             recipient.email,
@@ -100,8 +123,9 @@ async def _maybe_queue_email(
             message_content,
             thread_url,
         )
+        logger.info("[MSG-NOTIFY] Background task queued successfully")
     except Exception:
-        logger.exception("Failed to queue message notification email")
+        logger.exception("[MSG-NOTIFY] Failed to queue message notification email")
 
 
 @router.get("", response_model=ThreadListResponse)
@@ -323,27 +347,32 @@ async def send_message(
         raise HTTPException(400, str(e))
 
     # Queue email notification (non-blocking background task)
-    thread = await db.scalar(
-        select(MessageThread)
-        .options(selectinload(MessageThread.listing))
-        .where(MessageThread.id == thread_id)
-    )
-    if thread:
-        recipient_id = (
-            thread.recipient_id
-            if thread.initiator_id == current_user.id
-            else thread.initiator_id
+    try:
+        thread = await db.scalar(
+            select(MessageThread)
+            .options(selectinload(MessageThread.listing))
+            .where(MessageThread.id == thread_id)
         )
-        # Use message-level listing title if available, else thread-level
-        msg_listing = message.listing
-        listing_title = (
-            msg_listing.title if msg_listing
-            else (thread.listing.title if thread.listing else "a listing")
-        )
-        await _maybe_queue_email(
-            db, background_tasks, recipient_id, current_user.display_name,
-            listing_title, data.content, thread_id,
-        )
+        if thread:
+            recipient_id = (
+                thread.recipient_id
+                if thread.initiator_id == current_user.id
+                else thread.initiator_id
+            )
+            # Use message-level listing title if available, else thread-level
+            msg_listing = message.listing
+            listing_title = (
+                msg_listing.title if msg_listing
+                else (thread.listing.title if thread.listing else "a listing")
+            )
+            await _maybe_queue_email(
+                db, background_tasks, recipient_id, current_user.display_name,
+                listing_title, data.content, thread_id,
+            )
+        else:
+            logger.warning("[MSG-NOTIFY] Thread %s not found after send_message", thread_id)
+    except Exception:
+        logger.exception("[MSG-NOTIFY] Failed to queue email in send_message")
 
     # Build listing brief for the response
     listing_brief = None
