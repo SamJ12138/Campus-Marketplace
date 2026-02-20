@@ -85,18 +85,177 @@ function SafetyBanner() {
 }
 
 // ----------------------------------------------------------------
+// Example listings for empty marketplace state
+// ----------------------------------------------------------------
+const EXAMPLE_LISTINGS = [
+  {
+    title: "Organic Chemistry (Wade) 9th Edition",
+    price: "$45",
+    category: "Textbooks",
+    type: "item" as const,
+    snippet: "Lightly highlighted, all pages intact. Used for one semester of Orgo I. Can meet at the library.",
+  },
+  {
+    title: "Box Braids - All Lengths Available",
+    price: "From $80",
+    category: "Hair & Beauty",
+    type: "service" as const,
+    snippet: "Knotless box braids, medium and small sizes. Hair included in price for lengths up to 30 inches.",
+  },
+  {
+    title: 'MacBook Air M2 13" - Like New',
+    price: "$750",
+    category: "Electronics",
+    type: "item" as const,
+    snippet: "256GB, 8GB RAM, Space Gray. Battery cycle count under 50. Includes original charger and box.",
+  },
+  {
+    title: "Organic Chemistry Tutor - Aced Orgo I & II",
+    price: "$25/hr",
+    category: "Tutoring",
+    type: "service" as const,
+    snippet: "Biochem major, got A's in both semesters. I break down mechanisms in a way that makes sense.",
+  },
+  {
+    title: "Nike Dunk Low (Panda) - Size 10",
+    price: "$75",
+    category: "Clothing",
+    type: "item" as const,
+    snippet: "Worn maybe 5 times, no creasing. Comes with original box. Selling because I got a different colorway.",
+  },
+  {
+    title: "Graduation Photo Sessions - Book Now",
+    price: "$75/session",
+    category: "Photography",
+    type: "service" as const,
+    snippet: "30-minute session, 20+ edited photos within a week. I know all the best spots on campus.",
+  },
+  {
+    title: "Personal Training - Strength & Conditioning",
+    price: "$20/session",
+    category: "Fitness",
+    type: "service" as const,
+    snippet: "NASM certified. Custom programs for muscle gain, fat loss, or athletic performance.",
+  },
+  {
+    title: "IKEA KALLAX Shelf Unit (White, 4x2)",
+    price: "$35",
+    category: "Furniture",
+    type: "item" as const,
+    snippet: "Perfect dorm storage. Fits books, bins, and vinyl. Easy to take apart for transport.",
+  },
+  {
+    title: "Guitar Lessons - Acoustic & Electric",
+    price: "$20/hr",
+    category: "Music Lessons",
+    type: "service" as const,
+    snippet: "Music minor, 10 years experience. Chords to fingerpicking and theory. Beginners welcome.",
+  },
+  {
+    title: "2 Tickets to Spring Formal",
+    price: "$25 each",
+    category: "Tickets",
+    type: "item" as const,
+    snippet: "Can't make it anymore. Paid $30 each. Digital tickets, I'll transfer them to your student account.",
+  },
+  {
+    title: "Laptop Repair & Cleanup Service",
+    price: "From $25",
+    category: "Tech Help",
+    type: "service" as const,
+    snippet: "CS major. Fix slow laptops, replace screens, clean up malware. Most repairs done same day.",
+  },
+  {
+    title: "Gel Nail Sets - Custom Designs",
+    price: "$30-45",
+    category: "Hair & Beauty",
+    type: "service" as const,
+    snippet: "French tips, chrome, nail art, and custom designs. Lasts 2-3 weeks. Booking this weekend.",
+  },
+  {
+    title: "Intro to Microeconomics - Mankiw",
+    price: "$30",
+    category: "Textbooks",
+    type: "item" as const,
+    snippet: "Clean copy, no writing inside. Includes the online access code (unused). Perfect for Econ 101.",
+  },
+  {
+    title: "Sony WH-1000XM5 Headphones",
+    price: "$180",
+    category: "Electronics",
+    type: "item" as const,
+    snippet: "Black, excellent condition. Best noise cancelling for studying in loud dorms. Includes case.",
+  },
+  {
+    title: "Running Coach - 5K to Half Marathon",
+    price: "$15/session",
+    category: "Fitness",
+    type: "service" as const,
+    snippet: "Cross-country team member. Custom training plan, run with you, help you hit your goal time.",
+  },
+  {
+    title: "North Face Puffer Jacket - Women's M",
+    price: "$90",
+    category: "Clothing",
+    type: "item" as const,
+    snippet: "Black 700-fill down jacket, super warm. Bought last winter for $250. No rips, all zippers work.",
+  },
+];
+
+// ----------------------------------------------------------------
 // Empty state
 // ----------------------------------------------------------------
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  if (hasFilters) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <SearchX className="h-16 w-16 text-muted-foreground/30" />
+        <h3 className="mt-4 text-lg font-semibold text-foreground">
+          {t.common.noResults}
+        </h3>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">
+          {t.listings.emptySearch}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <SearchX className="h-16 w-16 text-muted-foreground/30" />
-      <h3 className="mt-4 text-lg font-semibold text-foreground">
-        {t.common.noResults}
-      </h3>
-      <p className="mt-1 max-w-md text-sm text-muted-foreground">
-        {hasFilters ? t.listings.emptySearch : t.listings.emptyFeed}
-      </p>
+    <div>
+      <div className="mb-6 rounded-lg border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-center">
+        <p className="text-sm font-medium text-primary">
+          Be the first to post! These are examples of what students list on GimmeDat.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {EXAMPLE_LISTINGS.map((listing) => (
+          <div
+            key={listing.title}
+            className="relative flex flex-col rounded-xl border border-border bg-card p-4 opacity-75"
+          >
+            <div className="absolute right-3 top-3">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Example
+              </span>
+            </div>
+            <span className="mb-2 inline-flex w-fit rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {listing.type === "service" ? "Service" : "Item"}
+            </span>
+            <h3 className="text-sm font-semibold leading-snug text-foreground pr-14 line-clamp-2">
+              {listing.title}
+            </h3>
+            <p className="mt-1 text-sm font-bold text-primary">
+              {listing.price}
+            </p>
+            <span className="mt-2 inline-flex w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {listing.category}
+            </span>
+            <p className="mt-3 flex-1 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+              {listing.snippet}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
