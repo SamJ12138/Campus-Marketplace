@@ -126,7 +126,7 @@ export function Header() {
               {t.common.appName}
             </span>
             <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wide">
-              Gettysburg Community
+              Campus Marketplace
             </span>
           </div>
         </Link>
