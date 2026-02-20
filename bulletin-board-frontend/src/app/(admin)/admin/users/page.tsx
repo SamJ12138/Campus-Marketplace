@@ -408,6 +408,8 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers(activeTab, searchQuery, page);
+    // searchQuery handled by debounced effect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, page, fetchUsers]);
 
   // Debounced search
@@ -419,6 +421,7 @@ export default function AdminUsersPage() {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, activeTab, fetchUsers]);
 
   async function handleAction(

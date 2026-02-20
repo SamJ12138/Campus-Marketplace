@@ -995,6 +995,7 @@ function MessagesPageContent() {
       setActiveThreadId(threadParam);
       setMobileView("conversation");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadParam]);
 
   useEffect(() => {
@@ -1003,6 +1004,7 @@ function MessagesPageContent() {
       setActiveThreadId(null);
       setMobileView("conversation");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingParam]);
 
   function handleSelectThread(id: string) {

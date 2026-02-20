@@ -215,6 +215,7 @@ function FeedbackRow({
               <p className="text-xs font-medium text-muted-foreground">Submitted by</p>
               <div className="flex items-center gap-2">
                 {item.user.avatar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={item.user.avatar_url}
                     alt=""

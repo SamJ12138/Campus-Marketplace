@@ -353,6 +353,8 @@ export default function AdminListingsPage() {
 
   useEffect(() => {
     fetchListings(statusFilter, typeFilter, searchQuery, page);
+    // searchQuery handled by debounced effect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, typeFilter, page, fetchListings]);
 
   // Debounced search
@@ -364,6 +366,7 @@ export default function AdminListingsPage() {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, statusFilter, typeFilter, fetchListings]);
 
   async function handleStatusChange(

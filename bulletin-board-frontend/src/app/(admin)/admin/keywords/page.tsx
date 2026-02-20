@@ -39,7 +39,7 @@ const ACTION_OPTIONS = [
   { value: "warn", label: "Warn user" },
 ];
 
-const APPLIES_TO_OPTIONS = [
+const _APPLIES_TO_OPTIONS = [
   { value: "all", label: "Everything" },
   { value: "title", label: "Titles only" },
   { value: "description", label: "Descriptions only" },

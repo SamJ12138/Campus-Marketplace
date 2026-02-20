@@ -1075,7 +1075,7 @@ export default function AdminAdsPage() {
   const [ads, setAds] = useState<AdminAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(true);
+  const [showInactive, _setShowInactive] = useState(true);
 
   // Analytics state
   const [activeTab, setActiveTab] = useState<PageTab>("manage");
