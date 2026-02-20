@@ -35,6 +35,96 @@ import { useAuthStore } from "@/lib/hooks/use-auth";
 import { en as t } from "@/lib/i18n/en";
 
 // ----------------------------------------------------------------
+// Example listings — showcase what students post on GimmeDat
+// ----------------------------------------------------------------
+const EXAMPLE_LISTINGS = [
+  {
+    title: "Organic Chemistry (Wade) 9th Ed",
+    price: "$45",
+    category: "Textbooks",
+    categoryColor: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
+    snippet: "Lightly highlighted, all pages intact. Used for one semester of Orgo I.",
+  },
+  {
+    title: "Box Braids - All Lengths",
+    price: "From $80",
+    category: "Hair & Beauty",
+    categoryColor: "bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400",
+    snippet: "Knotless box braids, medium and small. Hair included up to 30 inches.",
+  },
+  {
+    title: 'MacBook Air M2 13" - Like New',
+    price: "$750",
+    category: "Electronics",
+    categoryColor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400",
+    snippet: "256GB, 8GB RAM, Space Gray. Battery cycle count under 50. Includes charger.",
+  },
+  {
+    title: "Orgo Tutor - Aced Orgo I & II",
+    price: "$25/hr",
+    category: "Tutoring",
+    categoryColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+    snippet: "Biochem major with A's in both semesters. Library or Zoom sessions available.",
+  },
+  {
+    title: "Nike Dunk Low (Panda) Size 10",
+    price: "$75",
+    category: "Clothing",
+    categoryColor: "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
+    snippet: "Worn maybe 5 times, no creasing. Comes with original box.",
+  },
+  {
+    title: "Graduation Photo Sessions",
+    price: "$75/session",
+    category: "Photography",
+    categoryColor: "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400",
+    snippet: "30 min session, 20+ edited photos within a week. Best campus spots.",
+  },
+  {
+    title: "Personal Training - Strength",
+    price: "$20/session",
+    category: "Fitness",
+    categoryColor: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+    snippet: "NASM certified. Custom programs for muscle gain, fat loss, or athletics.",
+  },
+  {
+    title: "IKEA KALLAX Shelf (White, 4x2)",
+    price: "$35",
+    category: "Furniture",
+    categoryColor: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+    snippet: "Perfect dorm storage. Easy to take apart for transport. No scratches.",
+  },
+  {
+    title: "Guitar Lessons - Acoustic & Electric",
+    price: "$20/hr",
+    category: "Music Lessons",
+    categoryColor: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400",
+    snippet: "10 years experience. Chords to fingerpicking. Beginners welcome.",
+  },
+  {
+    title: "2 Tickets to Spring Formal",
+    price: "$25 each",
+    category: "Tickets",
+    categoryColor: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-400",
+    snippet: "Can't make it anymore. Digital transfer. Selling below face value.",
+  },
+  {
+    title: "Laptop Repair & Cleanup",
+    price: "From $25",
+    category: "Tech Help",
+    categoryColor: "bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400",
+    snippet: "CS major. Fix slow laptops, replace screens, remove malware. Same day.",
+  },
+  {
+    title: "Gel Nail Sets - Custom Designs",
+    price: "$30-45",
+    category: "Hair & Beauty",
+    categoryColor: "bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400",
+    snippet: "French tips, chrome, nail art. Lasts 2-3 weeks. Booking this weekend.",
+  },
+] as const;
+
+// ----------------------------------------------------------------
 // Static branded hero slides — no API call, images preload instantly
 // ----------------------------------------------------------------
 const HERO_SLIDES = [
@@ -438,6 +528,59 @@ export default function LandingPage() {
               description="Have something to sell or a skill to share? List it in under a minute."
               accent="bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Example listings showcase ── */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              What students are posting
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Real examples of the kinds of items and services you&apos;ll find on GimmeDat.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {EXAMPLE_LISTINGS.map((listing) => (
+              <div
+                key={listing.title}
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:shadow-md hover:border-primary/20"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                    {listing.title}
+                  </h3>
+                  <span className="shrink-0 text-sm font-bold text-primary">
+                    {listing.price}
+                  </span>
+                </div>
+                <span
+                  className={cn(
+                    "mt-2 inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    listing.categoryColor,
+                  )}
+                >
+                  {listing.category}
+                </span>
+                <p className="mt-3 flex-1 text-xs leading-relaxed text-muted-foreground">
+                  {listing.snippet}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/feed"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
+            >
+              Browse All Listings
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
