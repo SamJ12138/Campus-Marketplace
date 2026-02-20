@@ -79,8 +79,7 @@ class ListingService:
             base_query = base_query.join(Category).where(Category.slug == category_slug)
             category_joined = True
         if query:
-            # Use full-text search via TSVECTOR (GIN-indexed) with ILIKE fallback
-            # for fields not in the search vector (category name, price, location)
+            # Full-text search + ILIKE fallback on all key fields
             ts_query = func.plainto_tsquery("english", query)
             safe_query = self._escape_like(query)
             if not category_joined:
@@ -89,9 +88,17 @@ class ListingService:
             base_query = base_query.where(
                 or_(
                     Listing.search_vector.op("@@")(ts_query),
+                    Listing.title.ilike(f"%{safe_query}%"),
+                    Listing.description.ilike(
+                        f"%{safe_query}%"
+                    ),
                     Category.name.ilike(f"%{safe_query}%"),
-                    Listing.price_hint.ilike(f"%{safe_query}%"),
-                    Listing.location_hint.ilike(f"%{safe_query}%"),
+                    Listing.price_hint.ilike(
+                        f"%{safe_query}%"
+                    ),
+                    Listing.location_hint.ilike(
+                        f"%{safe_query}%"
+                    ),
                 )
             )
 
