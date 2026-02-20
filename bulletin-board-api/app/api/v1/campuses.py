@@ -13,6 +13,7 @@ class CampusResponse(BaseModel):
     slug: str
     name: str
     domain: str
+    allow_non_edu: bool
 
     model_config = {"from_attributes": True}
 

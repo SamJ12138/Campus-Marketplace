@@ -15,7 +15,7 @@ import { getCampuses } from "@/lib/api/auth";
 import type { Campus } from "@/lib/types";
 
 const FALLBACK_CAMPUSES: Campus[] = [
-  { id: "gettysburg-college", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg-college" },
+  { id: "gettysburg-college", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg-college", allow_non_edu: false },
 ];
 
 const CLASS_YEARS = Array.from({ length: 12 }, (_, i) => 2024 + i);
@@ -66,6 +66,11 @@ function RegisterContent() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const selectedCampus = useMemo(
+    () => campuses.find((c) => c.slug === form.campus_slug) ?? null,
+    [campuses, form.campus_slug],
+  );
+
   const passwordChecks = useMemo(
     () => PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(form.password) })),
     [form.password],
@@ -108,6 +113,15 @@ function RegisterContent() {
       }
       setErrors(fieldErrors);
       return;
+    }
+
+    // Client-side .edu domain check
+    if (selectedCampus && selectedCampus.allow_non_edu === false) {
+      const emailDomain = result.data.email.split("@")[1]?.toLowerCase();
+      if (emailDomain !== selectedCampus.domain) {
+        setErrors({ email: `You must use an @${selectedCampus.domain} email address for ${selectedCampus.name}` });
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -185,7 +199,9 @@ function RegisterContent() {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              .edu preferred, but any email works
+              {selectedCampus && selectedCampus.allow_non_edu === false
+                ? `Use your @${selectedCampus.domain} email address`
+                : "Any email works"}
             </p>
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>

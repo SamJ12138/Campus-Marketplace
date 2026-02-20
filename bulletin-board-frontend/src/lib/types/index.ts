@@ -31,6 +31,7 @@ export interface Campus {
   name: string;
   domain: string;
   slug: string;
+  allow_non_edu?: boolean;
 }
 
 // ──────────────────────────────────────────────
