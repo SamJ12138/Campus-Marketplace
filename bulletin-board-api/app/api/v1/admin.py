@@ -12,7 +12,7 @@ from app.api.deps import require_admin, require_moderator
 from app.config import get_settings
 from app.dependencies import get_db
 from app.models.admin import AdminAction, BannedKeyword
-from app.models.listing import Category, Listing, ListingStatus
+from app.models.listing import Category, Listing, ListingPhoto, ListingStatus
 from app.models.message import Message, MessageThread
 from app.models.report import Report
 from app.models.user import User, UserRole, UserStatus
@@ -959,7 +959,7 @@ async def admin_get_user_detail(
 
 logger = logging.getLogger(__name__)
 
-# Example listings covering all categories
+# Example listings with images — covers every category
 SEED_EXAMPLE_LISTINGS = [
     # ── Textbooks ──
     {
@@ -970,6 +970,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$35",
         "location_type": "on_campus",
         "location_hint": "Library main entrance",
+        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "item",
@@ -979,6 +980,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$30",
         "location_type": "on_campus",
         "location_hint": "Economics department building",
+        "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "item",
@@ -988,6 +990,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$20",
         "location_type": "on_campus",
         "location_hint": "Student center",
+        "image": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&h=600&fit=crop&q=80",
     },
     # ── Tutoring ──
     {
@@ -998,6 +1001,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$20/hr",
         "location_type": "on_campus",
         "location_hint": "Library study rooms or Zoom",
+        "image": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "service",
@@ -1007,6 +1011,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$25/hr",
         "location_type": "on_campus",
         "location_hint": "Math department or Zoom",
+        "image": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&h=600&fit=crop&q=80",
     },
     # ── Hair & Beauty ──
     {
@@ -1017,6 +1022,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "From $40",
         "location_type": "on_campus",
         "location_hint": "My dorm or yours — I bring everything",
+        "image": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "service",
@@ -1026,6 +1032,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$8",
         "location_type": "on_campus",
         "location_hint": "My room — very quick appointment",
+        "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&h=600&fit=crop&q=80",
     },
     # ── Electronics ──
     {
@@ -1036,6 +1043,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$420",
         "location_type": "on_campus",
         "location_hint": "Can meet anywhere on campus",
+        "image": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "item",
@@ -1045,6 +1053,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$55",
         "location_type": "on_campus",
         "location_hint": "Student center or dining hall",
+        "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&h=600&fit=crop&q=80",
     },
     # ── Photography ──
     {
@@ -1055,6 +1064,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$60/session",
         "location_type": "on_campus",
         "location_hint": "Best campus photo spots — I'll guide you",
+        "image": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=600&fit=crop&q=80",
     },
     # ── Furniture ──
     {
@@ -1065,6 +1075,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$45",
         "location_type": "on_campus",
         "location_hint": "Can help carry to your dorm",
+        "image": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "item",
@@ -1074,6 +1085,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$30",
         "location_type": "on_campus",
         "location_hint": "Residence hall — need help carrying? Just ask",
+        "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop&q=80",
     },
     # ── Clothing ──
     {
@@ -1084,6 +1096,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$40",
         "location_type": "on_campus",
         "location_hint": "Student center",
+        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "item",
@@ -1093,6 +1106,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$55",
         "location_type": "on_campus",
         "location_hint": "Anywhere on campus",
+        "image": "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=600&fit=crop&q=80",
     },
     # ── Tickets ──
     {
@@ -1103,6 +1117,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$20 for both",
         "location_type": "on_campus",
         "location_hint": "Digital transfer — no meetup needed",
+        "image": "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=600&fit=crop&q=80",
     },
     # ── Music Lessons ──
     {
@@ -1113,6 +1128,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$18/hr",
         "location_type": "on_campus",
         "location_hint": "Music building practice rooms",
+        "image": "https://images.unsplash.com/photo-1520523839897-bd043c4cd28f?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "service",
@@ -1122,6 +1138,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$15/hr",
         "location_type": "on_campus",
         "location_hint": "Music building or my apartment",
+        "image": "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=600&fit=crop&q=80",
     },
     # ── Fitness ──
     {
@@ -1132,6 +1149,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$10/session",
         "location_type": "on_campus",
         "location_hint": "Campus green or gym studio",
+        "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "service",
@@ -1141,6 +1159,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$12/session",
         "location_type": "on_campus",
         "location_hint": "Campus gym or outdoor courts",
+        "image": "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&h=600&fit=crop&q=80",
     },
     # ── Tech Help ──
     {
@@ -1151,6 +1170,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "$50-100",
         "location_type": "remote",
         "location_hint": "All remote — we'll chat over Zoom",
+        "image": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop&q=80",
     },
     {
         "type": "service",
@@ -1160,6 +1180,7 @@ SEED_EXAMPLE_LISTINGS = [
         "price_hint": "From $40",
         "location_type": "on_campus",
         "location_hint": "My dorm room — quick turnaround",
+        "image": "https://images.unsplash.com/photo-1581092160607-ee67df30e38e?w=800&h=600&fit=crop&q=80",
     },
 ]
 
@@ -1169,28 +1190,32 @@ async def seed_example_listings(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    """Create example listings to populate the marketplace.
+    """Create example listings with images to populate the marketplace.
 
     Only an admin can trigger this. Listings are created under the admin's
-    account so they appear as "[EXAMPLE]" posts from the GimmeDat team.
-    Duplicate titles are skipped to make this endpoint idempotent.
+    account with photos from Unsplash. Duplicate titles are skipped
+    to make this endpoint idempotent.
     """
-    from sqlalchemy.orm import selectinload as _sel
-
     settings = get_settings()
 
-    # Build slug → category_id map
-    cats = (await db.execute(select(Category).where(Category.is_active.is_(True)))).scalars().all()
+    # Build slug → category map
+    cats = (
+        await db.execute(select(Category).where(Category.is_active.is_(True)))
+    ).scalars().all()
     slug_map: dict[str, Category] = {c.slug: c for c in cats}
 
     # Check which titles already exist to avoid duplicates
     existing_titles = set(
-        (await db.execute(
-            select(Listing.title).where(Listing.user_id == admin.id)
-        )).scalars().all()
+        (
+            await db.execute(
+                select(Listing.title).where(Listing.user_id == admin.id)
+            )
+        ).scalars().all()
     )
 
     created = 0
+    new_listings: list[Listing] = []
+
     for item in SEED_EXAMPLE_LISTINGS:
         if item["title"] in existing_titles:
             continue
@@ -1215,9 +1240,50 @@ async def seed_example_listings(
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.listing_expiry_days),
         )
         db.add(listing)
+        new_listings.append((listing, item.get("image")))
         created += 1
 
-    if created:
-        await db.commit()
+    if not created:
+        return {"created": 0, "skipped": len(SEED_EXAMPLE_LISTINGS)}
+
+    # Flush to generate listing IDs
+    await db.flush()
+
+    # Create photos and search vectors for each new listing
+    for listing, image_url in new_listings:
+        # Add the photo
+        if image_url:
+            photo = ListingPhoto(
+                listing_id=listing.id,
+                url=image_url,
+                storage_key=f"seed/{listing.id}/0",
+                thumbnail_url=image_url,
+                position=0,
+                content_type="image/jpeg",
+            )
+            db.add(photo)
+
+        # Populate full-text search vector
+        await db.execute(
+            update(Listing)
+            .where(Listing.id == listing.id)
+            .values(
+                search_vector=func.to_tsvector(
+                    "english",
+                    func.coalesce(listing.title, "")
+                    + " "
+                    + func.coalesce(listing.description, ""),
+                )
+            )
+        )
+
+    # Update admin's listing count
+    await db.execute(
+        update(User)
+        .where(User.id == admin.id)
+        .values(listing_count=User.listing_count + created)
+    )
+
+    await db.commit()
 
     return {"created": created, "skipped": len(SEED_EXAMPLE_LISTINGS) - created}
