@@ -115,7 +115,7 @@ export function Header() {
           className="shrink-0 flex items-center gap-2 group"
         >
           <Image
-            src="/images/logo.png"
+            src="/images/logo-v2.png"
             alt="GimmeDat"
             width={36}
             height={36}

@@ -93,7 +93,7 @@ function LandingNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <NextImage src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
+          <NextImage src="/images/logo-v2.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
           <span className="text-lg font-bold tracking-tight text-foreground">
             {t.common.appName}
           </span>
@@ -294,7 +294,7 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
         <div className="max-w-2xl">
           <NextImage
-            src="/images/logo.png"
+            src="/images/logo-v2.png"
             alt=""
             width={64}
             height={64}
@@ -527,7 +527,7 @@ export default function LandingPage() {
       <section className="px-5 py-20">
         <div className="mx-auto max-w-3xl text-center">
           <NextImage
-            src="/images/logo.png"
+            src="/images/logo-v2.png"
             alt="GimmeDat"
             width={72}
             height={72}
@@ -812,7 +812,7 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-2xl text-center">
           <NextImage
-            src="/images/logo.png"
+            src="/images/logo-v2.png"
             alt=""
             width={56}
             height={56}
@@ -861,7 +861,7 @@ export default function LandingPage() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-2">
-                <NextImage src="/images/logo.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
+                <NextImage src="/images/logo-v2.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
                 <span className="font-bold text-primary">{t.common.appName}</span>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

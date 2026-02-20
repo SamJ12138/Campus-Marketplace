@@ -10,7 +10,7 @@ export default function AuthLayout({
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 px-4 py-12">
       <div className="w-full max-w-[420px]">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <Image src="/images/logo.png" alt="GimmeDat" width={56} height={56} className="h-14 w-14 object-contain" />
+          <Image src="/images/logo-v2.png" alt="GimmeDat" width={56} height={56} className="h-14 w-14 object-contain" />
           <h1 className="text-2xl font-bold tracking-tight text-primary">
             {t.common.appName}
           </h1>

@@ -7,7 +7,7 @@ interface OrganizationSchemaProps {
 }
 
 export function OrganizationSchema({
-  logoUrl = `${SEO_CONFIG.siteUrl}/images/logo.png`,
+  logoUrl = `${SEO_CONFIG.siteUrl}/images/logo-v2.png`,
   socialLinks = [],
 }: OrganizationSchemaProps) {
   const schema = {

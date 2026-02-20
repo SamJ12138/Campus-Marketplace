@@ -161,7 +161,7 @@ export default function AdminLayout({
             href="/feed"
             className="flex items-center gap-2 text-lg font-bold tracking-tight text-primary"
           >
-            <Image src="/images/logo.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
+            <Image src="/images/logo-v2.png" alt="GimmeDat" width={32} height={32} className="h-8 w-8 object-contain" />
             {t.common.appName}
           </Link>
           <div className="flex items-center gap-2">

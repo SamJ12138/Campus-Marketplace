@@ -210,7 +210,7 @@ export function SupportChat() {
         {/* ─── Header ─── */}
         <div className="relative flex items-center gap-3 bg-gradient-to-r from-primary to-primary/80 px-4 py-4 text-primary-foreground">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-            <Image src="/images/logo.png" alt="GimmeDat" width={20} height={20} className="h-5 w-5 object-contain" />
+            <Image src="/images/logo-v2.png" alt="GimmeDat" width={20} height={20} className="h-5 w-5 object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-bold">Help Center</h3>

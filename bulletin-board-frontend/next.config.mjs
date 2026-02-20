@@ -79,13 +79,13 @@ const nextConfig = {
           },
         ],
       },
-      // Cache static assets longer
+      // Cache static assets (revalidate daily so updates are visible)
       {
         source: "/images/(.*)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value: "public, max-age=86400, must-revalidate",
           },
         ],
       },

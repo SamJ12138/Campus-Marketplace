@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <Image src="/images/logo.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
+              <Image src="/images/logo-v2.png" alt="GimmeDat" width={28} height={28} className="h-7 w-7 object-contain" />
               <span className="font-bold text-primary">GimmeDat</span>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
