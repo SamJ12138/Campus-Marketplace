@@ -265,19 +265,55 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 // ----------------------------------------------------------------
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <AlertTriangle className="h-16 w-16 text-red-300" />
-      <h3 className="mt-4 text-lg font-semibold text-foreground">
-        {t.common.error}
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">{t.errors.generic}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      >
-        {t.common.retry}
-      </button>
+    <div>
+      <div className="mb-6 flex flex-col items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-800 dark:bg-amber-900/20">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <h3 className="mt-3 text-lg font-semibold text-foreground">
+          {t.common.error}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">{t.errors.generic}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          {t.common.retry}
+        </button>
+      </div>
+
+      {/* Show example listings even when API fails */}
+      <p className="mb-4 text-sm text-muted-foreground">
+        While we fix this, here are examples of what students list on GimmeDat:
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {EXAMPLE_LISTINGS.map((listing) => (
+          <div
+            key={listing.title}
+            className="relative flex flex-col rounded-xl border border-border bg-card p-4 opacity-75"
+          >
+            <div className="absolute right-3 top-3">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Example
+              </span>
+            </div>
+            <span className="mb-2 inline-flex w-fit rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {listing.type === "service" ? "Service" : "Item"}
+            </span>
+            <h3 className="text-sm font-semibold leading-snug text-foreground pr-14 line-clamp-2">
+              {listing.title}
+            </h3>
+            <p className="mt-1 text-sm font-bold text-primary">
+              {listing.price}
+            </p>
+            <span className="mt-2 inline-flex w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {listing.category}
+            </span>
+            <p className="mt-3 flex-1 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+              {listing.snippet}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -288,16 +324,17 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 function SignInPrompt() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <LogIn className="h-16 w-16 text-muted-foreground/30" />
-        <h2 className="mt-4 text-xl font-semibold text-foreground">
-          Sign in to browse the marketplace
+      {/* Sign-in banner */}
+      <div className="mb-8 flex flex-col items-center rounded-xl border border-primary/20 bg-primary/5 px-6 py-8 text-center">
+        <LogIn className="h-10 w-10 text-primary/60" />
+        <h2 className="mt-3 text-xl font-semibold text-foreground">
+          Sign in to post and message sellers
         </h2>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Offers are only visible to members of your campus community. Sign in
-          or create an account to get started.
+          Create a free account with your .edu email to start buying, selling,
+          and connecting with students on your campus.
         </p>
-        <div className="mt-6 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3">
           <Link
             href="/login?redirect=/feed"
             className={cn(
@@ -321,6 +358,43 @@ function SignInPrompt() {
             Create account
           </Link>
         </div>
+      </div>
+
+      {/* Show example listings so visitors can see what the marketplace offers */}
+      <h3 className="mb-1 text-lg font-semibold text-foreground">
+        What students are posting on GimmeDat
+      </h3>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Here&apos;s a preview of the kinds of items and services available.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {EXAMPLE_LISTINGS.map((listing) => (
+          <div
+            key={listing.title}
+            className="relative flex flex-col rounded-xl border border-border bg-card p-4 opacity-75"
+          >
+            <div className="absolute right-3 top-3">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Example
+              </span>
+            </div>
+            <span className="mb-2 inline-flex w-fit rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {listing.type === "service" ? "Service" : "Item"}
+            </span>
+            <h3 className="text-sm font-semibold leading-snug text-foreground pr-14 line-clamp-2">
+              {listing.title}
+            </h3>
+            <p className="mt-1 text-sm font-bold text-primary">
+              {listing.price}
+            </p>
+            <span className="mt-2 inline-flex w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {listing.category}
+            </span>
+            <p className="mt-3 flex-1 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+              {listing.snippet}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

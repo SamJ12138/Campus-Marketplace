@@ -28,15 +28,14 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   metadataBase: new URL(SEO_CONFIG.siteUrl),
   title: {
-    default: "Gimme Dat - Gettysburg College Campus Marketplace",
-    template: "%s | Gimme Dat",
+    default: SEO_CONFIG.defaultTitle,
+    template: `%s | ${SEO_CONFIG.siteName}`,
   },
-  description:
-    "Buy, sell, and trade textbooks, services, and more with verified Gettysburg College students. Your trusted campus marketplace for tutoring, electronics, furniture, and student services in Adams County, PA.",
+  description: SEO_CONFIG.defaultDescription,
   keywords: [...ALL_KEYWORDS],
-  authors: [{ name: "Gimme Dat" }],
-  creator: "Gimme Dat",
-  publisher: "Gimme Dat",
+  authors: [{ name: SEO_CONFIG.siteName }],
+  creator: SEO_CONFIG.siteName,
+  publisher: SEO_CONFIG.siteName,
   robots: {
     index: true,
     follow: true,
@@ -58,23 +57,21 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SEO_CONFIG.siteUrl,
     siteName: SEO_CONFIG.siteName,
-    title: "Gimme Dat - Gettysburg College Campus Marketplace",
-    description:
-      "Buy, sell, and trade textbooks, services, and more with verified Gettysburg College students. Your trusted campus marketplace.",
+    title: SEO_CONFIG.defaultTitle,
+    description: SEO_CONFIG.defaultDescription,
     images: [
       {
         url: `${SEO_CONFIG.siteUrl}/images/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "Gimme Dat - Campus Marketplace",
+        alt: `${SEO_CONFIG.siteName} - Campus Marketplace`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gimme Dat - Gettysburg College Campus Marketplace",
-    description:
-      "Your campus marketplace for textbooks, tutoring, and student services at Gettysburg College.",
+    title: SEO_CONFIG.defaultTitle,
+    description: SEO_CONFIG.defaultDescription,
     images: [`${SEO_CONFIG.siteUrl}/images/twitter-card.png`],
     creator: SEO_CONFIG.twitterHandle,
     site: SEO_CONFIG.twitterHandle,
@@ -83,11 +80,6 @@ export const metadata: Metadata = {
     canonical: SEO_CONFIG.siteUrl,
   },
   category: "education",
-  verification: {
-    // Add these when you have them
-    // google: "your-google-verification-code",
-    // yandex: "your-yandex-verification-code",
-  },
 };
 
 export default function RootLayout({
