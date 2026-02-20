@@ -959,228 +959,328 @@ async def admin_get_user_detail(
 
 logger = logging.getLogger(__name__)
 
-# Example listings with images — covers every category
+_IMG = "https://images.unsplash.com/photo-"
+_Q = "?w=800&h=600&fit=crop&q=80"
+
+# Example listings with images — covers every category.
+# Each description is split across lines to satisfy E501.
 SEED_EXAMPLE_LISTINGS = [
     # ── Textbooks ──
     {
         "type": "item",
-        "category_slug": "textbooks",
+        "cat": "textbooks",
         "title": "[EXAMPLE] Intro to Psychology — Myers, 12th Ed",
-        "description": "Barely used, clean pages, no highlighting. Comes with online access code (unused). Perfect for Psych 101. Can meet at the library or student center.",
-        "price_hint": "$35",
-        "location_type": "on_campus",
-        "location_hint": "Library main entrance",
-        "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Barely used, clean pages, no highlighting. "
+            "Comes with online access code (unused). "
+            "Perfect for Psych 101. Can meet at the library."
+        ),
+        "price": "$35",
+        "loc": "on_campus",
+        "loc_hint": "Library main entrance",
+        "img": f"{_IMG}1544716278-ca5e3f4abd8c{_Q}",
     },
     {
         "type": "item",
-        "category_slug": "textbooks",
+        "cat": "textbooks",
         "title": "[EXAMPLE] Principles of Microeconomics — Mankiw",
-        "description": "8th edition, some highlighting in chapters 1-6 but otherwise clean. Great condition for the price. Includes study guide insert. Selling because I switched majors.",
-        "price_hint": "$30",
-        "location_type": "on_campus",
-        "location_hint": "Economics department building",
-        "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "8th edition, some highlighting in chapters 1-6 "
+            "but otherwise clean. Great condition for the "
+            "price. Includes study guide insert."
+        ),
+        "price": "$30",
+        "loc": "on_campus",
+        "loc_hint": "Economics department building",
+        "img": f"{_IMG}1456513080510-7bf3a84b82f8{_Q}",
     },
     {
         "type": "item",
-        "category_slug": "textbooks",
+        "cat": "textbooks",
         "title": "[EXAMPLE] College Writing Skills with Readings",
-        "description": "Langan 10th edition. Required for English Comp. All pages intact, some margin notes that are actually helpful. Free highlighter included if you want it.",
-        "price_hint": "$20",
-        "location_type": "on_campus",
-        "location_hint": "Student center",
-        "image": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Langan 10th edition. Required for English Comp. "
+            "All pages intact, some margin notes that are "
+            "actually helpful. Free highlighter included."
+        ),
+        "price": "$20",
+        "loc": "on_campus",
+        "loc_hint": "Student center",
+        "img": f"{_IMG}1497633762265-9d179a990aa6{_Q}",
     },
     # ── Tutoring ──
     {
         "type": "service",
-        "category_slug": "tutoring",
-        "title": "[EXAMPLE] Spanish Tutor — Native Speaker, All Levels",
-        "description": "Heritage speaker with 3 years of tutoring experience. I can help with conversation practice, grammar, essay writing, and exam prep. Flexible scheduling — evenings and weekends work best for me.",
-        "price_hint": "$20/hr",
-        "location_type": "on_campus",
-        "location_hint": "Library study rooms or Zoom",
-        "image": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop&q=80",
+        "cat": "tutoring",
+        "title": "[EXAMPLE] Spanish Tutor — Native Speaker",
+        "desc": (
+            "Heritage speaker with 3 years of tutoring "
+            "experience. Conversation practice, grammar, "
+            "essay writing, and exam prep. Flexible "
+            "scheduling — evenings and weekends."
+        ),
+        "price": "$20/hr",
+        "loc": "on_campus",
+        "loc_hint": "Library study rooms or Zoom",
+        "img": f"{_IMG}1522202176988-66273c2fd55f{_Q}",
     },
     {
         "type": "service",
-        "category_slug": "tutoring",
-        "title": "[EXAMPLE] Stats & Data Science Tutor — R and Python",
-        "description": "Math major, TA for Intro to Stats. I help with homework, projects, and exam review. Comfortable with R, Python, Excel, and SPSS. Brought 10+ students from C to A-. First session free to see if we're a good fit.",
-        "price_hint": "$25/hr",
-        "location_type": "on_campus",
-        "location_hint": "Math department or Zoom",
-        "image": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&h=600&fit=crop&q=80",
+        "cat": "tutoring",
+        "title": "[EXAMPLE] Stats & Data Science Tutor",
+        "desc": (
+            "Math major, TA for Intro to Stats. I help with "
+            "homework, projects, and exam review. Comfortable "
+            "with R, Python, Excel, and SPSS. Brought 10+ "
+            "students from C to A-."
+        ),
+        "price": "$25/hr",
+        "loc": "on_campus",
+        "loc_hint": "Math department or Zoom",
+        "img": f"{_IMG}1434030216411-0b793f4b4173{_Q}",
     },
     # ── Hair & Beauty ──
     {
         "type": "service",
-        "category_slug": "hair-beauty",
+        "cat": "hair-beauty",
         "title": "[EXAMPLE] Loc Retwists & Maintenance",
-        "description": "Experienced with all loc types — traditional, freeform, and sisterlocs. Retwists starting at $40 depending on length. I use quality products and take my time. Booking weekends — DM me your availability.",
-        "price_hint": "From $40",
-        "location_type": "on_campus",
-        "location_hint": "My dorm or yours — I bring everything",
-        "image": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Experienced with all loc types — traditional, "
+            "freeform, and sisterlocs. Retwists starting at "
+            "$40 depending on length. I use quality products. "
+            "Booking weekends — DM me."
+        ),
+        "price": "From $40",
+        "loc": "on_campus",
+        "loc_hint": "My dorm or yours — I bring everything",
+        "img": f"{_IMG}1560066984-138dadb4c035{_Q}",
     },
     {
         "type": "service",
-        "category_slug": "hair-beauty",
+        "cat": "hair-beauty",
         "title": "[EXAMPLE] Eyebrow Threading — Quick & Clean",
-        "description": "Been threading for 4 years, learned from my mom. Takes about 10 minutes, super precise results. Way better than waxing. I have all the supplies. Just message me to book a time slot!",
-        "price_hint": "$8",
-        "location_type": "on_campus",
-        "location_hint": "My room — very quick appointment",
-        "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Been threading for 4 years, learned from my mom. "
+            "Takes about 10 minutes, super precise results. "
+            "Way better than waxing. Just message me to book!"
+        ),
+        "price": "$8",
+        "loc": "on_campus",
+        "loc_hint": "My room — very quick appointment",
+        "img": f"{_IMG}1522337360788-8b13dee7a37e{_Q}",
     },
     # ── Electronics ──
     {
         "type": "item",
-        "category_slug": "electronics",
+        "cat": "electronics",
         "title": "[EXAMPLE] iPad Air (5th Gen) + Apple Pencil",
-        "description": "64GB WiFi, Space Gray. Used for one semester of note-taking. Screen protector since day one, zero scratches. Includes Apple Pencil 2nd gen and a magnetic case. Selling because I got a laptop instead.",
-        "price_hint": "$420",
-        "location_type": "on_campus",
-        "location_hint": "Can meet anywhere on campus",
-        "image": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "64GB WiFi, Space Gray. Used for one semester of "
+            "note-taking. Screen protector since day one, zero "
+            "scratches. Includes Apple Pencil 2nd gen and a "
+            "magnetic case."
+        ),
+        "price": "$420",
+        "loc": "on_campus",
+        "loc_hint": "Can meet anywhere on campus",
+        "img": f"{_IMG}1544244015-0df4b3ffc6b0{_Q}",
     },
     {
         "type": "item",
-        "category_slug": "electronics",
+        "cat": "electronics",
         "title": "[EXAMPLE] Bose SoundLink Bluetooth Speaker",
-        "description": "Great sound for dorm rooms and outdoor hangouts. Battery lasts about 8 hours. Minor scuff on the bottom, works perfectly. Comes with charging cable. Upgrading to a bigger speaker.",
-        "price_hint": "$55",
-        "location_type": "on_campus",
-        "location_hint": "Student center or dining hall",
-        "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Great sound for dorm rooms and outdoor hangouts. "
+            "Battery lasts about 8 hours. Minor scuff on the "
+            "bottom, works perfectly. Comes with charging cable."
+        ),
+        "price": "$55",
+        "loc": "on_campus",
+        "loc_hint": "Student center or dining hall",
+        "img": f"{_IMG}1608043152269-423dbba4e7e1{_Q}",
     },
     # ── Photography ──
     {
         "type": "service",
-        "category_slug": "photography",
-        "title": "[EXAMPLE] Campus Portrait Sessions — Natural Light",
-        "description": "Art major with a focus in photography. I shoot portraits, headshots, and couple photos in natural light. 30-minute session, 15+ edited photos delivered in 5 days. I know all the golden-hour spots on campus. Check my portfolio on Instagram.",
-        "price_hint": "$60/session",
-        "location_type": "on_campus",
-        "location_hint": "Best campus photo spots — I'll guide you",
-        "image": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=600&fit=crop&q=80",
+        "cat": "photography",
+        "title": "[EXAMPLE] Campus Portrait Sessions",
+        "desc": (
+            "Art major with a focus in photography. Portraits, "
+            "headshots, and couple photos in natural light. "
+            "30-minute session, 15+ edited photos delivered in "
+            "5 days. I know all the best spots on campus."
+        ),
+        "price": "$60/session",
+        "loc": "on_campus",
+        "loc_hint": "Best campus photo spots",
+        "img": f"{_IMG}1542038784456-1ea8e935640e{_Q}",
     },
     # ── Furniture ──
     {
         "type": "item",
-        "category_slug": "furniture",
+        "cat": "furniture",
         "title": "[EXAMPLE] Standing Desk Converter — Adjustable",
-        "description": "FlexiSpot 28-inch. Sits on top of your desk and raises your laptop to standing height. 8 height settings. Helped my back during long study sessions. Moving off campus where I have a real desk.",
-        "price_hint": "$45",
-        "location_type": "on_campus",
-        "location_hint": "Can help carry to your dorm",
-        "image": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "FlexiSpot 28-inch. Sits on top of your desk and "
+            "raises your laptop to standing height. 8 height "
+            "settings. Helped my back during long study sessions."
+        ),
+        "price": "$45",
+        "loc": "on_campus",
+        "loc_hint": "Can help carry to your dorm",
+        "img": f"{_IMG}1518455027359-f3f8164ba6bd{_Q}",
     },
     {
         "type": "item",
-        "category_slug": "furniture",
+        "cat": "furniture",
         "title": "[EXAMPLE] Cozy Bean Bag Chair — Oversized",
-        "description": "Perfect for dorm rooms or apartments. Dark gray, machine-washable cover. Bought it for $80 at Target last semester. Super comfortable for gaming, reading, or just hanging out. Too big for my new room.",
-        "price_hint": "$30",
-        "location_type": "on_campus",
-        "location_hint": "Residence hall — need help carrying? Just ask",
-        "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Perfect for dorm rooms or apartments. Dark gray, "
+            "machine-washable cover. Bought it for $80 at Target "
+            "last semester. Super comfortable for gaming or "
+            "reading. Too big for my new room."
+        ),
+        "price": "$30",
+        "loc": "on_campus",
+        "loc_hint": "Residence hall",
+        "img": f"{_IMG}1555041469-a586c61ea9bc{_Q}",
     },
     # ── Clothing ──
     {
         "type": "item",
-        "category_slug": "clothing",
+        "cat": "clothing",
         "title": "[EXAMPLE] Vintage Levi's 501 Jeans — 32x30",
-        "description": "Great vintage wash, perfectly broken in. No rips or stains. Bought at a thrift store in NYC but they don't fit me right. These are the real deal — heavyweight denim, made in USA tag.",
-        "price_hint": "$40",
-        "location_type": "on_campus",
-        "location_hint": "Student center",
-        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Great vintage wash, perfectly broken in. No rips "
+            "or stains. Bought at a thrift store but they don't "
+            "fit me right. Heavyweight denim, made in USA tag."
+        ),
+        "price": "$40",
+        "loc": "on_campus",
+        "loc_hint": "Student center",
+        "img": f"{_IMG}1542272604-787c3835535d{_Q}",
     },
     {
         "type": "item",
-        "category_slug": "clothing",
+        "cat": "clothing",
         "title": "[EXAMPLE] Patagonia Better Sweater — Men's L",
-        "description": "Navy blue, quarter-zip. Worn a handful of times, in excellent condition. Retails for $139 new. Super warm for fall/winter walks to class. Selling because I got a similar one as a gift.",
-        "price_hint": "$55",
-        "location_type": "on_campus",
-        "location_hint": "Anywhere on campus",
-        "image": "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Navy blue, quarter-zip. Worn a handful of times, "
+            "in excellent condition. Retails for $139 new. "
+            "Super warm for fall/winter walks to class."
+        ),
+        "price": "$55",
+        "loc": "on_campus",
+        "loc_hint": "Anywhere on campus",
+        "img": f"{_IMG}1591047139829-d91aecb6caea{_Q}",
     },
     # ── Tickets ──
     {
         "type": "item",
-        "category_slug": "tickets",
-        "title": "[EXAMPLE] 2 Concert Tickets — Campus Battle of the Bands",
-        "description": "Can't make it anymore — selling both tickets together. Digital transfer through the campus events app. Great lineup this year. Face value was $15 each, selling below that.",
-        "price_hint": "$20 for both",
-        "location_type": "on_campus",
-        "location_hint": "Digital transfer — no meetup needed",
-        "image": "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=600&fit=crop&q=80",
+        "cat": "tickets",
+        "title": "[EXAMPLE] 2 Concert Tickets — Battle of the Bands",
+        "desc": (
+            "Can't make it anymore — selling both together. "
+            "Digital transfer through the campus events app. "
+            "Great lineup this year. Face value was $15 each."
+        ),
+        "price": "$20 for both",
+        "loc": "on_campus",
+        "loc_hint": "Digital transfer — no meetup needed",
+        "img": f"{_IMG}1501281668745-f7f57925c3b4{_Q}",
     },
     # ── Music Lessons ──
     {
         "type": "service",
-        "category_slug": "music-lessons",
+        "cat": "music-lessons",
         "title": "[EXAMPLE] Piano Lessons — Classical & Pop",
-        "description": "Music minor, 12 years of piano experience. I teach beginners through intermediate. We can work on reading sheet music, chords, or learning your favorite songs. Practice rooms in the music building are free to use. Lesson plans tailored to your goals.",
-        "price_hint": "$18/hr",
-        "location_type": "on_campus",
-        "location_hint": "Music building practice rooms",
-        "image": "https://images.unsplash.com/photo-1520523839897-bd043c4cd28f?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Music minor, 12 years of piano experience. "
+            "Beginners through intermediate. Sheet music, "
+            "chords, or your favorite songs. Practice rooms "
+            "in the music building are free to use."
+        ),
+        "price": "$18/hr",
+        "loc": "on_campus",
+        "loc_hint": "Music building practice rooms",
+        "img": f"{_IMG}1520523839897-bd043c4cd28f{_Q}",
     },
     {
         "type": "service",
-        "category_slug": "music-lessons",
-        "title": "[EXAMPLE] Drum Lessons — Rock, Jazz, Hip-Hop Beats",
-        "description": "Been playing drums for 8 years, marching band and jazz ensemble member. I teach basic rhythms, rudiments, and full songs. Bring your sticks — I have a practice pad. Electronic kit lessons also available.",
-        "price_hint": "$15/hr",
-        "location_type": "on_campus",
-        "location_hint": "Music building or my apartment",
-        "image": "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&h=600&fit=crop&q=80",
+        "cat": "music-lessons",
+        "title": "[EXAMPLE] Drum Lessons — Rock, Jazz, Hip-Hop",
+        "desc": (
+            "Been playing drums for 8 years, marching band "
+            "and jazz ensemble member. Basic rhythms, "
+            "rudiments, and full songs. Bring your sticks — "
+            "I have a practice pad."
+        ),
+        "price": "$15/hr",
+        "loc": "on_campus",
+        "loc_hint": "Music building or my apartment",
+        "img": f"{_IMG}1519892300165-cb5542fb47c7{_Q}",
     },
     # ── Fitness ──
     {
         "type": "service",
-        "category_slug": "fitness",
-        "title": "[EXAMPLE] Yoga Sessions — Stress Relief & Flexibility",
-        "description": "Certified yoga instructor (200-hour RYT). I lead 45-minute sessions focused on stress relief, flexibility, and strength. Perfect for students dealing with exam anxiety. Bring a mat if you have one — I have extras. Small groups welcome!",
-        "price_hint": "$10/session",
-        "location_type": "on_campus",
-        "location_hint": "Campus green or gym studio",
-        "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop&q=80",
+        "cat": "fitness",
+        "title": "[EXAMPLE] Yoga Sessions — Stress Relief",
+        "desc": (
+            "Certified yoga instructor (200-hour RYT). "
+            "45-minute sessions focused on stress relief, "
+            "flexibility, and strength. Perfect for exam "
+            "anxiety. Bring a mat — I have extras."
+        ),
+        "price": "$10/session",
+        "loc": "on_campus",
+        "loc_hint": "Campus green or gym studio",
+        "img": f"{_IMG}1544367567-0f2fcb009e0b{_Q}",
     },
     {
         "type": "service",
-        "category_slug": "fitness",
+        "cat": "fitness",
         "title": "[EXAMPLE] Boxing & Cardio Workout Partner",
-        "description": "Not a certified trainer, but I've been boxing for 3 years and love sharing what I know. Pad work, bag drills, and cardio circuits. Great stress reliever. I have extra gloves and wraps. Beginner-friendly!",
-        "price_hint": "$12/session",
-        "location_type": "on_campus",
-        "location_hint": "Campus gym or outdoor courts",
-        "image": "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "Boxing for 3 years and love sharing what I know. "
+            "Pad work, bag drills, and cardio circuits. Great "
+            "stress reliever. I have extra gloves and wraps. "
+            "Beginner-friendly!"
+        ),
+        "price": "$12/session",
+        "loc": "on_campus",
+        "loc_hint": "Campus gym or outdoor courts",
+        "img": f"{_IMG}1549719386-74dfcbf7dbed{_Q}",
     },
     # ── Tech Help ──
     {
         "type": "service",
-        "category_slug": "tech-help",
-        "title": "[EXAMPLE] Website & Portfolio Builder for Students",
-        "description": "CS major. I'll build you a personal website or portfolio using modern tools. Great for job applications, grad school, or showcasing your work. Includes hosting setup and a quick tutorial so you can update it yourself. Turnaround: 3-5 days.",
-        "price_hint": "$50-100",
-        "location_type": "remote",
-        "location_hint": "All remote — we'll chat over Zoom",
-        "image": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop&q=80",
+        "cat": "tech-help",
+        "title": "[EXAMPLE] Website & Portfolio Builder",
+        "desc": (
+            "CS major. I'll build you a personal website or "
+            "portfolio using modern tools. Great for job apps "
+            "and grad school. Includes hosting setup and a "
+            "tutorial so you can update it yourself."
+        ),
+        "price": "$50-100",
+        "loc": "remote",
+        "loc_hint": "All remote — we'll chat over Zoom",
+        "img": f"{_IMG}1461749280684-dccba630e2f6{_Q}",
     },
     {
         "type": "service",
-        "category_slug": "tech-help",
+        "cat": "tech-help",
         "title": "[EXAMPLE] Phone Screen Repair — Same Day",
-        "description": "I fix cracked screens for iPhones and Samsung Galaxy phones. Parts sourced from reliable suppliers. Most repairs done in under an hour. Way cheaper than the Apple Store. Bring your phone and I'll give you a free quote.",
-        "price_hint": "From $40",
-        "location_type": "on_campus",
-        "location_hint": "My dorm room — quick turnaround",
-        "image": "https://images.unsplash.com/photo-1581092160607-ee67df30e38e?w=800&h=600&fit=crop&q=80",
+        "desc": (
+            "I fix cracked screens for iPhones and Samsung "
+            "Galaxy phones. Parts from reliable suppliers. "
+            "Most repairs done in under an hour. Way cheaper "
+            "than the Apple Store."
+        ),
+        "price": "From $40",
+        "loc": "on_campus",
+        "loc_hint": "My dorm room — quick turnaround",
+        "img": f"{_IMG}1581092160607-ee67df30e38e{_Q}",
     },
 ]
 
@@ -1190,39 +1290,45 @@ async def seed_example_listings(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    """Create example listings with images to populate the marketplace.
+    """Seed example listings with images.
 
-    Only an admin can trigger this. Listings are created under the admin's
-    account with photos from Unsplash. Duplicate titles are skipped
-    to make this endpoint idempotent.
+    Admin-only. Creates listings under the admin account with
+    Unsplash photos. Skips duplicates (idempotent).
     """
     settings = get_settings()
 
     # Build slug → category map
     cats = (
-        await db.execute(select(Category).where(Category.is_active.is_(True)))
+        await db.execute(
+            select(Category).where(Category.is_active.is_(True))
+        )
     ).scalars().all()
-    slug_map: dict[str, Category] = {c.slug: c for c in cats}
+    slug_map = {c.slug: c for c in cats}
 
-    # Check which titles already exist to avoid duplicates
-    existing_titles = set(
+    # Existing titles for dedup
+    existing = set(
         (
             await db.execute(
-                select(Listing.title).where(Listing.user_id == admin.id)
+                select(Listing.title).where(
+                    Listing.user_id == admin.id
+                )
             )
         ).scalars().all()
     )
 
     created = 0
-    new_listings: list[Listing] = []
+    new_items: list[tuple] = []
 
     for item in SEED_EXAMPLE_LISTINGS:
-        if item["title"] in existing_titles:
+        if item["title"] in existing:
             continue
 
-        cat = slug_map.get(item["category_slug"])
+        cat = slug_map.get(item["cat"])
         if not cat:
-            logger.warning("Category slug %r not found, skipping", item["category_slug"])
+            logger.warning(
+                "Category %r not found, skipping",
+                item["cat"],
+            )
             continue
 
         listing = Listing(
@@ -1231,27 +1337,32 @@ async def seed_example_listings(
             type=item["type"],
             category_id=cat.id,
             title=item["title"],
-            description=item["description"],
-            price_hint=item.get("price_hint"),
-            location_type=item.get("location_type", "on_campus"),
-            location_hint=item.get("location_hint"),
+            description=item["desc"],
+            price_hint=item.get("price"),
+            location_type=item.get("loc", "on_campus"),
+            location_hint=item.get("loc_hint"),
             contact_preference="in_app",
             status=ListingStatus.ACTIVE,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=settings.listing_expiry_days),
+            expires_at=(
+                datetime.now(timezone.utc)
+                + timedelta(days=settings.listing_expiry_days)
+            ),
         )
         db.add(listing)
-        new_listings.append((listing, item.get("image")))
+        new_items.append((listing, item.get("img")))
         created += 1
 
     if not created:
-        return {"created": 0, "skipped": len(SEED_EXAMPLE_LISTINGS)}
+        return {
+            "created": 0,
+            "skipped": len(SEED_EXAMPLE_LISTINGS),
+        }
 
-    # Flush to generate listing IDs
+    # Flush to get IDs
     await db.flush()
 
-    # Create photos and search vectors for each new listing
-    for listing, image_url in new_listings:
-        # Add the photo
+    # Create photos + search vectors
+    for listing, image_url in new_items:
         if image_url:
             photo = ListingPhoto(
                 listing_id=listing.id,
@@ -1263,7 +1374,7 @@ async def seed_example_listings(
             )
             db.add(photo)
 
-        # Populate full-text search vector
+        # Full-text search vector
         await db.execute(
             update(Listing)
             .where(Listing.id == listing.id)
@@ -1272,12 +1383,14 @@ async def seed_example_listings(
                     "english",
                     func.coalesce(listing.title, "")
                     + " "
-                    + func.coalesce(listing.description, ""),
+                    + func.coalesce(
+                        listing.description, ""
+                    ),
                 )
             )
         )
 
-    # Update admin's listing count
+    # Update admin listing count
     await db.execute(
         update(User)
         .where(User.id == admin.id)
@@ -1286,4 +1399,7 @@ async def seed_example_listings(
 
     await db.commit()
 
-    return {"created": created, "skipped": len(SEED_EXAMPLE_LISTINGS) - created}
+    return {
+        "created": created,
+        "skipped": len(SEED_EXAMPLE_LISTINGS) - created,
+    }
