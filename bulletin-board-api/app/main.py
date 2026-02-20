@@ -67,6 +67,14 @@ async def lifespan(app: FastAPI):
             " domain 'resend.dev' — emails only go to account owner!"
         )
 
+    # Auto-seed example listings if needed
+    try:
+        from app.services.auto_seed import auto_seed_examples
+
+        await auto_seed_examples(app.state.db_session)
+    except Exception as e:
+        print(f"[STARTUP] Auto-seed failed (non-fatal): {e}")
+
     yield
 
     # Shutdown
