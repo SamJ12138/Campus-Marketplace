@@ -68,12 +68,64 @@ export function setTokens(access: string, refresh: string): void {
   accessToken = access;
   refreshToken = refresh;
   persistToStorage(access, refresh);
+  scheduleProactiveRefresh();
 }
 
 export function clearTokens(): void {
   accessToken = null;
   refreshToken = null;
   clearStorage();
+  cancelProactiveRefresh();
+}
+
+// ---- Proactive token refresh ----
+
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelProactiveRefresh(): void {
+  if (proactiveRefreshTimer !== null) {
+    clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
+}
+
+/** Decode JWT payload (no verification) to read the `exp` claim. */
+function getTokenExpiry(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Schedule a proactive refresh 5 minutes before the access token expires.
+ * This avoids the 401→refresh→retry chain entirely.
+ */
+function scheduleProactiveRefresh(): void {
+  cancelProactiveRefresh();
+  if (!accessToken) return;
+
+  const exp = getTokenExpiry(accessToken);
+  if (!exp) return;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const refreshInSec = (exp - nowSec) - 5 * 60; // 5 min before expiry
+
+  if (refreshInSec <= 0) return; // Already close to or past expiry — let reactive path handle it
+
+  proactiveRefreshTimer = setTimeout(async () => {
+    try {
+      await getNewAccessToken();
+      // setTokens() is called inside refreshAccessToken on success,
+      // which re-schedules the next proactive refresh automatically.
+    } catch {
+      // Proactive refresh failed — the reactive 401 path will handle it
+    }
+  }, refreshInSec * 1000);
 }
 
 // ---- Custom API error class ----
@@ -110,7 +162,11 @@ async function refreshAccessToken(): Promise<string> {
   });
 
   if (!res.ok) {
-    clearTokens();
+    // Only clear tokens on definitive auth rejection (401/403).
+    // Network errors and 5xx may be transient — keep tokens for retry.
+    if (res.status === 401 || res.status === 403) {
+      clearTokens();
+    }
     const body = await res.json().catch(() => ({}));
     throw new ApiError(
       res.status,

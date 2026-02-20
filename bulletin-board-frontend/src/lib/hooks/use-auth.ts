@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { User } from "@/lib/types";
 import { login as apiLogin, register as apiRegister, logout as apiLogout } from "@/lib/api/auth";
 import { getMe } from "@/lib/api/users";
-import { setTokens, clearTokens, getAccessToken, getRefreshToken, restoreTokens } from "@/lib/api/client";
+import { ApiError, setTokens, clearTokens, getAccessToken, getRefreshToken, restoreTokens } from "@/lib/api/client";
 
 // ---- Cached user for instant page loads ----
 const USER_CACHE_KEY = "cb_user_cache";
@@ -111,10 +111,14 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
       const user = await getMe();
       setCachedUser(user);
       set({ user, isAuthenticated: true });
-    } catch {
-      clearTokens();
-      setCachedUser(null);
-      set({ user: null, isAuthenticated: false });
+    } catch (err) {
+      // Only log out on definitive auth rejection (401/403).
+      // Network errors / 5xx are transient — keep cached user.
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        clearTokens();
+        setCachedUser(null);
+        set({ user: null, isAuthenticated: false });
+      }
     }
   },
 
@@ -139,10 +143,17 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
       const user = await getMe();
       setCachedUser(user);
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch {
-      clearTokens();
-      setCachedUser(null);
-      set({ user: null, isAuthenticated: false, isLoading: false });
+    } catch (err) {
+      // Only log out on definitive auth rejection (401/403).
+      // Network errors / 5xx are transient — keep cached user & tokens.
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        clearTokens();
+        setCachedUser(null);
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      } else if (!cached) {
+        // No cached user and server unreachable — show logged-out state
+        set({ isLoading: false });
+      }
     }
   },
 

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret_key: str = Field(..., min_length=32)
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 15
+    jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
     # S3 Storage

@@ -226,8 +226,18 @@ async def refresh_token(
         select(RefreshToken).where(RefreshToken.token_hash == token_hash)
     )
 
-    if not token or token.revoked_at or token.expires_at < datetime.now(timezone.utc):
+    if not token or token.expires_at < datetime.now(timezone.utc):
         raise HTTPException(401, "Invalid or expired refresh token")
+
+    # Allow recently-revoked tokens within a 60-second grace window.
+    # This handles lost responses, two tabs refreshing simultaneously, or
+    # network drops mid-refresh where the old token was revoked but the
+    # client never received the new one.
+    if token.revoked_at:
+        grace_seconds = 60
+        elapsed = (datetime.now(timezone.utc) - token.revoked_at).total_seconds()
+        if elapsed > grace_seconds:
+            raise HTTPException(401, "Invalid or expired refresh token")
 
     user = await db.get(User, token.user_id)
     if not user or user.status != UserStatus.ACTIVE:
