@@ -337,3 +337,82 @@ to understand what has been done and what remains.
 - Pre-existing test failures in `test_moderation.py` and integration tests persist
 
 ---
+
+## Session 6 — 2026-02-21 (task-06)
+
+**Task:** task-06 — Build Admin Intelligence Dashboard Agent
+**What was done:**
+- Completed task-06 which was partially implemented by a prior incomplete session
+- Prior session had already created the service, API endpoints, ARQ tasks, frontend page, sidebar link, and admin quick link
+- This session created `tests/unit/test_admin_intelligence.py` with 64 comprehensive unit tests
+- Fixed lint errors in `admin_analytics.py` (unused imports: `BaseModel`, `require_admin`)
+- Fixed lint errors in test file (unused `patch` import, import sorting)
+- Verified all 267 unit tests pass (excluding pre-existing `test_moderation.py` failure)
+- Verified ruff linting passes clean
+
+**Backend service** (`app/services/admin_intelligence_service.py`):
+- `AdminIntelligenceService` class with DB-integrated analytics
+- `analyze_trends()` — period-over-period growth with AI/heuristic narrative
+- `detect_anomalies()` — z-score based detection comparing 24h metrics to daily average
+- `score_user_risk()` — 5-factor weighted scoring (reports, flagged msgs, account age, listing removals, suspension history)
+- `batch_score_users()` — batch scoring for reported/new users
+- `generate_summary()` — weekly summary with key metrics, AI narrative, and highlights
+- Graceful degradation: all methods fall back to heuristics when AI is disabled
+
+**API endpoints** (`app/api/v1/admin_analytics.py`):
+- `GET /admin/analytics/trends` — trend analysis with growth rates
+- `GET /admin/analytics/anomalies` — anomaly detection
+- `GET /admin/analytics/risk-scores` — batch user risk scores
+- `GET /admin/analytics/risk-scores/{user_id}` — single user risk score
+- `GET /admin/analytics/summary` — platform summary with highlights
+- All endpoints require moderator/admin authentication
+
+**ARQ worker tasks** (`app/workers/tasks.py` + `main.py`):
+- `generate_admin_summary` — weekly summary generation (cron: Monday 8am)
+- `detect_anomalies_task` — periodic anomaly detection (cron: every 6h at 2, 8, 14, 20)
+- Both registered in worker functions list and cron_jobs
+
+**Frontend** (`bulletin-board-frontend/`):
+- `src/lib/api/admin-analytics.ts` — TypeScript API client with full type definitions
+- `src/app/(admin)/admin/insights/page.tsx` — Full insights dashboard with:
+  - Platform summary section with 6 key metrics, AI narrative, and highlights
+  - Trend analysis with growth badges and period-over-period comparison
+  - Anomaly detection with severity-colored alerts
+  - User risk scores with expandable factor breakdowns and risk bar visualization
+  - Loading skeletons and error handling
+  - Refresh button
+- Sidebar link added to admin layout (Brain icon, "AI Insights")
+- Quick link added to admin dashboard page
+
+**Files created (this session):**
+- `bulletin-board-api/tests/unit/test_admin_intelligence.py` (64 tests)
+
+**Files modified (this session):**
+- `bulletin-board-api/app/api/v1/admin_analytics.py` (removed unused imports)
+- `ai-automation/tasks.json` (task-06 → completed)
+
+**Files created/modified by prior incomplete session (verified working):**
+- `bulletin-board-api/app/services/admin_intelligence_service.py`
+- `bulletin-board-api/app/api/v1/admin_analytics.py`
+- `bulletin-board-api/app/workers/tasks.py` (added admin summary + anomaly tasks)
+- `bulletin-board-api/app/workers/main.py` (registered tasks + cron jobs)
+- `bulletin-board-frontend/src/lib/api/admin-analytics.ts`
+- `bulletin-board-frontend/src/app/(admin)/admin/insights/page.tsx`
+- `bulletin-board-frontend/src/app/(admin)/layout.tsx` (sidebar link)
+- `bulletin-board-frontend/src/app/(admin)/admin/page.tsx` (quick link)
+- `bulletin-board-api/app/api/v1/router.py` (admin_analytics route)
+
+**Test results:**
+- 64/64 admin intelligence unit tests pass
+- 267/267 total unit tests pass (excluding pre-existing test_moderation.py failure)
+- Ruff linting: all checks passed
+
+**Notes for next session:**
+- Tasks 07 and 08 remain available
+- Task-07 (Smart Notification & Engagement Agent) depends only on task-01 (completed)
+- Task-08 (Multi-Campus Onboarding) depends on task-01 + task-06 (both now completed)
+- The admin intelligence service integrates directly with DB (unlike simpler services that use in-memory data)
+- Risk scoring uses 5 weighted factors: reports (35), flagged messages (20), listing removals (20), account age (15), suspension history (10)
+- Pre-existing test failure in `test_moderation.py` (mock config issue) persists
+
+---

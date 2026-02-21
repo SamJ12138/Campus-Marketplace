@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { api } from "@/lib/api/client";
+import { getUserRiskScore, type UserRiskScore } from "@/lib/api/admin-analytics";
 import { useAuthStore } from "@/lib/hooks/use-auth";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -123,6 +124,7 @@ function UserRow({
 }) {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [riskScore, setRiskScore] = useState<UserRiskScore | null>(null);
   const [actionReason, setActionReason] = useState("");
 
   const createdDate = new Date(user.created_at).toLocaleDateString(undefined, {
@@ -139,6 +141,10 @@ function UserRow({
         .then(setDetail)
         .catch(() => {})
         .finally(() => setDetailLoading(false));
+
+      getUserRiskScore(user.id)
+        .then(setRiskScore)
+        .catch(() => {});
     }
   }, [isExpanded, detail, user.id]);
 
@@ -211,6 +217,51 @@ function UserRow({
                   <p className="text-[10px] text-muted-foreground">Reports</p>
                 </div>
               </div>
+
+              {/* Risk score */}
+              {riskScore && riskScore.score > 0 && (
+                <div
+                  className={cn(
+                    "rounded-md border p-3 space-y-2",
+                    riskScore.level === "critical" && "border-destructive/50 bg-destructive/5",
+                    riskScore.level === "high" && "border-orange-500/50 bg-orange-50 dark:bg-orange-950/20",
+                    riskScore.level === "medium" && "border-warning/50 bg-warning/5",
+                    riskScore.level === "low" && "border-border bg-card",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium flex items-center gap-1">
+                      <ShieldAlert className="h-3 w-3" /> AI Risk Score
+                    </p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                        riskScore.level === "critical" && "bg-destructive/10 text-destructive",
+                        riskScore.level === "high" && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                        riskScore.level === "medium" && "bg-warning/10 text-warning",
+                        riskScore.level === "low" && "bg-success/10 text-success",
+                      )}
+                    >
+                      {riskScore.score}/100 ({riskScore.level})
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        riskScore.score >= 70 && "bg-destructive",
+                        riskScore.score >= 50 && riskScore.score < 70 && "bg-orange-500",
+                        riskScore.score >= 25 && riskScore.score < 50 && "bg-warning",
+                        riskScore.score < 25 && "bg-success",
+                      )}
+                      style={{ width: `${Math.min(riskScore.score, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {riskScore.explanation}
+                  </p>
+                </div>
+              )}
 
               {/* Info grid */}
               <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">

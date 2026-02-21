@@ -32,6 +32,8 @@ class WorkerSettings:
         "app.workers.tasks.send_report_resolved_email",
         "app.workers.tasks.generate_listing_embedding",
         "app.workers.tasks.batch_generate_embeddings",
+        "app.workers.tasks.generate_admin_summary",
+        "app.workers.tasks.detect_anomalies_task",
     ]
 
     cron_jobs = [
@@ -39,6 +41,8 @@ class WorkerSettings:
         cron("app.workers.tasks.cleanup_orphan_uploads", hour=3, minute=30),
         cron("app.workers.tasks.send_expiry_reminders", hour=9),
         cron("app.workers.tasks.batch_generate_embeddings", hour={1, 7, 13, 19}),
+        cron("app.workers.tasks.generate_admin_summary", weekday=1, hour=8),
+        cron("app.workers.tasks.detect_anomalies_task", hour={2, 8, 14, 20}),
     ]
 
     on_startup = startup

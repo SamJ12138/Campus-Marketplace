@@ -325,3 +325,40 @@ async def batch_generate_embeddings(ctx, batch_size: int = 50):
     async with ctx["db_session"]() as db:
         count = await embedding_service.batch_generate_embeddings(db, batch_size)
         print(f"[EMBEDDING] Batch generated embeddings for {count} listings")
+
+
+async def generate_admin_summary(ctx, period_days: int = 7):
+    """Generate a periodic admin intelligence summary."""
+    from app.services.admin_intelligence_service import AdminIntelligenceService
+    from app.services.ai_service import AIService
+
+    settings = ctx["settings"]
+    service = AdminIntelligenceService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        summary = await service.generate_summary(db, period_days=period_days)
+        print(
+            f"[INTEL] Weekly summary generated: "
+            f"{summary.get('new_users', 0)} users, "
+            f"{summary.get('new_listings', 0)} listings, "
+            f"{summary.get('pending_reports', 0)} pending reports"
+        )
+
+
+async def detect_anomalies_task(ctx):
+    """Run anomaly detection and log any findings."""
+    from app.services.admin_intelligence_service import AdminIntelligenceService
+    from app.services.ai_service import AIService
+
+    settings = ctx["settings"]
+    service = AdminIntelligenceService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        anomalies = await service.detect_anomalies(db)
+        if anomalies:
+            print(
+                f"[INTEL] Detected {len(anomalies)} anomalies: "
+                + ", ".join(a["message"] for a in anomalies)
+            )
+        else:
+            print("[INTEL] No anomalies detected")

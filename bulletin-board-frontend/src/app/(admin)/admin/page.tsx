@@ -14,6 +14,7 @@ import {
   Megaphone,
   Mail,
   UserPlus,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -196,6 +197,12 @@ const QUICK_LINKS = [
     title: "Keyword Filters",
     description: "Manage blocked words and phrases",
     icon: KeyRound,
+  },
+  {
+    href: "/admin/insights",
+    title: "AI Insights",
+    description: "AI-powered trends, anomalies & risk",
+    icon: Brain,
   },
   {
     href: "/admin/audit-log",

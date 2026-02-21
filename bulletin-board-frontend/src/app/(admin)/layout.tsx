@@ -14,6 +14,7 @@ import {
   Megaphone,
   MessageSquarePlus,
   UserPlus,
+  Brain,
   Menu,
   X,
   Shield,
@@ -31,6 +32,7 @@ const sidebarLinks = [
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquarePlus },
   { href: "/admin/applications", label: "Applications", icon: UserPlus },
   { href: "/admin/keywords", label: "Keywords", icon: KeyRound },
+  { href: "/admin/insights", label: "AI Insights", icon: Brain },
   { href: "/admin/audit-log", label: t.admin.auditLog, icon: ScrollText },
 ];
 
