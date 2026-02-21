@@ -7,6 +7,7 @@ from app.api.v1 import (
     applications,
     auth,
     blocks,
+    campus_onboarding,
     campuses,
     categories,
     chatbot,
@@ -41,3 +42,4 @@ api_router.include_router(chatbot.router)
 api_router.include_router(search.router)
 api_router.include_router(listing_assist.router)
 api_router.include_router(admin_analytics.router)
+api_router.include_router(campus_onboarding.router)

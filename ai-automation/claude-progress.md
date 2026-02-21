@@ -510,3 +510,37 @@ to understand what has been done and what remains.
 - Pre-existing test failure in `test_moderation.py` (mock config issue) persists
 
 ---
+
+## Session 8 — 2026-02-21 (task-08)
+
+**Task:** task-08 — Build Multi-Campus Onboarding & Expansion Agent
+**What was done:**
+- Created `app/services/campus_onboarding_service.py` — automated campus provisioning
+  - `CampusOnboardingService` class wrapping `AIService`
+  - `onboard_campus()` — full provisioning: creates campus, categories, AI-generated landing content
+  - `generate_slug()` — URL-safe slug generation from campus name
+  - `_provision_categories()` — creates 13 default categories (7 service + 6 item) plus custom ones
+  - `_generate_landing_content()` — AI-generated landing page content with SEO
+  - `_fallback_landing_content()` — template-based fallback when AI is unavailable
+  - `get_cross_campus_analytics()` — cross-campus metrics comparison
+  - Duplicate detection and graceful AI degradation
+- Created `app/api/v1/campus_onboarding.py` — two admin-only endpoints
+  - `POST /admin/campuses/onboard` — provision a new campus
+  - `GET /admin/campuses/analytics` — cross-campus comparison
+- Added campus_onboarding route to `app/api/v1/router.py`
+- Created `tests/unit/test_campus_onboarding.py` with 30 tests
+
+**Files created:**
+- `bulletin-board-api/app/services/campus_onboarding_service.py`
+- `bulletin-board-api/app/api/v1/campus_onboarding.py`
+- `bulletin-board-api/tests/unit/test_campus_onboarding.py`
+
+**Files modified:**
+- `bulletin-board-api/app/api/v1/router.py`
+- `ai-automation/tasks.json` (task-08 → completed)
+
+**Test results:** 30/30 pass, ruff clean
+
+**Status:** ALL 8 TASKS COMPLETED.
+
+---
