@@ -20,3 +20,6 @@ minio_data/
 
 # Claude
 .claude/
+
+# AI automation logs
+ai-automation/logs/
