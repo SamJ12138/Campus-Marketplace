@@ -34,6 +34,11 @@ class WorkerSettings:
         "app.workers.tasks.batch_generate_embeddings",
         "app.workers.tasks.generate_admin_summary",
         "app.workers.tasks.detect_anomalies_task",
+        "app.workers.tasks.send_daily_digests",
+        "app.workers.tasks.send_weekly_digests",
+        "app.workers.tasks.send_re_engagement_campaign",
+        "app.workers.tasks.send_expiry_nudges",
+        "app.workers.tasks.send_price_drop_alerts",
     ]
 
     cron_jobs = [
@@ -43,6 +48,12 @@ class WorkerSettings:
         cron("app.workers.tasks.batch_generate_embeddings", hour={1, 7, 13, 19}),
         cron("app.workers.tasks.generate_admin_summary", weekday=1, hour=8),
         cron("app.workers.tasks.detect_anomalies_task", hour={2, 8, 14, 20}),
+        # Smart notification tasks
+        cron("app.workers.tasks.send_daily_digests", hour=10),
+        cron("app.workers.tasks.send_weekly_digests", weekday=0, hour=10),
+        cron("app.workers.tasks.send_re_engagement_campaign", weekday=3, hour=14),
+        cron("app.workers.tasks.send_expiry_nudges", hour=9, minute=30),
+        cron("app.workers.tasks.send_price_drop_alerts", hour={10, 18}),
     ]
 
     on_startup = startup

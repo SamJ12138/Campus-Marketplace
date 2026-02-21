@@ -10,12 +10,14 @@ import {
   ShieldOff,
   Trash2,
   UserX,
+  Clock,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { changePasswordSchema } from "@/lib/validation/auth";
 import { changePassword, deleteAccount, getNotificationPreferences, updateNotificationPreferences } from "@/lib/api/users";
-import type { NotificationPreferences } from "@/lib/api/users";
+import type { NotificationPreferences, DigestFrequency } from "@/lib/api/users";
 import { getBlockedUsers, unblockUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/client";
 import type { UserBrief } from "@/lib/types";
@@ -204,12 +206,17 @@ function NotificationPreferencesSection() {
     getNotificationPreferences()
       .then(setPrefs)
       .catch(() => {
-        // Default values if preferences can't be loaded
         setPrefs({
           email_messages: true,
           email_listing_replies: true,
           email_report_updates: true,
           email_marketing: false,
+          digest_frequency: "weekly",
+          email_price_drops: true,
+          email_listing_expiry: true,
+          email_recommendations: false,
+          quiet_hours_start: null,
+          quiet_hours_end: null,
         });
       })
       .finally(() => setIsLoading(false));
@@ -218,10 +225,40 @@ function NotificationPreferencesSection() {
   async function handleToggle(key: keyof NotificationPreferences, value: boolean) {
     if (!prefs) return;
     const prev = { ...prefs };
-    setPrefs({ ...prefs, [key]: value });
+    setPrefs({ ...prefs, [key]: value } as NotificationPreferences);
     setIsSaving(true);
     try {
       const updated = await updateNotificationPreferences({ [key]: value });
+      setPrefs(updated);
+    } catch {
+      setPrefs(prev);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDigestFrequency(freq: DigestFrequency) {
+    if (!prefs) return;
+    const prev = { ...prefs };
+    setPrefs({ ...prefs, digest_frequency: freq });
+    setIsSaving(true);
+    try {
+      const updated = await updateNotificationPreferences({ digest_frequency: freq });
+      setPrefs(updated);
+    } catch {
+      setPrefs(prev);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleQuietHours(field: "quiet_hours_start" | "quiet_hours_end", value: number | null) {
+    if (!prefs) return;
+    const prev = { ...prefs };
+    setPrefs({ ...prefs, [field]: value });
+    setIsSaving(true);
+    try {
+      const updated = await updateNotificationPreferences({ [field]: value });
       setPrefs(updated);
     } catch {
       setPrefs(prev);
@@ -237,6 +274,23 @@ function NotificationPreferencesSection() {
     { key: "email_marketing" as const, label: "Campus updates", desc: "Occasional updates about new features and campus activity" },
   ];
 
+  const smartOptions = [
+    { key: "email_price_drops" as const, label: "Price drop alerts", desc: "Get notified when a favorited listing updates its price" },
+    { key: "email_listing_expiry" as const, label: "Expiry reminders", desc: "Get reminded when your listings are about to expire" },
+    { key: "email_recommendations" as const, label: "Recommendations", desc: "Receive personalized listing recommendations" },
+  ];
+
+  const digestFrequencyOptions: { value: DigestFrequency; label: string }[] = [
+    { value: "none", label: "Off" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+  ];
+
+  const hourOptions = Array.from({ length: 24 }, (_, i) => ({
+    value: i,
+    label: `${i === 0 ? 12 : i > 12 ? i - 12 : i}:00 ${i < 12 ? "AM" : "PM"}`,
+  }));
+
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
@@ -244,21 +298,25 @@ function NotificationPreferencesSection() {
         <h2 className="text-lg font-semibold">{t.profile.notificationsLabel}</h2>
       </div>
 
-      <div className="space-y-5 max-w-md">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Email</p>
-
-          {isLoading ? (
-            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading preferences...
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading preferences...
+        </div>
+      ) : prefs ? (
+        <div className="space-y-6 max-w-md">
+          {/* Email notifications */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">Email notifications</p>
             </div>
-          ) : prefs ? (
-            emailOptions.map((opt) => (
+
+            {emailOptions.map((opt) => (
               <label key={opt.key} className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={prefs[opt.key]}
+                  checked={!!prefs[opt.key]}
                   onChange={(e) => handleToggle(opt.key, e.target.checked)}
                   disabled={isSaving}
                   className="h-4 w-4 rounded border-input text-primary focus:ring-primary disabled:opacity-50"
@@ -268,50 +326,139 @@ function NotificationPreferencesSection() {
                   <p className="text-xs text-muted-foreground">{opt.desc}</p>
                 </div>
               </label>
-            ))
-          ) : null}
-        </div>
-
-        {/* SMS notifications - Coming Soon */}
-        <div className="space-y-3 opacity-60">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-muted-foreground">SMS</p>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-              Coming Soon
-            </span>
+            ))}
           </div>
 
-          <label className="flex items-center gap-3 cursor-not-allowed">
-            <input
-              type="checkbox"
-              checked={false}
-              disabled
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-not-allowed"
-            />
-            <div>
-              <p className="text-sm font-medium">New messages</p>
-              <p className="text-xs text-muted-foreground">
-                Receive an SMS when someone messages you
-              </p>
+          {/* Smart notifications */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">Smart notifications</p>
             </div>
-          </label>
 
-          <label className="flex items-center gap-3 cursor-not-allowed">
-            <input
-              type="checkbox"
-              checked={false}
-              disabled
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-not-allowed"
-            />
-            <div>
-              <p className="text-sm font-medium">Listing activity</p>
-              <p className="text-xs text-muted-foreground">
-                Receive an SMS when someone responds to your listing
-              </p>
+            {smartOptions.map((opt) => (
+              <label key={opt.key} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!prefs[opt.key]}
+                  onChange={(e) => handleToggle(opt.key, e.target.checked)}
+                  disabled={isSaving}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary disabled:opacity-50"
+                />
+                <div>
+                  <p className="text-sm font-medium">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Digest frequency */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">Digest emails</p>
             </div>
-          </label>
+            <p className="text-xs text-muted-foreground">
+              Get a summary of new listings, updates, and activity on your campus.
+            </p>
+            <div className="flex gap-2">
+              {digestFrequencyOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleDigestFrequency(opt.value)}
+                  disabled={isSaving}
+                  className={cn(
+                    "inline-flex h-8 items-center rounded-md border px-3 text-sm font-medium transition-colors",
+                    "disabled:pointer-events-none disabled:opacity-50",
+                    prefs.digest_frequency === opt.value
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-background hover:bg-accent",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quiet hours */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">Quiet hours</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pause non-urgent emails during these hours (UTC).
+            </p>
+            <div className="flex items-center gap-2">
+              <select
+                value={prefs.quiet_hours_start ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? null : Number(e.target.value);
+                  handleQuietHours("quiet_hours_start", val);
+                }}
+                disabled={isSaving}
+                className={cn(
+                  "flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <option value="">Off</option>
+                {hourOptions.map((h) => (
+                  <option key={h.value} value={h.value}>{h.label}</option>
+                ))}
+              </select>
+              <span className="text-sm text-muted-foreground">to</span>
+              <select
+                value={prefs.quiet_hours_end ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? null : Number(e.target.value);
+                  handleQuietHours("quiet_hours_end", val);
+                }}
+                disabled={isSaving}
+                className={cn(
+                  "flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <option value="">Off</option>
+                {hourOptions.map((h) => (
+                  <option key={h.value} value={h.value}>{h.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* SMS notifications - Coming Soon */}
+          <div className="space-y-3 opacity-60">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-muted-foreground">SMS</p>
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                Coming Soon
+              </span>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-not-allowed">
+              <input
+                type="checkbox"
+                checked={false}
+                disabled
+                className="h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-not-allowed"
+              />
+              <div>
+                <p className="text-sm font-medium">New messages</p>
+                <p className="text-xs text-muted-foreground">
+                  Receive an SMS when someone messages you
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

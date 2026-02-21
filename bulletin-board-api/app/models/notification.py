@@ -1,10 +1,18 @@
+import enum
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+
+class DigestFrequency(str, enum.Enum):
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
 
 
 class NotificationPreference(Base, TimestampMixin):
@@ -23,6 +31,39 @@ class NotificationPreference(Base, TimestampMixin):
     push_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     sms_messages: Mapped[bool] = mapped_column(Boolean, default=True)
     sms_listing_replies: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Digest preferences
+    digest_frequency: Mapped[str] = mapped_column(
+        Enum(DigestFrequency, name="digest_frequency"),
+        default=DigestFrequency.WEEKLY,
+    )
+    digest_last_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Smart notification preferences
+    email_price_drops: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_listing_expiry: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_recommendations: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Smart timing
+    quiet_hours_start: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Hour 0-23, e.g. 22 for 10pm
+    quiet_hours_end: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Hour 0-23, e.g. 8 for 8am
+
+    # Engagement tracking
+    engagement_score: Mapped[float] = mapped_column(Float, default=1.0)
+    emails_sent_count: Mapped[int] = mapped_column(Integer, default=0)
+    emails_opened_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_email_opened_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_digest_opened_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user = relationship("User", back_populates="notification_preferences")

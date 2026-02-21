@@ -9,7 +9,7 @@ from app.models.favorite import Favorite
 from app.models.feedback import Feedback, FeedbackStatus
 from app.models.listing import Category, Listing, ListingPhoto
 from app.models.message import Message, MessageThread
-from app.models.notification import NotificationPreference
+from app.models.notification import DigestFrequency, NotificationPreference
 from app.models.pending_upload import PendingUpload
 from app.models.report import Report
 from app.models.user import EmailVerification, RefreshToken, User
@@ -31,6 +31,7 @@ __all__ = [
     "Report",
     "AdminAction",
     "BannedKeyword",
+    "DigestFrequency",
     "NotificationPreference",
     "PendingUpload",
     "Ad",

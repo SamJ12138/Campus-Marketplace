@@ -44,11 +44,21 @@ export async function deleteAccount(): Promise<void> {
   return api.delete("/api/v1/users/me");
 }
 
+export type DigestFrequency = "none" | "daily" | "weekly";
+
 export interface NotificationPreferences {
   email_messages: boolean;
   email_listing_replies: boolean;
   email_report_updates: boolean;
   email_marketing: boolean;
+  // Digest preferences
+  digest_frequency: DigestFrequency;
+  email_price_drops: boolean;
+  email_listing_expiry: boolean;
+  email_recommendations: boolean;
+  // Smart timing
+  quiet_hours_start: number | null;
+  quiet_hours_end: number | null;
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {

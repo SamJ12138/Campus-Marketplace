@@ -46,16 +46,28 @@ async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
         "report_resolved": {
             "subject": "Update on your report",
         },
+        "digest": {
+            "subject": "Your GimmeDat digest",
+        },
+        "re_engagement": {
+            "subject": "What's new on GimmeDat",
+        },
+        "price_drop": {
+            "subject": "Price update on a listing you're watching",
+        },
     }
 
     template_info = templates.get(email_type)
     if not template_info:
         raise ValueError(f"Unknown email type: {email_type}")
 
+    # Use dynamic subject from data if provided (AI-generated subjects)
+    subject = data.get("subject", template_info["subject"])
+
     if settings.email_provider == "console":
         print(
             f"[EMAIL] To: {recipient_email}, "
-            f"Subject: {template_info['subject']}, "
+            f"Subject: {subject}, "
             f"Data: {data}"
         )
         return
@@ -68,7 +80,7 @@ async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
         message = Mail(
             from_email=(settings.email_from_address, settings.email_from_name),
             to_emails=recipient_email,
-            subject=template_info["subject"],
+            subject=subject,
             html_content=f"<p>{data}</p>",
         )
         sg.send(message)
@@ -362,3 +374,176 @@ async def detect_anomalies_task(ctx):
             )
         else:
             print("[INTEL] No anomalies detected")
+
+
+async def send_daily_digests(ctx):
+    """Send personalized daily digest emails to opted-in users."""
+    from app.services.ai_service import AIService
+    from app.services.smart_notification_service import SmartNotificationService
+
+    settings = ctx["settings"]
+    service = SmartNotificationService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        users = await service.get_users_due_for_digest(db, "daily")
+        sent = 0
+        for user_info in users:
+            if service.is_within_quiet_hours(
+                user_info.get("quiet_hours_start"),
+                user_info.get("quiet_hours_end"),
+            ):
+                continue
+
+            digest = await service.generate_digest(
+                db, user_info["user_id"], frequency="daily"
+            )
+            if digest.get("subject"):
+                await send_email(
+                    ctx,
+                    "digest",
+                    user_info["email"],
+                    {
+                        "user_name": user_info["display_name"],
+                        "subject": digest["subject"],
+                        "body_html": digest.get("body_html", ""),
+                        "body_text": digest.get("body_text", ""),
+                    },
+                )
+                await service.update_digest_sent(db, user_info["user_id"])
+                sent += 1
+
+        print(f"[DIGEST] Sent {sent} daily digests")
+
+
+async def send_weekly_digests(ctx):
+    """Send personalized weekly digest emails to opted-in users."""
+    from app.services.ai_service import AIService
+    from app.services.smart_notification_service import SmartNotificationService
+
+    settings = ctx["settings"]
+    service = SmartNotificationService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        users = await service.get_users_due_for_digest(db, "weekly")
+        sent = 0
+        for user_info in users:
+            if service.is_within_quiet_hours(
+                user_info.get("quiet_hours_start"),
+                user_info.get("quiet_hours_end"),
+            ):
+                continue
+
+            digest = await service.generate_digest(
+                db, user_info["user_id"], frequency="weekly"
+            )
+            if digest.get("subject"):
+                await send_email(
+                    ctx,
+                    "digest",
+                    user_info["email"],
+                    {
+                        "user_name": user_info["display_name"],
+                        "subject": digest["subject"],
+                        "body_html": digest.get("body_html", ""),
+                        "body_text": digest.get("body_text", ""),
+                    },
+                )
+                await service.update_digest_sent(db, user_info["user_id"])
+                sent += 1
+
+        print(f"[DIGEST] Sent {sent} weekly digests")
+
+
+async def send_re_engagement_campaign(ctx):
+    """Identify inactive users and send re-engagement emails."""
+    from app.services.ai_service import AIService
+    from app.services.smart_notification_service import SmartNotificationService
+
+    settings = ctx["settings"]
+    service = SmartNotificationService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        targets = await service.identify_re_engagement_targets(db)
+        sent = 0
+        for target in targets:
+            message = await service.generate_re_engagement_message(
+                target["display_name"],
+                target["days_inactive"],
+                target["campus_name"],
+            )
+            await send_email(
+                ctx,
+                "re_engagement",
+                target["email"],
+                {
+                    "user_name": target["display_name"],
+                    "subject": message["subject"],
+                    "body": message["body"],
+                },
+            )
+            sent += 1
+
+        print(f"[RE-ENGAGE] Sent {sent} re-engagement emails")
+
+
+async def send_expiry_nudges(ctx):
+    """Send expiry nudge emails with engagement stats for listings expiring in 3 days."""
+    from app.services.ai_service import AIService
+    from app.services.smart_notification_service import SmartNotificationService
+
+    settings = ctx["settings"]
+    service = SmartNotificationService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        nudges = await service.get_expiring_listing_nudges(db, days_ahead=3)
+        sent = 0
+        for nudge in nudges:
+            message = await service.generate_expiry_nudge_message(
+                nudge["listing_title"],
+                nudge["view_count"],
+                nudge["message_count"],
+                nudge["days_until_expiry"],
+                nudge["user_name"],
+            )
+            await send_email(
+                ctx,
+                "listing_expiring",
+                nudge["user_email"],
+                {
+                    "user_name": nudge["user_name"],
+                    "listing_title": nudge["listing_title"],
+                    "subject": message["subject"],
+                    "body": message["body"],
+                },
+            )
+            sent += 1
+
+        print(f"[NUDGE] Sent {sent} expiry nudge emails")
+
+
+async def send_price_drop_alerts(ctx):
+    """Send price drop alerts for favorited listings updated recently."""
+    from app.services.ai_service import AIService
+    from app.services.smart_notification_service import SmartNotificationService
+
+    settings = ctx["settings"]
+    service = SmartNotificationService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        alerts = await service.get_price_drop_alerts(db, hours_back=24)
+        sent = 0
+        for alert in alerts:
+            await send_email(
+                ctx,
+                "price_drop",
+                alert["user_email"],
+                {
+                    "user_name": alert["user_name"],
+                    "listing_title": alert["listing_title"],
+                    "price_hint": alert["price_hint"],
+                    "listing_id": alert["listing_id"],
+                },
+            )
+            sent += 1
+
+        print(f"[PRICE_DROP] Sent {sent} price drop alerts")

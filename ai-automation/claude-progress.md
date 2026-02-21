@@ -416,3 +416,97 @@ to understand what has been done and what remains.
 - Pre-existing test failure in `test_moderation.py` (mock config issue) persists
 
 ---
+
+## Session 7 — 2026-02-21 (task-07)
+
+**Task:** task-07 — Build Smart Notification & Engagement Agent
+**What was done:**
+- Completed task-07 which was partially started by a prior incomplete session
+- Prior session had already created the service, notification model extensions, migration, and `__init__.py` updates
+- This session completed all remaining work: email templates, ARQ tasks, frontend UI, and tests
+- Fixed lint errors in notification model (unused imports: `String`, `func`)
+- Fixed lint errors in service (ambiguous variable `l`, line too long)
+- Fixed lint errors in tests (unused `patch` import, import sorting)
+
+**Backend service** (`app/services/smart_notification_service.py` — created by prior session, verified working):
+- `SmartNotificationService` class with AI-powered personalized notifications
+- `generate_digest()` — generates personalized daily/weekly digests with AI narrative
+- `identify_re_engagement_targets()` — finds inactive users for re-engagement campaigns
+- `generate_re_engagement_message()` — AI-generated re-engagement email content
+- `is_within_quiet_hours()` — respects user quiet hours for notification timing
+- `calculate_engagement_score()` — 2-factor weighted scoring (open rate 60%, recency 40%)
+- `get_expiring_listing_nudges()` — finds expiring listings with engagement stats
+- `generate_expiry_nudge_message()` — AI-generated expiry nudge with stats
+- `get_price_drop_alerts()` — finds favorited listings with recent price updates
+- `get_users_due_for_digest()` — finds users eligible for digest delivery
+- `update_digest_sent()` / `update_engagement()` — engagement tracking
+- Graceful degradation: all methods fall back to heuristics when AI is disabled
+
+**Notification model** (`app/models/notification.py` — extended by prior session, lint fixed):
+- `DigestFrequency` enum: none, daily, weekly
+- `digest_frequency`, `digest_last_sent_at` fields
+- `email_price_drops`, `email_listing_expiry`, `email_recommendations` preference toggles
+- `quiet_hours_start`, `quiet_hours_end` for smart timing
+- `engagement_score`, `emails_sent_count`, `emails_opened_count` tracking
+- `last_email_opened_at`, `last_digest_opened_at` timestamps
+
+**Alembic migration** (`alembic/versions/extend_notifications.py` — created by prior session):
+- Creates `digest_frequency` enum type
+- Adds 11 new columns to `notification_preferences` table
+
+**Email templates** (`app/services/email_templates.py` — 4 new templates added this session):
+- `digest_email()` — wraps AI/fallback digest content in standard GimmeDat layout
+- `expiry_nudge_email()` — listing expiry reminder with view/message stat cards
+- `price_drop_alert_email()` — favorited listing price update notification
+- `re_engagement_email()` — come-back campaign email
+
+**ARQ worker tasks** (`app/workers/tasks.py` + `main.py` — added this session):
+- `send_daily_digests` — daily at 10:00 UTC
+- `send_weekly_digests` — Sundays at 10:00 UTC
+- `send_re_engagement_campaign` — Wednesdays at 14:00 UTC
+- `send_expiry_nudges` — daily at 09:30 UTC
+- `send_price_drop_alerts` — twice daily at 10:00, 18:00 UTC
+- All tasks registered in WorkerSettings functions list and cron_jobs
+- `send_email()` updated by linter to support new email types (digest, re_engagement, price_drop)
+
+**Frontend** (`bulletin-board-frontend/`):
+- `src/lib/api/users.ts` — extended `NotificationPreferences` interface with digest, smart timing fields
+- `src/app/(main)/profile/settings/page.tsx` — enhanced notification preferences UI:
+  - Smart notification toggles (price drops, expiry reminders, recommendations)
+  - Digest frequency selector (Off / Daily / Weekly) with toggle buttons
+  - Quiet hours configuration with hour dropdowns (UTC)
+  - Organized into sections: Email, Smart notifications, Digest, Quiet hours, SMS
+
+**Files created (this session):**
+- `bulletin-board-api/tests/unit/test_smart_notification.py` (73 tests)
+
+**Files modified (this session):**
+- `bulletin-board-api/app/services/email_templates.py` (added 4 new template functions)
+- `bulletin-board-api/app/workers/tasks.py` (added 5 notification worker tasks + email type support)
+- `bulletin-board-api/app/workers/main.py` (registered 5 new tasks + 5 cron jobs)
+- `bulletin-board-api/app/models/notification.py` (fixed unused imports)
+- `bulletin-board-api/app/services/smart_notification_service.py` (fixed lint: variable names, line length)
+- `bulletin-board-frontend/src/lib/api/users.ts` (extended NotificationPreferences interface)
+- `bulletin-board-frontend/src/app/(main)/profile/settings/page.tsx` (enhanced UI)
+- `ai-automation/tasks.json` (task-07 → completed)
+
+**Files created/modified by prior incomplete session (verified working):**
+- `bulletin-board-api/app/services/smart_notification_service.py` (main service)
+- `bulletin-board-api/app/models/notification.py` (extended model)
+- `bulletin-board-api/app/models/__init__.py` (added DigestFrequency import)
+- `bulletin-board-api/alembic/versions/extend_notifications.py` (migration)
+
+**Test results:**
+- 73/73 smart notification unit tests pass
+- 340/340 total unit tests pass (excluding pre-existing test_moderation.py failure)
+- Ruff linting: all checks passed
+
+**Notes for next session:**
+- Task-08 (Multi-Campus Onboarding & Expansion Agent) is the only remaining task
+- Task-08 depends on task-01 + task-06 (both completed), so it's unblocked
+- The smart notification service works in two modes: AI-powered or heuristic fallback
+- All 5 ARQ cron tasks are registered and scheduled
+- Frontend notification UI is enhanced with digest, smart notifications, and quiet hours sections
+- Pre-existing test failure in `test_moderation.py` (mock config issue) persists
+
+---
