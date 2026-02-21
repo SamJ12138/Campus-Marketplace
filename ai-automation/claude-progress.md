@@ -142,6 +142,7 @@ to understand what has been done and what remains.
   - Escalation logic: confidence < 0.5 automatically flags for human support
   - Graceful degradation: works with pure keyword matching when AI is not configured
   - Supports multi-turn conversations via `conversation_history` parameter
+  - Fixed bug: `answer()` was making redundant double API calls (both `structured_output` and `chat`) when conversation history was present; now correctly branches between them
 - Created `app/api/v1/chatbot.py` — POST `/api/v1/chatbot/chat` endpoint
   - Public endpoint (no auth required) for visitor support access
   - Pydantic request/response schemas with validation
