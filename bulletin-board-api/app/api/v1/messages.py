@@ -23,6 +23,8 @@ from app.schemas.message import (
     ThreadListingBrief,
     ThreadListResponse,
 )
+from app.services.ai_moderation_service import AIModerationService
+from app.services.ai_service import AIService
 from app.services.email_service import EmailService
 from app.services.email_templates import new_message_email
 from app.services.message_service import MessageService
@@ -169,6 +171,17 @@ async def start_thread(
     if filter_result.blocked:
         raise HTTPException(400, "Message contains prohibited content")
 
+    # AI moderation — second pass
+    flagged = filter_result.flagged
+    settings = get_settings()
+    ai_mod = AIModerationService(AIService(settings))
+    if ai_mod.enabled and not filter_result.blocked:
+        verdict = await ai_mod.analyze_content(data.message, context="message")
+        if verdict.action.value == "block":
+            raise HTTPException(400, "Message violates platform policies")
+        if verdict.action.value == "flag":
+            flagged = True
+
     service = MessageService(db)
     try:
         thread, created = await service.get_or_create_thread(
@@ -191,7 +204,7 @@ async def start_thread(
             thread_id,
             current_user.id,
             data.message,
-            flagged=filter_result.flagged,
+            flagged=flagged,
             listing_id=data.listing_id,
         )
     except ValueError as e:
@@ -334,13 +347,24 @@ async def send_message(
     if filter_result.blocked:
         raise HTTPException(400, "Message contains prohibited content")
 
+    # AI moderation — second pass
+    flagged = filter_result.flagged
+    settings = get_settings()
+    ai_mod = AIModerationService(AIService(settings))
+    if ai_mod.enabled and not filter_result.blocked:
+        verdict = await ai_mod.analyze_content(data.content, context="message")
+        if verdict.action.value == "block":
+            raise HTTPException(400, "Message violates platform policies")
+        if verdict.action.value == "flag":
+            flagged = True
+
     service = MessageService(db)
     try:
         message = await service.send_message(
             thread_id,
             current_user.id,
             data.content,
-            flagged=filter_result.flagged,
+            flagged=flagged,
             listing_id=data.listing_id,
         )
     except ValueError as e:

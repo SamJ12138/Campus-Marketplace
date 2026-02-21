@@ -5,6 +5,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user, get_current_user
+from app.config import get_settings
 from app.core.rate_limit import check_listing_rate_limit
 from app.dependencies import get_db, get_redis
 from app.models.listing import Category
@@ -17,6 +18,8 @@ from app.schemas.listing import (
     ListingType,
     ListingUpdate,
 )
+from app.services.ai_moderation_service import AIModerationService
+from app.services.ai_service import AIService
 from app.services.listing_service import ListingService
 from app.services.moderation_service import ModerationService
 
@@ -88,14 +91,25 @@ async def create_listing(
     # Rate limit
     await check_listing_rate_limit(redis, current_user)
 
-    # Content moderation
+    # Content moderation — keyword pre-filter
     moderation = ModerationService(db)
+    content_text = f"{data.title} {data.description}"
     filter_result = await moderation.check_content(
-        f"{data.title} {data.description}",
+        content_text,
         current_user.campus_id,
     )
     if filter_result.blocked:
         raise HTTPException(400, "Content contains prohibited terms")
+
+    # AI moderation — second pass (non-blocking on failure)
+    flagged = filter_result.flagged
+    ai_mod = AIModerationService(AIService(get_settings()))
+    if ai_mod.enabled and not filter_result.blocked:
+        verdict = await ai_mod.analyze_content(content_text, context="listing")
+        if verdict.action.value == "block":
+            raise HTTPException(400, "Content violates platform policies")
+        if verdict.action.value == "flag":
+            flagged = True
 
     # Validate category exists and matches type
     category = await db.get(Category, data.category_id)
@@ -107,7 +121,7 @@ async def create_listing(
         user_id=current_user.id,
         campus_id=current_user.campus_id,
         data=data,
-        flagged=filter_result.flagged,
+        flagged=flagged,
     )
 
     return listing

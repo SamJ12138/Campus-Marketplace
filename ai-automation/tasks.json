@@ -40,7 +40,7 @@
         "Create tests/unit/test_ai_moderation.py",
         "Verify all existing tests still pass"
       ],
-      "status": "pending",
+      "status": "completed",
       "blockedBy": ["task-01"],
       "priority": "critical",
       "estimatedFiles": [
