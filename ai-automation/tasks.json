@@ -124,7 +124,7 @@
         "Create tests/unit/test_listing_optimizer.py",
         "Verify all existing tests still pass"
       ],
-      "status": "pending",
+      "status": "completed",
       "blockedBy": ["task-01"],
       "priority": "medium",
       "estimatedFiles": [

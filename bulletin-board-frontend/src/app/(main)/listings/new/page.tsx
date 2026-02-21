@@ -25,6 +25,7 @@ import { en as t } from "@/lib/i18n/en";
 import { listingCreateSchema, type ListingCreateInput } from "@/lib/validation/listing";
 import { useCategories, useCreateListing } from "@/lib/hooks/use-listings";
 import PhotoUploader from "@/components/listings/PhotoUploader";
+import AIAssistPanel from "@/components/listings/AIAssistPanel";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
 // ----------------------------------------------------------------
@@ -441,6 +442,22 @@ export default function CreateListingPage() {
               </span>
             </div>
           </FormField>
+
+          {/* AI Assist Panel */}
+          <AIAssistPanel
+            title={watchedValues.title}
+            description={watchedValues.description}
+            listingType={selectedType as "item" | "service" | undefined}
+            category={selectedCategory?.slug}
+            priceHint={watchedValues.price_hint}
+            categoryId={selectedCategoryId}
+            photosCount={photoData.length}
+            locationType={watchedValues.location_type}
+            locationHint={watchedValues.location_hint}
+            onApplyDescription={(desc) => setValue("description", desc, { shouldDirty: true })}
+            onApplyTitle={(t) => setValue("title", t, { shouldDirty: true })}
+            onApplyPrice={(p) => setValue("price_hint", p, { shouldDirty: true })}
+          />
 
           {/* Price hint */}
           <FormField

@@ -11,6 +11,7 @@ from app.api.v1 import (
     chatbot,
     favorites,
     feedback,
+    listing_assist,
     listings,
     messages,
     reports,
@@ -37,3 +38,4 @@ api_router.include_router(feedback.router)
 api_router.include_router(applications.router)
 api_router.include_router(chatbot.router)
 api_router.include_router(search.router)
+api_router.include_router(listing_assist.router)

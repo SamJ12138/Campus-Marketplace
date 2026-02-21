@@ -262,3 +262,78 @@ to understand what has been done and what remains.
 - numpy 2.4.1 is installed on the system (Python 3.14); requirements.txt uses `>=2.0.0` for compatibility
 
 ---
+
+## Session 5 — 2026-02-21 (task-05)
+
+**Task:** task-05 — Build Listing Quality & Optimization Agent
+**What was done:**
+- Created `app/services/listing_optimizer_service.py` — AI-powered listing optimization service
+  - `ListingOptimizerService` class wrapping `AIService` for listing creation assistance
+  - `suggest_description()` — generates compelling descriptions from title/keywords/category
+  - `suggest_title()` — suggests 3 concise, searchable titles from a description
+  - `suggest_price()` — suggests student-friendly pricing with range estimates
+  - `suggest_category()` — auto-detects the best category with confidence score
+  - `score_completeness()` — scores listing completeness 0-100 with field breakdown and improvement suggestions
+  - `_parse_json_response()` — JSON parsing with markdown code fence handling
+  - `_fallback_description()` — template-based description when AI is disabled
+  - `_fallback_title()` — first-words extraction as title suggestion fallback
+  - `_fallback_price()` — generic student marketplace price suggestions
+  - `_fallback_category()` — keyword-based category matching with 15 category keyword maps
+  - `PLATFORM_CATEGORIES` — 15 categories across item/service types
+  - `COMPLETENESS_WEIGHTS` — weighted scoring across 8 listing fields
+  - Graceful degradation: all methods fall back to heuristics when AI is disabled or fails
+- Created `app/api/v1/listing_assist.py` — five listing assist API endpoints
+  - `POST /api/v1/listing-assist/suggest-description` — AI description generation (auth required)
+  - `POST /api/v1/listing-assist/suggest-title` — AI title suggestions (auth required)
+  - `POST /api/v1/listing-assist/suggest-price` — AI price suggestions (auth required)
+  - `POST /api/v1/listing-assist/suggest-category` — AI category detection (auth required)
+  - `POST /api/v1/listing-assist/completeness` — listing completeness scoring (auth required)
+  - Pydantic request/response schemas with validation for all endpoints
+- Added listing_assist route to `app/api/v1/router.py`
+- Created `bulletin-board-frontend/src/lib/api/listing-assist.ts` — frontend API client
+  - `suggestDescription()`, `suggestTitle()`, `suggestPrice()`, `suggestCategory()`, `scoreCompleteness()` functions
+  - TypeScript interfaces for all request/response types
+- Created `bulletin-board-frontend/src/components/listings/AIAssistPanel.tsx` — AI assist panel
+  - React component with 5 action buttons (Generate Description, Suggest Titles, Suggest Price, Detect Category, Check Completeness)
+  - Loading states, error handling, and result display for each action
+  - Completeness visualized with circular progress indicator (SVG ring chart)
+  - Callback props for applying suggestions to the listing form (`onApplyDescription`, `onApplyTitle`, `onApplyPrice`, `onApplyCategory`)
+  - Styled with Tailwind CSS using indigo theme to match existing components
+- Created `tests/unit/test_listing_optimizer.py` with 60 comprehensive tests:
+  - JSON parsing: valid, code fences, plain fences, empty, none, invalid, arrays, whitespace
+  - Service enabled/disabled behavior
+  - Description suggestion: AI success, code fences, API failure fallback, disabled fallback, item/service formats, invalid JSON, missing key
+  - Title suggestion: AI success, disabled fallback, short/empty description, API failure, max 3 titles
+  - Price suggestion: AI success, item/service fallbacks, API failure
+  - Category suggestion: AI success, invalid slug fallback, keyword matching (textbooks, electronics, furniture, clothing, tutoring, rides), no match default, unknown listing type, API failure, confidence scaling/capping
+  - Completeness scoring: empty listing, fully complete, partial, title tiers, description tiers, photos scaling, price/category presence, location suggestions, missing field suggestions
+  - Platform categories: item/service existence, other categories
+
+**Files created:**
+- `bulletin-board-api/app/services/listing_optimizer_service.py`
+- `bulletin-board-api/app/api/v1/listing_assist.py`
+- `bulletin-board-api/tests/unit/test_listing_optimizer.py`
+- `bulletin-board-frontend/src/lib/api/listing-assist.ts`
+- `bulletin-board-frontend/src/components/listings/AIAssistPanel.tsx`
+
+**Files modified:**
+- `bulletin-board-api/app/api/v1/router.py` (added listing_assist import and route)
+- `bulletin-board-frontend/src/app/(main)/listings/new/page.tsx` (integrated AIAssistPanel into listing creation form)
+- `ai-automation/tasks.json` (task-05 → completed)
+
+**Test results:**
+- 60/60 listing optimizer unit tests pass
+- 203/203 total unit tests pass (excluding pre-existing test_moderation.py failure)
+- Ruff linting: all checks passed
+- Pre-existing failures: `test_moderation.py` (mock config issue), integration test (pgvector type not in test DB) — both unrelated
+
+**Notes for next session:**
+- Tasks 06, 07 remain available (all dependencies met)
+- Task-06 (Admin Intelligence Dashboard) is the next task by order
+- Task-08 is blocked by task-06
+- The listing optimizer works in two modes: AI-powered (Claude suggestions) or heuristic fallback (keyword matching, templates)
+- All 5 API endpoints require authentication
+- AIAssistPanel is integrated into the listing creation form between description and price hint fields
+- Pre-existing test failures in `test_moderation.py` and integration tests persist
+
+---
