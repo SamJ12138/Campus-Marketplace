@@ -125,3 +125,70 @@ to understand what has been done and what remains.
 - Pre-existing test failures in `test_moderation.py` and integration tests persist
 
 ---
+
+## Session 3 — 2026-02-21 (task-03)
+
+**Task:** task-03 — Build Customer Support Chatbot Agent
+**What was done:**
+- Created `app/services/chatbot_service.py` — RAG-powered customer support chatbot
+  - `ChatbotService` class wrapping `AIService` for conversational support
+  - `answer()` — main method: retrieves KB context, sends to AI, parses response
+  - `_retrieve()` — keyword+synonym-based retrieval over the knowledge base (scored ranking)
+  - `_expand_query()` — synonym expansion for better recall
+  - `_build_context()` — formats matched KB articles for AI context
+  - `_parse_response()` — JSON parsing with markdown code fence handling and fallback
+  - `_fallback_response()` — keyword-only response when AI is disabled or fails
+  - 19-article knowledge base covering all platform topics (general, safety, policy, account, features)
+  - Escalation logic: confidence < 0.5 automatically flags for human support
+  - Graceful degradation: works with pure keyword matching when AI is not configured
+  - Supports multi-turn conversations via `conversation_history` parameter
+- Created `app/api/v1/chatbot.py` — POST `/api/v1/chatbot/chat` endpoint
+  - Public endpoint (no auth required) for visitor support access
+  - Pydantic request/response schemas with validation
+  - Accepts message + optional conversation history
+  - Returns reply, confidence, sources, and escalation flag
+- Added chatbot route to `app/api/v1/router.py`
+- Created `bulletin-board-frontend/src/lib/api/chatbot.ts` — frontend API client
+  - `sendChatMessage()` function using the shared `api.post()` client
+  - TypeScript interfaces for request/response types
+- Updated `bulletin-board-frontend/src/components/chat/SupportChat.tsx`
+  - Now calls backend AI chatbot API first
+  - Falls back to client-side `chatbot-engine.ts` if backend is unavailable
+  - Sends conversation history for multi-turn context
+- Created `tests/unit/test_chatbot_service.py` with 42 comprehensive tests:
+  - Knowledge base validation (non-empty, required fields, unique IDs, all categories)
+  - Retrieval: how-it-works, safety, prohibited items, top_k limit, gibberish, account, pricing
+  - Query expansion: synonym matching
+  - Context building: with articles, empty, multiple articles
+  - Response parsing: valid JSON, code fences, invalid JSON fallback, partial JSON
+  - Fallback responses: no articles, with articles, single article
+  - AI-enabled answer: empty/whitespace messages, successful response, low confidence escalation, API failure fallback, message truncation, source population, conversation history
+  - AI-disabled answer: fallback mode, empty message, matching/non-matching queries
+  - Service properties: enabled/disabled
+  - Escalation threshold: at threshold, below threshold
+
+**Files created:**
+- `bulletin-board-api/app/services/chatbot_service.py`
+- `bulletin-board-api/app/api/v1/chatbot.py`
+- `bulletin-board-api/tests/unit/test_chatbot_service.py`
+- `bulletin-board-frontend/src/lib/api/chatbot.ts`
+
+**Files modified:**
+- `bulletin-board-api/app/api/v1/router.py` (added chatbot import and route)
+- `bulletin-board-frontend/src/components/chat/SupportChat.tsx` (backend API integration with fallback)
+- `ai-automation/tasks.json` (task-03 → completed)
+
+**Test results:**
+- 42/42 chatbot service unit tests pass
+- 95/95 total unit tests pass (excluding pre-existing test_moderation.py failure)
+- Ruff linting: all checks passed
+- Pre-existing failures: `test_moderation.py` (mock config issue), integration test (enum schema mismatch) — both unrelated
+
+**Notes for next session:**
+- Tasks 04, 05, 06, 07 remain available (all dependencies met)
+- Task-04 (Smart Search with pgvector) is the next high-priority task
+- The chatbot works in two modes: AI-powered (when API key is set) or keyword-only fallback
+- Frontend gracefully degrades: tries backend API → falls back to client-side engine
+- Pre-existing test failures in `test_moderation.py` and integration tests persist
+
+---

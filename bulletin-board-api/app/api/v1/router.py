@@ -8,6 +8,7 @@ from app.api.v1 import (
     blocks,
     campuses,
     categories,
+    chatbot,
     favorites,
     feedback,
     listings,
@@ -33,3 +34,4 @@ api_router.include_router(ads.router)
 api_router.include_router(categories.router)
 api_router.include_router(feedback.router)
 api_router.include_router(applications.router)
+api_router.include_router(chatbot.router)

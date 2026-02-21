@@ -21,6 +21,10 @@ import {
   type ChatResponse,
   type ChatSource,
 } from "./chatbot-engine";
+import {
+  sendChatMessage,
+  type ChatMessagePayload,
+} from "@/lib/api/chatbot";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface ChatMessage {
@@ -133,14 +137,33 @@ export function SupportChat() {
       setInputValue("");
       setIsTyping(true);
 
-      // Process with a natural delay
-      const delay = 300 + Math.random() * 500;
-      setTimeout(() => {
-        const response = processMessage(messageText);
-        addBotResponse(response);
-      }, delay);
+      // Build conversation history from existing messages for API context
+      const history: ChatMessagePayload[] = messages.map((m) => ({
+        role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.text,
+      }));
+
+      // Try backend AI chatbot first, fall back to client-side engine
+      sendChatMessage(messageText, history.length > 0 ? history : undefined)
+        .then((apiResponse) => {
+          addBotResponse({
+            replyText: apiResponse.reply,
+            category: "FAQ_GENERAL",
+            confidence: apiResponse.confidence,
+            sources: apiResponse.sources.map((s) => ({
+              ...s,
+              excerpt: s.title,
+            })),
+            escalation: apiResponse.escalation,
+          });
+        })
+        .catch(() => {
+          // Backend unavailable — fall back to client-side engine
+          const response = processMessage(messageText);
+          addBotResponse(response);
+        });
     },
-    [inputValue, isTyping, addBotResponse],
+    [inputValue, isTyping, addBotResponse, messages],
   );
 
   const handleKeyDown = useCallback(
