@@ -14,6 +14,7 @@ from app.api.v1 import (
     listings,
     messages,
     reports,
+    search,
     uploads,
     users,
 )
@@ -35,3 +36,4 @@ api_router.include_router(categories.router)
 api_router.include_router(feedback.router)
 api_router.include_router(applications.router)
 api_router.include_router(chatbot.router)
+api_router.include_router(search.router)

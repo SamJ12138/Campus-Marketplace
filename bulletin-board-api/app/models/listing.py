@@ -19,6 +19,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:  # pragma: no cover
+    Vector = None  # type: ignore[assignment,misc]
+
 
 class ListingType(str, enum.Enum):
     SERVICE = "service"
@@ -122,6 +127,9 @@ class Listing(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
     search_vector: Mapped[str | None] = mapped_column(TSVECTOR, nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(384) if Vector else Text, nullable=True
+    )
 
     # Relationships
     user = relationship("User", back_populates="listings", lazy="selectin")

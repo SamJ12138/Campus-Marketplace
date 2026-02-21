@@ -289,3 +289,39 @@ async def send_report_resolved_email(ctx, reporter_id: str, report_id: str):
                 "report_url": f"{ctx['settings'].frontend_url}/reports/{report_id}",
             },
         )
+
+
+async def generate_listing_embedding(ctx, listing_id: str):
+    """Generate and store embedding for a single listing."""
+    from app.services.ai_service import AIService
+    from app.services.embedding_service import EmbeddingService
+
+    settings = ctx["settings"]
+    embedding_service = EmbeddingService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        from app.models.listing import Listing
+
+        listing = await db.get(Listing, UUID(listing_id))
+        if not listing:
+            return
+
+        text = f"{listing.title} {listing.description}"
+        if listing.price_hint:
+            text += f" {listing.price_hint}"
+
+        await embedding_service.generate_and_store(db, listing.id, text)
+        print(f"[EMBEDDING] Generated embedding for listing {listing_id}")
+
+
+async def batch_generate_embeddings(ctx, batch_size: int = 50):
+    """Generate embeddings for all active listings missing them."""
+    from app.services.ai_service import AIService
+    from app.services.embedding_service import EmbeddingService
+
+    settings = ctx["settings"]
+    embedding_service = EmbeddingService(AIService(settings), settings)
+
+    async with ctx["db_session"]() as db:
+        count = await embedding_service.batch_generate_embeddings(db, batch_size)
+        print(f"[EMBEDDING] Batch generated embeddings for {count} listings")

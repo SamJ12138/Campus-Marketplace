@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     ai_model: str = "claude-sonnet-4-20250514"
     ai_max_tokens: int = 1024
+    embedding_dimension: int = 384
 
     # Sentry (optional)
     sentry_dsn: str | None = None

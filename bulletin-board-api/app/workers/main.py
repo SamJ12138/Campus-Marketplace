@@ -30,12 +30,15 @@ class WorkerSettings:
         "app.workers.tasks.notify_moderators_new_report",
         "app.workers.tasks.send_new_message_email",
         "app.workers.tasks.send_report_resolved_email",
+        "app.workers.tasks.generate_listing_embedding",
+        "app.workers.tasks.batch_generate_embeddings",
     ]
 
     cron_jobs = [
         cron("app.workers.tasks.expire_listings", hour={0, 6, 12, 18}),
         cron("app.workers.tasks.cleanup_orphan_uploads", hour=3, minute=30),
         cron("app.workers.tasks.send_expiry_reminders", hour=9),
+        cron("app.workers.tasks.batch_generate_embeddings", hour={1, 7, 13, 19}),
     ]
 
     on_startup = startup
