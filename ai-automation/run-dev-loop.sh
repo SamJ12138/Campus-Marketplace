@@ -215,7 +215,8 @@ print(len(pending))
     ITER_START=$(date +%s)
 
     set +e
-    claude -p "$AGENT_PROMPT" \
+    # Unset CLAUDECODE to allow launching from within an existing Claude session
+    CLAUDECODE= claude -p "$AGENT_PROMPT" \
         --dangerously-skip-permissions \
         --output-format text \
         --verbose \

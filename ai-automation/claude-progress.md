@@ -28,3 +28,45 @@ to understand what has been done and what remains.
 **Blockers:** None
 
 ---
+
+## Session 1 — 2026-02-21 (task-01)
+
+**Task:** task-01 — Set up AI service integration layer
+**What was done:**
+- Created `app/services/ai_service.py` with async Claude API client wrapper
+  - `AIService` class with lazy-initialized `AsyncAnthropic` client
+  - `complete()` method for single-turn prompts
+  - `chat()` method for multi-turn conversations
+  - `structured_output()` method for JSON responses (temperature=0)
+  - `AIResponse` dataclass with content, model, usage, stop_reason
+  - `enabled` property to check if API key is configured
+- Added AI config entries to `app/config.py`: `anthropic_api_key`, `ai_model`, `ai_max_tokens`
+- Added `anthropic==0.42.0` to `requirements.txt`
+- Created `tests/unit/test_ai_service.py` with 18 mock tests covering:
+  - Service initialization and lazy client creation
+  - `complete()` with default/custom model, system prompts, empty content
+  - `chat()` with multi-turn messages and system prompts
+  - `structured_output()` temperature and JSON instruction appending
+  - `AIResponse` dataclass fields and defaults
+
+**Files created:**
+- `bulletin-board-api/app/services/ai_service.py`
+- `bulletin-board-api/tests/unit/test_ai_service.py`
+
+**Files modified:**
+- `bulletin-board-api/app/config.py` (added AI config section)
+- `bulletin-board-api/requirements.txt` (added anthropic SDK)
+- `ai-automation/tasks.json` (task-01 → completed)
+
+**Test results:**
+- 18/18 AI service unit tests pass
+- 7/7 security unit tests pass (no regressions)
+- Ruff linting: all checks passed
+- Pre-existing failures: `test_moderation.py` (mock config issue), integration test (enum schema mismatch) — both unrelated to this task
+
+**Notes for next session:**
+- Tasks 02–05 and 07 are now unblocked (they depend only on task-01)
+- Pre-existing test failures in `test_moderation.py` and integration tests should be addressed separately
+- The `anthropic` SDK version 0.42.0 was installed; future sessions may want to update if needed
+
+---

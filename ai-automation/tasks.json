@@ -15,7 +15,7 @@
         "Create tests/unit/test_ai_service.py with mock tests",
         "Verify all existing tests still pass"
       ],
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [],
       "priority": "critical",
       "estimatedFiles": [

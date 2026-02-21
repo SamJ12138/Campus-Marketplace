@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     new_account_listings_per_day: int = 2
     new_account_messages_per_hour: int = 10
 
+    # AI / LLM
+    anthropic_api_key: str | None = None
+    ai_model: str = "claude-sonnet-4-20250514"
+    ai_max_tokens: int = 1024
+
     # Sentry (optional)
     sentry_dsn: str | None = None
 
