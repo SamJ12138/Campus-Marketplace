@@ -35,11 +35,11 @@ def upgrade() -> None:
         "USING embedding::vector(384)"
     )
 
-    # Add index for fast cosine similarity search
+    # Add HNSW index for fast cosine similarity search
+    # (HNSW works with any number of rows, unlike ivfflat which needs >= lists)
     op.execute(
         "CREATE INDEX idx_listings_embedding ON listings "
-        "USING ivfflat (embedding vector_cosine_ops) "
-        "WITH (lists = 100)"
+        "USING hnsw (embedding vector_cosine_ops)"
     )
 
 
