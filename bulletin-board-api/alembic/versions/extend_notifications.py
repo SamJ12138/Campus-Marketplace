@@ -1,7 +1,7 @@
 """Extend notification_preferences with digest, smart timing, and engagement fields
 
 Revision ID: extend_notifications
-Revises: add_vector_column
+Revises: merge_user_pair_threads
 Create Date: 2026-02-21
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "extend_notifications"
-down_revision: Union[str, None] = "add_vector_column"
+down_revision: Union[str, None] = "merge_user_pair_threads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

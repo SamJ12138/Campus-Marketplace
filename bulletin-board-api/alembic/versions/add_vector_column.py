@@ -1,7 +1,7 @@
 """Add pgvector embedding column to listings table
 
 Revision ID: add_vector_column
-Revises: merge_user_pair_threads
+Revises: extend_notifications
 Create Date: 2026-02-21
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "add_vector_column"
-down_revision: Union[str, None] = "merge_user_pair_threads"
+down_revision: Union[str, None] = "extend_notifications"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
