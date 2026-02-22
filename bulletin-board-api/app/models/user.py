@@ -76,13 +76,13 @@ class User(Base, TimestampMixin):
 
     # Relationships
     campus = relationship("Campus", back_populates="users", lazy="selectin")
-    listings = relationship("Listing", back_populates="user", lazy="selectin")
-    refresh_tokens = relationship("RefreshToken", back_populates="user", lazy="selectin")
+    listings = relationship("Listing", back_populates="user", lazy="noload")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", lazy="noload")
     email_verifications = relationship(
-        "EmailVerification", back_populates="user", lazy="selectin"
+        "EmailVerification", back_populates="user", lazy="noload"
     )
     notification_preferences = relationship(
-        "NotificationPreference", back_populates="user", uselist=False, lazy="selectin"
+        "NotificationPreference", back_populates="user", uselist=False, lazy="noload"
     )
 
 

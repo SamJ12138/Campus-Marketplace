@@ -113,6 +113,18 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all so unhandled errors return a JSONResponse that passes
+    through CORSMiddleware (otherwise the browser blocks the bare 500
+    as a CORS violation, producing 'Failed to fetch')."""
+    logging.getLogger("app").error("Unhandled error: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
 # Health check
 @app.get("/health")
 async def health():

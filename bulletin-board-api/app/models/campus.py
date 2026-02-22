@@ -21,5 +21,5 @@ class Campus(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    users = relationship("User", back_populates="campus", lazy="selectin")
-    listings = relationship("Listing", back_populates="campus", lazy="selectin")
+    users = relationship("User", back_populates="campus", lazy="noload")
+    listings = relationship("Listing", back_populates="campus", lazy="noload")
