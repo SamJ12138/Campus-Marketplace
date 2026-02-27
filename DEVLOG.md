@@ -488,3 +488,23 @@ Build: Clean (0 errors). This resolves the P0 issue "Frontend `NEXT_PUBLIC_API_U
 **Status:** COMPLETED
 
 ---
+
+### 2026-02-27 - Fix Enum Case Mismatch Causing 500 on Registration
+
+**Summary:** Fixed `digest_frequency` PostgreSQL enum case mismatch that caused every user registration to fail with a 500 Internal Server Error.
+
+**Files Changed:**
+- `bulletin-board-api/app/models/notification.py` - Added `values_callable` to `DigestFrequency` enum column so SQLAlchemy sends lowercase `.value` ("weekly") instead of uppercase `.name` ("WEEKLY"), matching the DB enum
+- `bulletin-board-api/app/api/v1/auth.py` - Added `logging` import, wrapped email sending in try/except so registration succeeds even if verification email fails, removed temporary diagnostic error reporting
+
+**Details:**
+After fixing the CORS issue (previous entry), the signup request reached the backend but returned "Internal server error" (500). Added temporary diagnostic try/except blocks to the register endpoint to surface the real error: `invalid input value for enum digest_frequency: "WEEKLY"`. The `extend_notifications` migration created the PostgreSQL enum with lowercase values (`"none"`, `"daily"`, `"weekly"`), but SQLAlchemy's `Enum(DigestFrequency)` sends the Python enum `.name` attribute (`"WEEKLY"`) by default. Fixed by adding `values_callable=lambda e: [x.value for x in e]` to the `Enum()` column definition. Verified: registration now returns 201 with success message.
+
+**Next Steps:**
+- Test full signup flow from frontend (form → register → verify email)
+- Clean up any test users created during debugging
+- Consider auditing other enum usages for similar case mismatches
+
+**Status:** COMPLETED
+
+---
