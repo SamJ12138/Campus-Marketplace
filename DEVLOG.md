@@ -52,20 +52,10 @@ Gettysburg Comunity/
 │   ├── package.json             # Node deps
 │   ├── tailwind.config.ts       # Custom theme
 │   └── next.config.mjs          # Standalone output, security headers, image optimization
-├── ai-automation/               # Autonomous dev harness
-│   ├── tasks.json               # 8 structured AI tasks (all completed)
-│   ├── claude-progress.md       # Session-by-session log (Sessions 0-8)
-│   ├── init.sh                  # Environment validation (13 checks)
-│   └── run-dev-loop.sh          # Autonomous loop harness
-├── docs/                        # Supplemental documentation
 ├── docker-compose.yml           # Local dev: PostgreSQL, Redis, MinIO, MailHog, API, Frontend
 ├── render.yaml                  # Render.com deployment config
 ├── .github/workflows/ci.yml     # GitHub Actions CI pipeline
 ├── CLAUDE.md                    # Agent development conventions
-├── AUDIT_REPORT.md              # Security audit (scores by category)
-├── SEO-AUDIT-REPORT.md          # SEO audit (35/100 score)
-├── FIXES_REQUIRED.md            # Prioritized issue tracker
-├── ENV_TEMPLATE.md              # Environment variable documentation
 ├── README.md                    # Project overview
 └── DEVLOG.md                    # THIS FILE
 ```
@@ -567,6 +557,40 @@ No backend changes needed. Resend Broadcasts is a no-code WYSIWYG email campaign
 
 **Details:**
 No backend changes. The backend validation (auth.py:77-84) already rejects email/campus mismatches. This change adds proactive client-side filtering so users only see campuses they can actually register for. Typing `@gettysburg.edu` auto-selects Gettysburg College; switching to `@gmail.com` resets and shows only `allow_non_edu` campuses. Before `@` is typed, all campuses remain visible. Build passes cleanly.
+
+**Status:** COMPLETED
+
+---
+
+### 2026-02-27 - Project Cleanup: Remove Dead Files & Obsolete Documentation
+
+**Summary:** Removed 22 tracked dead/obsolete files (~5 MB) plus 16 untracked log files. Zero functional impact — frontend build and 370 backend unit tests pass unchanged.
+
+**Files Deleted:**
+- `index.html` — orphaned HTML, never referenced
+- `PHASE1_FINDINGS.md` through `PHASE5_FINDINGS.md` — outdated audits superseded by DEVLOG §8-9
+- `AUDIT_REPORT.md` — security audit, summarized in DEVLOG §8
+- `SEO-AUDIT-REPORT.md` — SEO audit, summarized in DEVLOG §8
+- `FIXES_REQUIRED.md` — outdated issue list, summarized in DEVLOG §8
+- `ENV_TEMPLATE.md` — duplicated `.env.example` files and README
+- `docs/architecture.svg` — solo file; architecture documented in DEVLOG §2
+- `ai-automation/` (entire directory) — all 8 AI tasks completed; history preserved in DEVLOG §9
+- `public/og-image.png`, `public/twitter-card.png`, `public/icon-192.png`, `public/icon-512.png` — root-level duplicates of `public/images/` versions
+- `public/images/logo.png` (1.3 MB) — never referenced; only `logo-v2.png` is used
+
+**Files Updated:**
+- `CLAUDE.md` — removed `ai-automation/` from project structure, rewrote Session Startup/End Protocols to reference DEVLOG instead
+- `DEVLOG.md` §2 — removed `ai-automation/`, `docs/`, and deleted markdown files from monorepo tree diagram
+- Auto-memory `MEMORY.md` — removed references to deleted doc files
+
+**Verification:**
+- `npm run build` — passes cleanly (all pages compiled)
+- `pytest tests/unit/` — 370 passed (pre-existing failures in integration/moderation tests unrelated to cleanup)
+- `public/images/` retains all referenced assets: `og-image.png`, `twitter-card.png`, `icon-192.png`, `icon-512.png`, `logo-v2.png`
+
+**Next Steps:**
+- Fix pre-existing enum case mismatch for `listing_status` (same class as DigestFrequency/AdType fixes)
+- Fix pre-existing `test_moderation.py::test_blocks_exact_match` test failure
 
 **Status:** COMPLETED
 

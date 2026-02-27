@@ -28,27 +28,14 @@ bulletin-board-frontend/  # Next.js frontend
   src/lib/                # Hooks, stores, API clients, types, utils
   e2e/                    # Playwright E2E tests
 
-ai-automation/            # AI agent harness files
-  tasks.json              # Structured task list (source of truth)
-  claude-progress.md      # Session-by-session progress log
-  init.sh                 # Environment verification script
-  run-dev-loop.sh         # Main loop script for autonomous runs
 ```
 
 ## Session Startup Protocol (MANDATORY)
 Every session MUST begin with these steps in order:
 1. Run `pwd` to verify working directory
-2. Read `ai-automation/claude-progress.md` for prior work history
-3. Read `ai-automation/tasks.json` to find the next incomplete task
-4. Run `ai-automation/init.sh` to verify environment health
-5. Read relevant source files for the chosen task before making changes
-6. Only then begin implementation
-
-## Task Selection Rules
-- Pick the first task in `tasks.json` where `"status": "pending"` and all `"blockedBy"` tasks have `"status": "completed"`
-- Work on exactly ONE task per session
-- Never skip tasks unless they are explicitly blocked
-- Update the task status to `"in_progress"` when you start, `"completed"` when done
+2. Read `DEVLOG.md` for prior work history (especially §9 session history and §10 change log)
+3. Read relevant source files for the chosen task before making changes
+4. Only then begin implementation
 
 ## Development Rules
 - Always read a file before editing it
@@ -63,15 +50,8 @@ Every session MUST begin with these steps in order:
 Before ending every session:
 1. Ensure all changes are committed to git
 2. Run tests to verify nothing is broken
-3. Update the task's `"status"` to `"completed"` in `ai-automation/tasks.json`
-4. Append a session summary to `ai-automation/claude-progress.md` with:
-   - Date/time
-   - Task ID and description
-   - What was done
-   - Files changed
-   - Test results
-   - Any issues or blockers for next session
-5. Leave the codebase in a clean, main-branch-ready state
+3. Append a change log entry to `DEVLOG.md` §10 (see entry format there)
+4. Leave the codebase in a clean, main-branch-ready state
 
 ## Code Conventions
 - Backend: Python type hints, async/await, Pydantic validation, repository pattern
