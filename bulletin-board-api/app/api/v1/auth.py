@@ -74,51 +74,39 @@ async def register(
         raise HTTPException(409, "Email already registered")
 
     # Create user
-    try:
-        user = User(
-            campus_id=campus.id,
-            email=data.email.lower(),
-            password_hash=hash_password(data.password),
-            display_name=data.display_name,
-            class_year=data.class_year,
-            phone_number=data.phone_number,
-        )
-        db.add(user)
-        await db.flush()
-    except Exception as e:
-        logging.getLogger("app.auth").error("User INSERT failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Registration failed (user): {type(e).__name__}: {e}")
+    user = User(
+        campus_id=campus.id,
+        email=data.email.lower(),
+        password_hash=hash_password(data.password),
+        display_name=data.display_name,
+        class_year=data.class_year,
+        phone_number=data.phone_number,
+    )
+    db.add(user)
+    await db.flush()
 
     # Create notification preferences
-    try:
-        prefs_input = data.notification_preferences
-        notification_prefs = NotificationPreference(
-            user_id=user.id,
-            email_messages=prefs_input.notify_email if prefs_input else True,
-            email_listing_replies=prefs_input.notify_email if prefs_input else True,
-            sms_messages=prefs_input.notify_sms if prefs_input else True,
-            sms_listing_replies=prefs_input.notify_sms if prefs_input else True,
-        )
-        db.add(notification_prefs)
-    except Exception as e:
-        logging.getLogger("app.auth").error("NotificationPreference failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Registration failed (prefs): {type(e).__name__}: {e}")
+    prefs_input = data.notification_preferences
+    notification_prefs = NotificationPreference(
+        user_id=user.id,
+        email_messages=prefs_input.notify_email if prefs_input else True,
+        email_listing_replies=prefs_input.notify_email if prefs_input else True,
+        sms_messages=prefs_input.notify_sms if prefs_input else True,
+        sms_listing_replies=prefs_input.notify_sms if prefs_input else True,
+    )
+    db.add(notification_prefs)
 
     # Create email verification token
-    try:
-        raw_token = secrets.token_urlsafe(32)
-        verification = EmailVerification(
-            user_id=user.id,
-            email=user.email,
-            token_hash=hash_token(raw_token),
-            purpose=EmailVerificationPurpose.VERIFY_EMAIL,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        )
-        db.add(verification)
-        await db.commit()
-    except Exception as e:
-        logging.getLogger("app.auth").error("DB commit failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Registration failed (commit): {type(e).__name__}: {e}")
+    raw_token = secrets.token_urlsafe(32)
+    verification = EmailVerification(
+        user_id=user.id,
+        email=user.email,
+        token_hash=hash_token(raw_token),
+        purpose=EmailVerificationPurpose.VERIFY_EMAIL,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+    )
+    db.add(verification)
+    await db.commit()
 
     # In development with console email provider, auto-verify the user
     if settings.email_provider == "console":

@@ -33,8 +33,14 @@ class NotificationPreference(Base, TimestampMixin):
     sms_listing_replies: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Digest preferences
+    # values_callable sends .value (lowercase) to match the DB enum created
+    # by the extend_notifications migration (which used lowercase values).
     digest_frequency: Mapped[str] = mapped_column(
-        Enum(DigestFrequency, name="digest_frequency"),
+        Enum(
+            DigestFrequency,
+            values_callable=lambda e: [x.value for x in e],
+            name="digest_frequency",
+        ),
         default=DigestFrequency.WEEKLY,
     )
     digest_last_sent_at: Mapped[datetime | None] = mapped_column(
