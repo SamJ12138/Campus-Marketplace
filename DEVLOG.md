@@ -513,3 +513,28 @@ Fix: Added `values_callable` to the `Enum()` column definition in the `Notificat
 **Status:** COMPLETED
 
 ---
+
+### 2026-02-27 - Fix Ads Dashboard 500 Error (Enum Mismatch + Frontend Param Fixes)
+
+**Summary:** All ads endpoints (`GET /ads`, `GET /ads/admin/list`, `POST /ads/admin/create`, etc.) returned HTTP 500 in production due to the same enum case mismatch bug previously fixed for `DigestFrequency`. Also fixed two frontend-backend contract mismatches.
+
+**Files Changed:**
+- `bulletin-board-api/app/models/ad.py` - Added `values_callable=lambda e: [x.value for x in e]` to `AdType` enum column so SQLAlchemy sends lowercase `.value` ("internal_detail") instead of uppercase `.name` ("INTERNAL_DETAIL"), matching the DB enum created by the `add_ads_table` migration
+- `bulletin-board-api/app/api/v1/ads.py` - Added `total` field at top level of admin list response (alongside existing `pagination` object) to match frontend `AdminAdsResponse` type which expects `{items, total}`
+- `bulletin-board-frontend/src/app/(admin)/admin/ads/page.tsx` - Changed query param from `include_inactive: showInactive` (not recognized by backend) to `status: "active"` when filtering is needed, or no param when showing all (matching backend's `status` query parameter)
+
+**Root Cause — Enum Case Mismatch (Same as DigestFrequency):**
+The `add_ads_table` migration manually creates `CREATE TYPE ad_type AS ENUM ('internal_detail', 'external_link', 'coupon', 'event')` with lowercase values. But SQLAlchemy's `Enum(AdType)` without `values_callable` sends the Python enum `.name` ("INTERNAL_DETAIL") by default. PostgreSQL rejects the mismatch, causing 500 on every read/write to the ads table.
+
+**Secondary Fixes:**
+1. Frontend `AdminAdsResponse` expected `{items, total}` but backend returned `{items, pagination: {total_items, ...}}` — added `total` at the top level
+2. Frontend sent `include_inactive` query param which backend doesn't recognize — changed to use `status` param matching backend's defined filter values
+
+**Next Steps:**
+- Deploy and verify `GET /api/v1/ads` returns 200
+- Test full ads dashboard CRUD flow (create, edit, toggle, delete)
+- Audit remaining enum usages for similar case mismatches
+
+**Status:** COMPLETED
+
+---

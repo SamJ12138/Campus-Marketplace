@@ -198,6 +198,7 @@ async def admin_list_ads(
 
     return {
         "items": [_ad_to_admin_response(ad) for ad in ads],
+        "total": total,
         "pagination": {
             "page": page,
             "per_page": per_page,

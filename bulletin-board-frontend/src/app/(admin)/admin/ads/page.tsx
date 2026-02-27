@@ -1093,7 +1093,7 @@ export default function AdminAdsPage() {
     setError(null);
     try {
       const data = await api.get<AdminAdsResponse>("/api/v1/ads/admin/list", {
-        include_inactive: showInactive,
+        ...(showInactive ? {} : { status: "active" }),
       });
       setAds(data.items);
     } catch (err) {

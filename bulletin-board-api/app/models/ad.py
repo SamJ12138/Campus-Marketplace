@@ -39,7 +39,13 @@ class Ad(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("campuses.id"), nullable=True
     )
     type: Mapped[AdType] = mapped_column(
-        Enum(AdType, name="ad_type"), nullable=False, default=AdType.INTERNAL_DETAIL
+        Enum(
+            AdType,
+            values_callable=lambda e: [x.value for x in e],
+            name="ad_type",
+        ),
+        nullable=False,
+        default=AdType.INTERNAL_DETAIL,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     subtitle: Mapped[str | None] = mapped_column(String(500), nullable=True)
