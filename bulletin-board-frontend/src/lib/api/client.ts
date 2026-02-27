@@ -3,6 +3,57 @@ const BASE_URL =
     process.env?.NEXT_PUBLIC_API_URL) ||
   "";
 
+// ---- Server warm-up (wake Render from cold start) ----
+
+let serverWarmedUp = false;
+function warmUpServer(): void {
+  if (serverWarmedUp || typeof window === "undefined") return;
+  serverWarmedUp = true;
+  const base = BASE_URL || window.location.origin;
+  fetch(`${base}/health`, { method: "GET", mode: "no-cors" }).catch(() => {});
+}
+
+// ---- Custom API error class ----
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  detail: string;
+
+  constructor(status: number, detail: string, code: string = "unknown") {
+    super(detail);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+    this.code = code;
+  }
+}
+
+// ---- Network retry helpers ----
+
+const MAX_NETWORK_RETRIES = 2;
+const RETRY_DELAYS = [1000, 3000];
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= MAX_NETWORK_RETRIES; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch {
+      if (attempt < MAX_NETWORK_RETRIES) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
+      }
+    }
+  }
+  throw new ApiError(
+    0,
+    "Unable to reach the server. Please check your connection and try again.",
+    "network_error",
+  );
+}
+
 // ---- Token store (in-memory + localStorage for 30-day persistence) ----
 
 const STORAGE_KEY = "cb_session";
@@ -128,22 +179,6 @@ function scheduleProactiveRefresh(): void {
   }, refreshInSec * 1000);
 }
 
-// ---- Custom API error class ----
-
-export class ApiError extends Error {
-  status: number;
-  code: string;
-  detail: string;
-
-  constructor(status: number, detail: string, code: string = "unknown") {
-    super(detail);
-    this.name = "ApiError";
-    this.status = status;
-    this.detail = detail;
-    this.code = code;
-  }
-}
-
 // ---- Token refresh logic ----
 
 let refreshPromise: Promise<string> | null = null;
@@ -203,6 +238,9 @@ interface RequestOptions {
 async function apiClient<T>(options: RequestOptions): Promise<T> {
   const { method, path, body, params, skipAuth } = options;
 
+  // Wake the backend on the very first request of the session
+  warmUpServer();
+
   // Build URL with query parameters
   const origin =
     BASE_URL ||
@@ -236,16 +274,7 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
     fetchOptions.body = JSON.stringify(body);
   }
 
-  let res: Response;
-  try {
-    res = await fetch(url.toString(), fetchOptions);
-  } catch (err) {
-    throw new ApiError(
-      0,
-      err instanceof Error ? err.message : "Network request failed",
-      "network_error",
-    );
-  }
+  let res: Response = await fetchWithRetry(url.toString(), fetchOptions);
 
   // On 401 attempt one token refresh + retry
   if (res.status === 401 && !skipAuth) {
@@ -254,15 +283,7 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
       try {
         const newToken = await getNewAccessToken();
         headers["Authorization"] = `Bearer ${newToken}`;
-        try {
-          res = await fetch(url.toString(), { method, headers, body: fetchOptions.body });
-        } catch (err) {
-          throw new ApiError(
-            0,
-            err instanceof Error ? err.message : "Network request failed on retry",
-            "network_error",
-          );
-        }
+        res = await fetchWithRetry(url.toString(), { method, headers, body: fetchOptions.body });
       } catch (refreshErr) {
         if (refreshErr instanceof ApiError) throw refreshErr;
         throw new ApiError(401, "Authentication failed", "auth_failed");

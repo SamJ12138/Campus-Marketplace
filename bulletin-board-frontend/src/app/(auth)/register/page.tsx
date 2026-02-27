@@ -141,7 +141,11 @@ function RegisterContent() {
       router.push(redirectTo ? `/verify-email?redirect=${encodeURIComponent(redirectTo)}` : "/verify-email");
     } catch (err) {
       if (err instanceof ApiError) {
-        setServerError(err.detail);
+        if (err.code === "network_error") {
+          setServerError("Unable to reach the server. Please check your internet connection and try again.");
+        } else {
+          setServerError(err.detail);
+        }
       } else {
         setServerError(t.errors.generic);
       }
