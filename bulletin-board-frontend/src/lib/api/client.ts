@@ -1,7 +1,7 @@
-const BASE_URL =
-  (typeof process !== "undefined" &&
-    process.env?.NEXT_PUBLIC_API_URL) ||
-  "";
+// API requests use relative paths — Next.js rewrites proxy them to the backend.
+// This eliminates CORS issues since the browser only talks to the frontend origin.
+// Configure the backend target via NEXT_PUBLIC_API_URL in your environment.
+const BASE_URL = "";
 
 // ---- Server warm-up (wake Render from cold start) ----
 

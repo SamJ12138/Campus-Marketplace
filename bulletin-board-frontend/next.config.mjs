@@ -52,6 +52,23 @@ const nextConfig = {
 
   experimental: {},
 
+  // Proxy API requests through Next.js to the backend server.
+  // This eliminates CORS issues since the browser only talks to the frontend origin.
+  async rewrites() {
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${backendUrl}/api/v1/:path*`,
+      },
+      {
+        source: "/health",
+        destination: `${backendUrl}/health`,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

@@ -464,3 +464,27 @@ Build: Clean (0 errors, 1 pre-existing ESLint warning). Tests: 7/7 passing.
 **Status:** COMPLETED
 
 ---
+
+### 2026-02-27 - Fix Signup CORS Failure via Next.js API Proxy
+
+**Summary:** Added Next.js rewrites to proxy all `/api/v1/*` requests through the frontend server, eliminating CORS as the root cause of "Unable to reach the server" on signup.
+
+**Files Changed:**
+- `bulletin-board-frontend/next.config.mjs` - Added `rewrites()` to proxy `/api/v1/:path*` and `/health` to the backend URL (`NEXT_PUBLIC_API_URL`)
+- `bulletin-board-frontend/src/lib/api/client.ts` - Changed `BASE_URL` from `process.env.NEXT_PUBLIC_API_URL` to `""` (empty string) so all browser requests use relative paths through the rewrite proxy
+
+**Details:**
+Root cause: The previous session's retry logic couldn't fix the problem because the underlying issue was CORS, not cold starts. When the browser at `https://gimme-dat.com` made direct cross-origin `fetch()` calls to `https://gettysburg-marketplace.onrender.com`, the backend's CORS middleware (`FRONTEND_URL` env var) had to whitelist every frontend origin. If misconfigured, CORS blocked the preflight request, `fetch()` threw a TypeError, and all 3 retry attempts also failed with the same CORS block.
+
+Fix: Next.js rewrites act as a server-side proxy. The browser now sends requests to its own origin (`gimme-dat.com/api/v1/...`), and Vercel's edge network forwards them to the backend. Since the browser only talks to its own origin, CORS is never triggered. This also works in local dev (`next dev` proxies to `NEXT_PUBLIC_API_URL` from `.env.local`).
+
+Build: Clean (0 errors). This resolves the P0 issue "Frontend `NEXT_PUBLIC_API_URL` env var empty/missing in production build" since the env var is now only used server-side for the rewrite target, not client-side.
+
+**Next Steps:**
+- Deploy to Vercel — ensure `NEXT_PUBLIC_API_URL=https://gettysburg-marketplace.onrender.com` is set in Vercel env vars (needed for the rewrite destination)
+- Update `AdHeroBoard.tsx` and `ad-tracking.ts` which also reference `NEXT_PUBLIC_API_URL` directly (they should use relative paths too)
+- `FRONTEND_URL` on Render can now be simplified since CORS is no longer needed for browser requests
+
+**Status:** COMPLETED
+
+---
