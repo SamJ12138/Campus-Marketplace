@@ -438,72 +438,40 @@ Performed a complete review of every file in the project to establish the v1.0 b
 
 ---
 
-### 2026-02-27 - Fix "Failed to Fetch" on Signup/Login
+### 2026-02-27 - Fix User Registration (Two Bugs: CORS + Enum Mismatch)
 
-**Summary:** Added network retry logic, server warm-up, and user-friendly error messages to fix "Failed to fetch" errors during signup/login caused by Render cold starts.
-
-**Files Changed:**
-- `bulletin-board-frontend/src/lib/api/client.ts` - Added `fetchWithRetry()` with 3 attempts + exponential backoff (1s, 3s), `warmUpServer()` to pre-ping `/health` on first API call, moved `ApiError` class above retry helpers for dependency ordering
-- `bulletin-board-frontend/src/app/(auth)/register/page.tsx` - Added network_error detection in catch block with user-friendly message
-- `bulletin-board-frontend/src/app/(auth)/login/page.tsx` - Same network_error handling as register page
-
-**Details:**
-Root cause analysis: Users hitting "Failed to fetch" when trying to register because (1) Render backend sleeps after inactivity and cold starts take 30-60s, causing browser fetch() to timeout; (2) client.ts had zero retry logic — one failed fetch = permanent error; (3) raw browser error messages ("Failed to fetch") were shown to users.
-
-Fix: Added `fetchWithRetry()` helper that retries network-level failures up to 2 times with exponential backoff (1s, 3s delays). Added `warmUpServer()` that fires a non-blocking `/health` ping on the very first API call to wake Render. Both login and register pages now detect `network_error` code and show "Unable to reach the server. Please check your internet connection and try again." instead of raw browser errors.
-
-Build: Clean (0 errors, 1 pre-existing ESLint warning). Tests: 7/7 passing.
-
-**Important:** User must verify `FRONTEND_URL` env var on Render dashboard is set to `https://www.gimme-dat.com,https://gimme-dat.com` — if wrong, CORS blocks all requests regardless of retry logic.
-
-**Next Steps:**
-- Verify FRONTEND_URL on Render dashboard
-- Monitor signup success rate after deployment
-- Consider adding a loading spinner/progress indicator during retries
-
-**Status:** COMPLETED
-
----
-
-### 2026-02-27 - Fix Signup CORS Failure via Next.js API Proxy
-
-**Summary:** Added Next.js rewrites to proxy all `/api/v1/*` requests through the frontend server, eliminating CORS as the root cause of "Unable to reach the server" on signup.
+**Summary:** User signup was completely broken in production — two layered bugs prevented any new user from registering. Fixed both: (1) CORS blocking all API calls from the frontend, and (2) a PostgreSQL enum case mismatch crashing the register endpoint with a 500.
 
 **Files Changed:**
-- `bulletin-board-frontend/next.config.mjs` - Added `rewrites()` to proxy `/api/v1/:path*` and `/health` to the backend URL (`NEXT_PUBLIC_API_URL`)
-- `bulletin-board-frontend/src/lib/api/client.ts` - Changed `BASE_URL` from `process.env.NEXT_PUBLIC_API_URL` to `""` (empty string) so all browser requests use relative paths through the rewrite proxy
+- `bulletin-board-frontend/next.config.mjs` - Added `rewrites()` to proxy `/api/v1/:path*` and `/health` to the backend URL (`NEXT_PUBLIC_API_URL`), eliminating CORS
+- `bulletin-board-frontend/src/lib/api/client.ts` - Changed `BASE_URL` from `process.env.NEXT_PUBLIC_API_URL` to `""` so browser requests use relative paths through the rewrite proxy (prior session had added `fetchWithRetry()` and `warmUpServer()` which remain)
+- `bulletin-board-frontend/src/app/(auth)/register/page.tsx` - Network error handling from prior session remains
+- `bulletin-board-frontend/src/app/(auth)/login/page.tsx` - Same
+- `bulletin-board-api/app/models/notification.py` - Added `values_callable=lambda e: [x.value for x in e]` to `DigestFrequency` enum column so SQLAlchemy sends lowercase `.value` ("weekly") instead of uppercase `.name` ("WEEKLY"), matching the DB enum created by the `extend_notifications` migration
+- `bulletin-board-api/app/api/v1/auth.py` - Added `logging` import; wrapped email sending in try/except so registration succeeds even if the verification email fails to send (user can request a resend)
 
-**Details:**
-Root cause: The previous session's retry logic couldn't fix the problem because the underlying issue was CORS, not cold starts. When the browser at `https://gimme-dat.com` made direct cross-origin `fetch()` calls to `https://gettysburg-marketplace.onrender.com`, the backend's CORS middleware (`FRONTEND_URL` env var) had to whitelist every frontend origin. If misconfigured, CORS blocked the preflight request, `fetch()` threw a TypeError, and all 3 retry attempts also failed with the same CORS block.
+**Bug 1 — CORS Blocking (Frontend):**
+The browser at `https://gimme-dat.com` made direct cross-origin `fetch()` calls to `https://gettysburg-marketplace.onrender.com`. The backend's CORS middleware (`FRONTEND_URL` env var) must whitelist every frontend origin; if misconfigured, CORS blocks the preflight, `fetch()` throws a TypeError, and the user sees "Unable to reach the server." The prior session's retry logic retried CORS-blocked requests, which never succeed.
 
-Fix: Next.js rewrites act as a server-side proxy. The browser now sends requests to its own origin (`gimme-dat.com/api/v1/...`), and Vercel's edge network forwards them to the backend. Since the browser only talks to its own origin, CORS is never triggered. This also works in local dev (`next dev` proxies to `NEXT_PUBLIC_API_URL` from `.env.local`).
+Fix: Added Next.js `rewrites()` in `next.config.mjs`. The browser now sends requests to its own origin (`gimme-dat.com/api/v1/...`), and Vercel's edge proxies them server-side to the Render backend. CORS is eliminated entirely. Also resolves the P0 issue "Frontend `NEXT_PUBLIC_API_URL` env var empty/missing in production build" — the var is now only used server-side for the rewrite target.
 
-Build: Clean (0 errors). This resolves the P0 issue "Frontend `NEXT_PUBLIC_API_URL` env var empty/missing in production build" since the env var is now only used server-side for the rewrite target, not client-side.
+**Bug 2 — Enum Case Mismatch (Backend):**
+Once CORS was fixed, registration returned "Internal server error" (500). Added temporary diagnostic try/except to surface the real error: `invalid input value for enum digest_frequency: "WEEKLY"`. The `extend_notifications` migration (hand-written) created the PostgreSQL enum with lowercase values (`"none"`, `"daily"`, `"weekly"`), but SQLAlchemy's `Enum(DigestFrequency)` sends the Python enum `.name` attribute (`"WEEKLY"`) by default. Other enums (`user_role`, `user_status`) worked because Alembic auto-generated their migrations using uppercase `.name` values.
 
-**Next Steps:**
-- Deploy to Vercel — ensure `NEXT_PUBLIC_API_URL=https://gettysburg-marketplace.onrender.com` is set in Vercel env vars (needed for the rewrite destination)
-- Update `AdHeroBoard.tsx` and `ad-tracking.ts` which also reference `NEXT_PUBLIC_API_URL` directly (they should use relative paths too)
-- `FRONTEND_URL` on Render can now be simplified since CORS is no longer needed for browser requests
+Fix: Added `values_callable` to the `Enum()` column definition in the `NotificationPreference` model, telling SQLAlchemy to use `.value` (lowercase) when persisting. Verified: registration now returns 201.
 
-**Status:** COMPLETED
-
----
-
-### 2026-02-27 - Fix Enum Case Mismatch Causing 500 on Registration
-
-**Summary:** Fixed `digest_frequency` PostgreSQL enum case mismatch that caused every user registration to fail with a 500 Internal Server Error.
-
-**Files Changed:**
-- `bulletin-board-api/app/models/notification.py` - Added `values_callable` to `DigestFrequency` enum column so SQLAlchemy sends lowercase `.value` ("weekly") instead of uppercase `.name` ("WEEKLY"), matching the DB enum
-- `bulletin-board-api/app/api/v1/auth.py` - Added `logging` import, wrapped email sending in try/except so registration succeeds even if verification email fails, removed temporary diagnostic error reporting
-
-**Details:**
-After fixing the CORS issue (previous entry), the signup request reached the backend but returned "Internal server error" (500). Added temporary diagnostic try/except blocks to the register endpoint to surface the real error: `invalid input value for enum digest_frequency: "WEEKLY"`. The `extend_notifications` migration created the PostgreSQL enum with lowercase values (`"none"`, `"daily"`, `"weekly"`), but SQLAlchemy's `Enum(DigestFrequency)` sends the Python enum `.name` attribute (`"WEEKLY"`) by default. Fixed by adding `values_callable=lambda e: [x.value for x in e]` to the `Enum()` column definition. Verified: registration now returns 201 with success message.
+**Commits:**
+1. `56fe9a9` - fix: proxy API requests through Next.js rewrites to eliminate CORS failures on signup
+2. `8f28a24` - debug: add detailed error reporting to register endpoint (temporary)
+3. `338810f` - fix: enum case mismatch causing 500 on registration (removed debug code)
+4. `2608ada` - docs: update DEVLOG
 
 **Next Steps:**
-- Test full signup flow from frontend (form → register → verify email)
-- Clean up any test users created during debugging
-- Consider auditing other enum usages for similar case mismatches
+- Test full signup flow end-to-end from frontend (form → register → verify email → login)
+- Update `AdHeroBoard.tsx` and `ad-tracking.ts` which still reference `NEXT_PUBLIC_API_URL` directly (should use relative paths for consistency)
+- `FRONTEND_URL` on Render can be simplified since CORS is no longer needed for browser requests
+- Audit other enum usages for similar case mismatches
+- Clean up test users created during debugging
 
 **Status:** COMPLETED
 
