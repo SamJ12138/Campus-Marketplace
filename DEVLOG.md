@@ -557,3 +557,17 @@ No backend changes needed. Resend Broadcasts is a no-code WYSIWYG email campaign
 **Status:** COMPLETED
 
 ---
+
+### Session — 2026-02-27: Filter Campus Dropdown by Email Domain on Signup
+
+**Task:** Frontend UX improvement — filter campus dropdown based on user's email domain during registration so users only see campuses they're eligible for.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/app/(auth)/register/page.tsx` — Added `emailDomain` memo (extracts domain from email), `filteredCampuses` memo (filters campuses by domain match or `allow_non_edu`), reset effect (clears stale campus selection when email changes), auto-select effect (picks campus when only one matches), updated email helper text to show domain hint, switched dropdown to use `filteredCampuses`
+
+**Details:**
+No backend changes. The backend validation (auth.py:77-84) already rejects email/campus mismatches. This change adds proactive client-side filtering so users only see campuses they can actually register for. Typing `@gettysburg.edu` auto-selects Gettysburg College; switching to `@gmail.com` resets and shows only `allow_non_edu` campuses. Before `@` is typed, all campuses remain visible. Build passes cleanly.
+
+**Status:** COMPLETED
+
+---

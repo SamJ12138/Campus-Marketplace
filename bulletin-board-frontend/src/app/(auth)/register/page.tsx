@@ -66,10 +66,40 @@ function RegisterContent() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const emailDomain = useMemo(() => {
+    const parts = form.email.split("@");
+    return parts.length === 2 && parts[1] ? parts[1].toLowerCase() : null;
+  }, [form.email]);
+
+  const filteredCampuses = useMemo(() => {
+    if (!emailDomain) return campuses;
+    return campuses.filter(
+      (c) => c.allow_non_edu === true || c.domain === emailDomain,
+    );
+  }, [campuses, emailDomain]);
+
   const selectedCampus = useMemo(
     () => campuses.find((c) => c.slug === form.campus_slug) ?? null,
     [campuses, form.campus_slug],
   );
+
+  // Reset campus selection if it's no longer in filtered list
+  useEffect(() => {
+    if (
+      form.campus_slug &&
+      filteredCampuses.length > 0 &&
+      !filteredCampuses.some((c) => c.slug === form.campus_slug)
+    ) {
+      updateField("campus_slug", "");
+    }
+  }, [filteredCampuses, form.campus_slug]);
+
+  // Auto-select when exactly one campus matches
+  useEffect(() => {
+    if (filteredCampuses.length === 1 && form.campus_slug !== filteredCampuses[0].slug) {
+      updateField("campus_slug", filteredCampuses[0].slug);
+    }
+  }, [filteredCampuses, form.campus_slug]);
 
   const passwordChecks = useMemo(
     () => PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(form.password) })),
@@ -205,7 +235,9 @@ function RegisterContent() {
             <p className="text-xs text-muted-foreground">
               {selectedCampus && selectedCampus.allow_non_edu === false
                 ? `Use your @${selectedCampus.domain} email address`
-                : "Any email works"}
+                : emailDomain && !form.campus_slug
+                  ? `Matching campuses for @${emailDomain}`
+                  : "Any email works"}
             </p>
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
@@ -323,7 +355,7 @@ function RegisterContent() {
               <option value="" disabled>
                 {campusesLoading ? "Loading campuses..." : "Select your campus"}
               </option>
-              {campuses.map((campus) => (
+              {filteredCampuses.map((campus) => (
                 <option key={campus.slug} value={campus.slug}>
                   {campus.name}
                 </option>
