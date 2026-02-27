@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -73,39 +74,51 @@ async def register(
         raise HTTPException(409, "Email already registered")
 
     # Create user
-    user = User(
-        campus_id=campus.id,
-        email=data.email.lower(),
-        password_hash=hash_password(data.password),
-        display_name=data.display_name,
-        class_year=data.class_year,
-        phone_number=data.phone_number,
-    )
-    db.add(user)
-    await db.flush()
+    try:
+        user = User(
+            campus_id=campus.id,
+            email=data.email.lower(),
+            password_hash=hash_password(data.password),
+            display_name=data.display_name,
+            class_year=data.class_year,
+            phone_number=data.phone_number,
+        )
+        db.add(user)
+        await db.flush()
+    except Exception as e:
+        logging.getLogger("app.auth").error("User INSERT failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Registration failed (user): {type(e).__name__}: {e}")
 
     # Create notification preferences
-    prefs_input = data.notification_preferences
-    notification_prefs = NotificationPreference(
-        user_id=user.id,
-        email_messages=prefs_input.notify_email if prefs_input else True,
-        email_listing_replies=prefs_input.notify_email if prefs_input else True,
-        sms_messages=prefs_input.notify_sms if prefs_input else True,
-        sms_listing_replies=prefs_input.notify_sms if prefs_input else True,
-    )
-    db.add(notification_prefs)
+    try:
+        prefs_input = data.notification_preferences
+        notification_prefs = NotificationPreference(
+            user_id=user.id,
+            email_messages=prefs_input.notify_email if prefs_input else True,
+            email_listing_replies=prefs_input.notify_email if prefs_input else True,
+            sms_messages=prefs_input.notify_sms if prefs_input else True,
+            sms_listing_replies=prefs_input.notify_sms if prefs_input else True,
+        )
+        db.add(notification_prefs)
+    except Exception as e:
+        logging.getLogger("app.auth").error("NotificationPreference failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Registration failed (prefs): {type(e).__name__}: {e}")
 
     # Create email verification token
-    raw_token = secrets.token_urlsafe(32)
-    verification = EmailVerification(
-        user_id=user.id,
-        email=user.email,
-        token_hash=hash_token(raw_token),
-        purpose=EmailVerificationPurpose.VERIFY_EMAIL,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-    )
-    db.add(verification)
-    await db.commit()
+    try:
+        raw_token = secrets.token_urlsafe(32)
+        verification = EmailVerification(
+            user_id=user.id,
+            email=user.email,
+            token_hash=hash_token(raw_token),
+            purpose=EmailVerificationPurpose.VERIFY_EMAIL,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        )
+        db.add(verification)
+        await db.commit()
+    except Exception as e:
+        logging.getLogger("app.auth").error("DB commit failed: %s", e, exc_info=True)
+        raise HTTPException(500, f"Registration failed (commit): {type(e).__name__}: {e}")
 
     # In development with console email provider, auto-verify the user
     if settings.email_provider == "console":
@@ -119,15 +132,20 @@ async def register(
         }
 
     # Send verification email
-    verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
-    html_content, text_content = verification_email(verify_url, user.display_name)
-    email_svc = EmailService(settings)
-    await email_svc.send_email(
-        to_email=user.email,
-        subject="Welcome to Gimme Dat - Verify your email",
-        html_content=html_content,
-        text_content=text_content,
-    )
+    try:
+        verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
+        html_content, text_content = verification_email(verify_url, user.display_name)
+        email_svc = EmailService(settings)
+        await email_svc.send_email(
+            to_email=user.email,
+            subject="Welcome to Gimme Dat - Verify your email",
+            html_content=html_content,
+            text_content=text_content,
+        )
+    except Exception as e:
+        logging.getLogger("app.auth").error("Email send failed: %s", e, exc_info=True)
+        # Don't fail registration if only email sending fails
+        # User was created successfully, they can request a new verification email
 
     return {
         "message": "Registration successful. Check your email to verify your account.",
