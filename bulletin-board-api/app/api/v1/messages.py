@@ -25,7 +25,7 @@ from app.schemas.message import (
 )
 from app.services.ai_moderation_service import AIModerationService
 from app.services.ai_service import AIService
-from app.services.email_service import EmailService
+from app.services.email_service import get_email_service
 from app.services.email_templates import new_message_email
 from app.services.message_service import MessageService
 from app.services.moderation_service import ModerationService
@@ -54,7 +54,7 @@ def _send_notification_email(
             settings.email_provider, settings.email_from_address, bool(settings.resend_api_key),
         )
         html, text = new_message_email(sender_name, listing_title, message_content, thread_url)
-        email_service = EmailService(settings)
+        email_service = get_email_service(settings)
         ok = email_service.send_email_sync(
             to_email=recipient_email,
             subject=f"New message from {sender_name} - GimmeDat",

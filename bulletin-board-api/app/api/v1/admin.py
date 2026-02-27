@@ -386,7 +386,7 @@ async def test_email(
     import logging
 
     from app.models.notification import NotificationPreference
-    from app.services.email_service import EmailService
+    from app.services.email_service import get_email_service
     from app.services.email_templates import new_message_email
 
     logger = logging.getLogger(__name__)
@@ -416,7 +416,7 @@ async def test_email(
     }
     logger.info("[TEST EMAIL] to=%s, config=%s", recipient_email, config)
 
-    svc = EmailService(settings)
+    svc = get_email_service(settings)
     results = {}
 
     # Test 1: Simple HTML

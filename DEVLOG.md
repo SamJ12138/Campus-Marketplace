@@ -476,3 +476,40 @@ Fix: Added `values_callable` to the `Enum()` column definition in the `Notificat
 **Status:** COMPLETED
 
 ---
+
+### 2026-02-27 - Optimize Email Delivery Speed (4 Root Causes Fixed)
+
+**Summary:** Emails (verification, password reset, notifications) now arrive significantly faster. Fixed 4 root causes: blocking HTTP responses, no connection reuse, broken scheduled emails, and synchronous SDK overhead.
+
+**Files Changed:**
+- `bulletin-board-api/app/services/email_service.py` - Complete rewrite: replaced blocking `resend` SDK with `httpx` AsyncClient/Client for true async + connection pooling. Added `get_email_service()` singleton factory. Moved all provider config from per-call to `__init__`.
+- `bulletin-board-api/app/api/v1/auth.py` - Moved email sends in `/register`, `/resend-verification`, `/forgot-password` from inline `await` to `BackgroundTasks` (response returns instantly, email sends in background thread)
+- `bulletin-board-api/app/workers/tasks.py` - Replaced standalone `send_email()` (only supported console/sendgrid) with one that delegates to `EmailService` (now supports Resend in production)
+- `bulletin-board-api/app/workers/main.py` - Initialize `EmailService` in worker startup, clean up in shutdown
+- `bulletin-board-api/app/main.py` - Initialize `EmailService` singleton at app startup, close httpx clients at shutdown
+- `bulletin-board-api/app/dependencies.py` - Added `get_email_svc()` dependency for route injection
+- `bulletin-board-api/app/api/v1/messages.py` - Use singleton `get_email_service()` instead of creating new instance per message
+- `bulletin-board-api/app/api/v1/admin.py` - Use singleton `get_email_service()` in test email endpoint
+
+**Root Causes Fixed:**
+1. **Verification emails blocked HTTP response** — `/register` waited 1-3s for Resend API before responding. Now uses `BackgroundTasks` for instant response.
+2. **No connection reuse** — Every email created a new `EmailService`, re-imported `resend` lib, opened fresh TCP+TLS. Now singleton with persistent `httpx` connection pooling.
+3. **Scheduled emails broken in production** — ARQ worker `send_email()` only supported console/sendgrid, NOT Resend (the production provider). Digests, nudges, re-engagement, price drop alerts were silently never sending. Now delegates to `EmailService` which supports all providers.
+4. **Blocking SDK** — `resend` Python SDK uses `requests` library internally (blocking, no session reuse). Replaced with direct `httpx` API calls (true async, connection pooling).
+
+**Expected Impact:**
+- `/register` response: 1-3s → ~200ms
+- `/forgot-password` response: 1-3s → ~200ms
+- Per-email connection overhead: ~150-300ms → ~5-10ms (reused connections)
+- Scheduled emails: broken → working
+
+**Tests:** 290 unit tests passed, 73 email/notification tests passed, ruff linting clean.
+
+**Next Steps:**
+- Deploy and verify verification emails arrive within seconds of registration
+- Monitor Render logs for `[EMAIL] Resend response:` from scheduled cron jobs (should now appear)
+- Consider removing `resend` SDK from `requirements.txt` (no longer imported at runtime)
+
+**Status:** COMPLETED
+
+---

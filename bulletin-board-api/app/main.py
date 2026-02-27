@@ -56,16 +56,12 @@ async def lifespan(app: FastAPI):
             " running without rate limiting and background jobs"
         )
 
-    # Log email configuration for debugging
-    print(f"[STARTUP] Email provider: {settings.email_provider}")
+    # Initialize EmailService singleton (connection pooling for Resend/SendGrid)
+    from app.services.email_service import get_email_service
+
+    app.state.email_service = get_email_service(settings)
+    print(f"[STARTUP] EmailService initialized (provider: {settings.email_provider})")
     print(f"[STARTUP] Email from: {settings.email_from_name} <{settings.email_from_address}>")
-    if settings.email_provider == "resend" and not settings.resend_api_key:
-        print("[STARTUP] WARNING: EMAIL_PROVIDER=resend but RESEND_API_KEY is not set!")
-    if "resend.dev" in settings.email_from_address:
-        print(
-            "[STARTUP] WARNING: EMAIL_FROM_ADDRESS uses sandbox"
-            " domain 'resend.dev' — emails only go to account owner!"
-        )
 
     # Auto-seed example listings if needed
     try:
@@ -78,6 +74,8 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    if hasattr(app.state, "email_service") and app.state.email_service:
+        await app.state.email_service.close()
     if app.state.redis:
         await app.state.redis.close()
     if app.state.arq_pool:

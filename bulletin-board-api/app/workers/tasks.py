@@ -27,34 +27,16 @@ async def send_sms(ctx, to: str, message: str):
 
 
 async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
-    """Send transactional email."""
-    settings = ctx["settings"]
-
+    """Send transactional email via the shared EmailService (supports all providers)."""
     templates = {
-        "verify_email": {
-            "subject": "Verify your GimmeDat email",
-        },
-        "password_reset": {
-            "subject": "Reset your password",
-        },
-        "new_message": {
-            "subject": "You have a new message on GimmeDat",
-        },
-        "listing_expiring": {
-            "subject": "Your listing is expiring soon",
-        },
-        "report_resolved": {
-            "subject": "Update on your report",
-        },
-        "digest": {
-            "subject": "Your GimmeDat digest",
-        },
-        "re_engagement": {
-            "subject": "What's new on GimmeDat",
-        },
-        "price_drop": {
-            "subject": "Price update on a listing you're watching",
-        },
+        "verify_email": {"subject": "Verify your GimmeDat email"},
+        "password_reset": {"subject": "Reset your password"},
+        "new_message": {"subject": "You have a new message on GimmeDat"},
+        "listing_expiring": {"subject": "Your listing is expiring soon"},
+        "report_resolved": {"subject": "Update on your report"},
+        "digest": {"subject": "Your GimmeDat digest"},
+        "re_engagement": {"subject": "What's new on GimmeDat"},
+        "price_drop": {"subject": "Price update on a listing you're watching"},
     }
 
     template_info = templates.get(email_type)
@@ -63,27 +45,18 @@ async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
 
     # Use dynamic subject from data if provided (AI-generated subjects)
     subject = data.get("subject", template_info["subject"])
+    html_content = data.get("body_html", f"<p>{data}</p>")
+    text_content = data.get("body_text")
 
-    if settings.email_provider == "console":
-        print(
-            f"[EMAIL] To: {recipient_email}, "
-            f"Subject: {subject}, "
-            f"Data: {data}"
-        )
-        return
+    from app.services.email_service import get_email_service
 
-    elif settings.email_provider == "sendgrid":
-        import sendgrid
-        from sendgrid.helpers.mail import Mail
-
-        sg = sendgrid.SendGridAPIClient(api_key=settings.sendgrid_api_key)
-        message = Mail(
-            from_email=(settings.email_from_address, settings.email_from_name),
-            to_emails=recipient_email,
-            subject=subject,
-            html_content=f"<p>{data}</p>",
-        )
-        sg.send(message)
+    email_svc = get_email_service(ctx["settings"])
+    await email_svc.send_email(
+        to_email=recipient_email,
+        subject=subject,
+        html_content=html_content,
+        text_content=text_content,
+    )
 
 
 async def generate_thumbnail(ctx, photo_id: str, storage_key: str):

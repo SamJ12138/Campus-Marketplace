@@ -9,15 +9,19 @@ settings = get_settings()
 async def startup(ctx):
     """Initialize worker context."""
     from app.db import create_engine, create_session_factory
+    from app.services.email_service import get_email_service
 
     engine = create_engine(settings.database_url)
     ctx["db_session"] = create_session_factory(engine)
     ctx["settings"] = settings
+    ctx["email_service"] = get_email_service(settings)
 
 
 async def shutdown(ctx):
     """Cleanup."""
-    pass
+    email_svc = ctx.get("email_service")
+    if email_svc:
+        await email_svc.close()
 
 
 class WorkerSettings:

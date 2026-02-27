@@ -2,7 +2,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from redis.asyncio import Redis
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +36,7 @@ from app.schemas.auth import (
     TokenResponse,
     VerifyEmailRequest,
 )
-from app.services.email_service import EmailService
+from app.services.email_service import get_email_service
 from app.services.email_templates import (
     password_reset_email,
     resend_verification_email,
@@ -47,10 +47,25 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 
+def _send_email_background(
+    email_svc,
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str | None,
+) -> None:
+    """Send email in a background thread. Errors are logged, never raised."""
+    try:
+        email_svc.send_email_sync(to_email, subject, html_content, text_content)
+    except Exception as e:
+        logging.getLogger("app.auth").error("Background email send failed: %s", e, exc_info=True)
+
+
 @router.post("/register", status_code=201)
 async def register(
     data: RegisterRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Register a new user account."""
@@ -119,21 +134,18 @@ async def register(
             "user_id": str(user.id),
         }
 
-    # Send verification email
-    try:
-        verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
-        html_content, text_content = verification_email(verify_url, user.display_name)
-        email_svc = EmailService(settings)
-        await email_svc.send_email(
-            to_email=user.email,
-            subject="Welcome to Gimme Dat - Verify your email",
-            html_content=html_content,
-            text_content=text_content,
-        )
-    except Exception as e:
-        logging.getLogger("app.auth").error("Email send failed: %s", e, exc_info=True)
-        # Don't fail registration if only email sending fails
-        # User was created successfully, they can request a new verification email
+    # Send verification email in background (non-blocking — user gets instant response)
+    verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
+    html_content, text_content = verification_email(verify_url, user.display_name)
+    email_svc = get_email_service(settings)
+    background_tasks.add_task(
+        _send_email_background,
+        email_svc,
+        user.email,
+        "Welcome to Gimme Dat - Verify your email",
+        html_content,
+        text_content,
+    )
 
     return {
         "message": "Registration successful. Check your email to verify your account.",
@@ -314,6 +326,7 @@ async def verify_email(
 @router.post("/resend-verification")
 async def resend_verification(
     data: ForgotPasswordRequest,  # Reuses email-only schema
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
@@ -344,12 +357,14 @@ async def resend_verification(
 
     verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
     html_content, text_content = resend_verification_email(verify_url)
-    email_svc = EmailService(settings)
-    await email_svc.send_email(
-        to_email=user.email,
-        subject="Verify your Gimme Dat email",
-        html_content=html_content,
-        text_content=text_content,
+    email_svc = get_email_service(settings)
+    background_tasks.add_task(
+        _send_email_background,
+        email_svc,
+        user.email,
+        "Verify your Gimme Dat email",
+        html_content,
+        text_content,
     )
 
     return {"message": "If an account exists, a verification email has been sent."}
@@ -358,6 +373,7 @@ async def resend_verification(
 @router.post("/forgot-password")
 async def forgot_password(
     data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
@@ -384,12 +400,14 @@ async def forgot_password(
 
         reset_url = f"{settings.primary_frontend_url}/reset-password?token={raw_token}"
         html_content, text_content = password_reset_email(reset_url)
-        email_svc = EmailService(settings)
-        await email_svc.send_email(
-            to_email=user.email,
-            subject="Reset your Gimme Dat password",
-            html_content=html_content,
-            text_content=text_content,
+        email_svc = get_email_service(settings)
+        background_tasks.add_task(
+            _send_email_background,
+            email_svc,
+            user.email,
+            "Reset your Gimme Dat password",
+            html_content,
+            text_content,
         )
 
     return {"message": "If an account exists, a password reset email has been sent."}
