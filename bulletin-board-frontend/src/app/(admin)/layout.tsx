@@ -18,6 +18,8 @@ import {
   Menu,
   X,
   Shield,
+  Send,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/hooks/use-auth";
@@ -29,12 +31,13 @@ const sidebarLinks = [
   { href: "/admin/users", label: t.admin.userManagement, icon: Users },
   { href: "/admin/listings", label: "Content", icon: Package },
   { href: "/admin/ads", label: "Ads", icon: Megaphone },
+  { href: "https://resend.com/broadcasts", label: "Newsletters", icon: Send, external: true },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquarePlus },
   { href: "/admin/applications", label: "Applications", icon: UserPlus },
   { href: "/admin/keywords", label: "Keywords", icon: KeyRound },
   { href: "/admin/insights", label: "AI Insights", icon: Brain },
   { href: "/admin/audit-log", label: t.admin.auditLog, icon: ScrollText },
-];
+] as const;
 
 function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, initialize } = useAuthStore();
@@ -114,20 +117,39 @@ function AdminSidebar({
         </div>
         <nav className="flex flex-col gap-1 p-4">
           {sidebarLinks.map((link) => {
+            const isExternal = "external" in link && link.external;
             const isActive =
-              pathname === link.href ||
-              (link.href !== "/admin" && pathname.startsWith(link.href));
+              !isExternal &&
+              (pathname === link.href ||
+              (link.href !== "/admin" && pathname.startsWith(link.href)));
+            const classes = cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            );
+            if (isExternal) {
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
+                  className={classes}
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                  <ExternalLink className="ml-auto h-3 w-3 opacity-50" />
+                </a>
+              );
+            }
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
+                className={classes}
               >
                 <link.icon className="h-4 w-4" />
                 {link.label}

@@ -15,6 +15,8 @@ import {
   Mail,
   UserPlus,
   Brain,
+  Send,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -179,6 +181,13 @@ const QUICK_LINKS = [
     title: "Ads Management",
     description: "Manage featured carousel ads",
     icon: Megaphone,
+  },
+  {
+    href: "https://resend.com/broadcasts",
+    title: "Newsletters",
+    description: "Create & send email campaigns",
+    icon: Send,
+    external: true,
   },
   {
     href: "/admin/feedback",
@@ -549,24 +558,47 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {QUICK_LINKS.map((link) => {
             const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "flex items-center gap-4 rounded-lg border border-border bg-card p-4",
-                  "hover:bg-accent/50 transition-colors",
-                )}
-              >
+            const isExternal = "external" in link && link.external;
+            const classes = cn(
+              "flex items-center gap-4 rounded-lg border border-border bg-card p-4",
+              "hover:bg-accent/50 transition-colors",
+            );
+            const content = (
+              <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">{link.title}</p>
                   <p className="text-xs text-muted-foreground">
                     {link.description}
                   </p>
                 </div>
+                {isExternal && (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                )}
+              </>
+            );
+            if (isExternal) {
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={classes}
+                >
+                  {content}
+                </a>
+              );
+            }
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={classes}
+              >
+                {content}
               </Link>
             );
           })}

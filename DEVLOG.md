@@ -538,3 +538,22 @@ The `add_ads_table` migration manually creates `CREATE TYPE ad_type AS ENUM ('in
 **Status:** COMPLETED
 
 ---
+
+### 2026-02-27 - Add Resend Broadcasts Link to Moderator Dashboard
+
+**Summary:** Added a "Newsletters" external link to the admin sidebar and dashboard quick links grid, opening Resend Broadcasts in a new tab for email campaign management.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/app/(admin)/layout.tsx` - Added `Send` and `ExternalLink` icon imports; added "Newsletters" entry to `sidebarLinks` with `external: true`; updated nav rendering to use `<a target="_blank">` for external links with an `ExternalLink` indicator icon
+- `bulletin-board-frontend/src/app/(admin)/admin/page.tsx` - Added `Send` and `ExternalLink` icon imports; added "Newsletters" entry to `QUICK_LINKS` with `external: true`; updated quick link card rendering to use `<a target="_blank">` for external links with an `ExternalLink` indicator icon
+
+**Details:**
+No backend changes needed. Resend Broadcasts is a no-code WYSIWYG email campaign tool included in the existing Resend plan. Added convenient navigation shortcuts so moderators can jump directly to `https://resend.com/broadcasts` from two places: the sidebar nav and the dashboard quick access grid. Both render as `<a>` tags with `target="_blank" rel="noopener noreferrer"` and display a small external-link indicator. Build passes cleanly.
+
+**Next Steps:**
+- Deploy to Vercel and verify links work in production
+- Consider adding audience management link if needed later
+
+**Status:** COMPLETED
+
+---
