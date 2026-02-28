@@ -15,7 +15,6 @@ export async function getListings(
     type: params.type,
     category: params.category_slug,
     location_type: params.location_type,
-    search: params.search,
     q: params.q,
     status: params.status,
     min_price: params.min_price,

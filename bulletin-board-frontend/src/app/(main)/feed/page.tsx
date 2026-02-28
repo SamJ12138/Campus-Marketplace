@@ -481,22 +481,23 @@ function FeedContent() {
     router.replace(newPath, { scroll: false });
   }, [type, category, sort, debouncedSearch, router]);
 
-  // Build query filters
-  const filters = useMemo(
-    () => ({
-      type: type ?? undefined,
-      category_slug: category ?? undefined,
-      sort,
-      q: debouncedSearch || undefined,
-      min_price: debouncedMinPrice ? Number(debouncedMinPrice) : undefined,
-      max_price: debouncedMaxPrice ? Number(debouncedMaxPrice) : undefined,
-    }),
-    [type, category, sort, debouncedSearch, debouncedMinPrice, debouncedMaxPrice],
-  );
+  // Build query filters — only include defined values so TanStack Query
+  // sees a structurally different key when filters actually change.
+  const filters = useMemo(() => {
+    const f: Record<string, string | number> = {};
+    if (type) f.type = type;
+    if (category) f.category_slug = category;
+    if (sort) f.sort = sort;
+    if (debouncedSearch) f.q = debouncedSearch;
+    if (debouncedMinPrice) f.min_price = Number(debouncedMinPrice);
+    if (debouncedMaxPrice) f.max_price = Number(debouncedMaxPrice);
+    return f;
+  }, [type, category, sort, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
 
   const {
     data,
     isPending,
+    isFetching,
     isError,
     refetch,
     fetchNextPage,
@@ -627,6 +628,19 @@ function FeedContent() {
         </div>
       </div>
 
+      {/* Active search indicator */}
+      {debouncedSearch && !isPending && !authLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Search className="h-3.5 w-3.5" />
+          <span>
+            {listings.length === 0
+              ? `No results for "${debouncedSearch}"`
+              : `${data?.pages[0]?.pagination.total_items ?? listings.length} result${(data?.pages[0]?.pagination.total_items ?? listings.length) !== 1 ? "s" : ""} for "${debouncedSearch}"`}
+          </span>
+          {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        </div>
+      )}
+
       {/* Sticky filter bar */}
       <FilterBar
         currentType={type}
@@ -643,7 +657,7 @@ function FeedContent() {
       />
 
       {/* Content area */}
-      {(authLoading || isPending) ? (
+      {(authLoading || isPending || (isFetching && listings.length === 0)) ? (
         <ListingGrid listings={[]}>
           {Array.from({ length: 8 }).map((_, i) => (
             <ListingCardSkeleton key={i} />

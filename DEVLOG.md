@@ -595,3 +595,39 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Status:** COMPLETED
 
 ---
+
+### Session 2026-02-27 — Fix Feed Page Search Bar
+
+**Problem:** Typing in the search bar on `/feed` had no effect — no loading skeletons appeared, no new API request fired, and listings didn't filter. Root cause: TanStack Query's key hash was treating old and new filter objects as identical because `undefined` values in the filters memo were being stripped by `JSON.stringify`, producing the same structural hash.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/app/(main)/feed/page.tsx` — Rewrote `filters` memo to build a clean object with only defined properties (no `undefined` values), ensuring TanStack Query sees a structurally different key when filters change.
+- `bulletin-board-frontend/src/lib/hooks/use-listings.ts` — Changed query key from `listingKeys.list(filters)` (object-based) to `[...listingKeys.lists(), JSON.stringify(filters)]` (deterministic string), eliminating ambiguity in key comparison.
+- `bulletin-board-frontend/src/lib/api/listings.ts` — Removed unused `search: params.search` parameter from `getListings()` API call.
+
+**Verification:**
+- `npm run build` — passes cleanly (all 50 pages compiled, zero errors)
+
+**Status:** COMPLETED
+
+---
+
+### Session 2026-02-27 — Feed Search: staleTime Fix + Visual Feedback
+
+**Summary:** Belt-and-suspenders fix to guarantee feed search bar works reliably, plus visual feedback so users can confirm search is active.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/lib/hooks/use-listings.ts` — Added `staleTime: 0` to the `useInfiniteQuery` config so TanStack Query always refetches on key change instead of serving cached data from the global 60s staleTime
+- `bulletin-board-frontend/src/app/(main)/feed/page.tsx` — (1) Destructured `isFetching` from `useListings` to detect background refetches, (2) Updated loading condition to show skeletons when fetching with zero results (`isFetching && listings.length === 0`), (3) Added search result count indicator that shows "N results for 'term'" or "No results for 'term'" with a spinning loader during active fetches
+
+**Root Causes Addressed:**
+1. Global `staleTime: 60s` could prevent visual re-trigger when searching multiple times quickly — overridden to `0` for listing queries
+2. No visual feedback — users couldn't tell if search was active; now shows result count and spinner
+3. `isPending` alone doesn't catch background refetches with `useInfiniteQuery` — `isFetching` covers the gap
+
+**Verification:**
+- `npm run build` — passes cleanly (all 50 pages compiled, zero errors)
+
+**Status:** COMPLETED
+
+---
