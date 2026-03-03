@@ -659,3 +659,32 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Status:** COMPLETED (pending production DB update)
 
 ---
+
+### Session 2026-03-03 — Fix Feedback Endpoint 500 Error (Bug Fix + Deploy)
+
+**Summary:** Live testing of the feedback endpoint (`POST /api/v1/feedback`) revealed a 500 Internal Server Error. Root cause: SQLAlchemy was sending uppercase enum names (`"NEW"`) to PostgreSQL, but the `feedback_status` enum in the database expected lowercase values (`"new"`). Same bug existed in the Application model. Fixed both models, added an idempotent alembic migration, pushed to trigger Render redeploy, and verified all feedback flows work end-to-end on the live site.
+
+**Root Cause:**
+- The `Feedback` and `Application` models used `Enum(FeedbackStatus, name="feedback_status")` without `values_callable`
+- SQLAlchemy's default behavior sends enum **names** (uppercase: `NEW`, `REVIEWED`) not **values** (lowercase: `new`, `reviewed`)
+- The PostgreSQL `feedback_status` and `application_status` enums were created with lowercase values
+- This caused `asyncpg.exceptions.InvalidTextRepresentationError: invalid input value for enum feedback_status: "NEW"`
+- Other models (user_role, listing_status, etc.) don't have this issue because their PG enum values ARE uppercase
+
+**Files Changed:**
+- `bulletin-board-api/app/models/feedback.py` — Added `values_callable=lambda e: [x.value for x in e]` to the status column's Enum definition
+- `bulletin-board-api/app/models/application.py` — Same fix for ApplicationStatus enum
+- `bulletin-board-api/alembic/versions/add_feedback_table.py` — New idempotent migration to track the feedback table in alembic (table already existed from `create_all`, now uses `CREATE TABLE IF NOT EXISTS`)
+
+**Live Testing Results (all PASS after deploy):**
+- Authenticated feedback submission: 201 Created
+- Anonymous feedback with email: 201 Created
+- Fully anonymous feedback (no email, no auth): 201 Created
+- Admin list feedback (`GET /feedback/admin`): returns all 3 with correct user/email data
+- Admin stats (`GET /feedback/admin/stats`): `{new: 1, reviewed: 1, archived: 1, total: 3}`
+- Admin mark as reviewed (`PATCH /feedback/admin/{id}`): updates status, sets reviewer and reviewed_at
+- Admin archive (`PATCH /feedback/admin/{id}`): updates status to archived
+
+**Status:** COMPLETED
+
+---
