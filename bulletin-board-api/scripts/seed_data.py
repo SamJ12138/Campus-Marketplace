@@ -46,6 +46,7 @@ async def seed():
             name="Gettysburg College",
             domain="gettysburg.edu",
             slug="gettysburg-college",
+            allow_non_edu=False,
         )
         db.add(gettysburg)
 

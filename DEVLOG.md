@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-03-03
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -629,5 +629,33 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 - `npm run build` — passes cleanly (all 50 pages compiled, zero errors)
 
 **Status:** COMPLETED
+
+---
+
+### Session 2026-03-03 — Audit & Fix .edu Email Domain Enforcement
+
+**Summary:** Discovered that the `allow_non_edu` flag on the Gettysburg College campus record was set to `true` in production, completely bypassing the `.edu` email domain validation during registration. Any email (gmail.com, yahoo.com, etc.) could successfully register. Fixed the seed script and banned test accounts created during verification.
+
+**Issue Found:**
+- The backend domain validation logic at `auth.py:78-84` is correct — it checks `if not campus.allow_non_edu` before comparing email domains
+- The frontend client-side validation at `register/page.tsx:148-155` is also correct
+- However, the production database had `allow_non_edu = true` for Gettysburg College, so the entire check was skipped
+- Live testing confirmed: `@gmail.com`, `@yahoo.com`, and `@totallynotacollege.xyz` all registered successfully
+
+**Files Changed:**
+- `bulletin-board-api/scripts/seed_data.py` — Added explicit `allow_non_edu=False` to the Gettysburg College campus seed so future deployments default to enforcing `.edu` emails
+
+**Production Actions Taken:**
+- Banned 3 test accounts created during live verification (`faketest_domaincheck@gmail.com`, `faketest_domaincheck@yahoo.com`, `faketest_domaincheck@totallynotacollege.xyz`)
+- **ACTION REQUIRED:** Run `UPDATE campuses SET allow_non_edu = false WHERE slug = 'gettysburg-college';` on the Neon production database to enable enforcement
+
+**Existing Non-.edu Accounts (pre-existing, not banned):**
+- `tianyijia041008@163.com`, `chenlee050126@gmail.com`, `samloveemmaforever@gmail.com` — developer test accounts from earlier sessions, left active
+
+**Verification:**
+- Isolated logic test: 10/10 domain validation scenarios passed (gettysburg.edu allowed, gmail/yahoo/harvard/subdomains blocked, case-insensitive matching works, multi-campus isolation works)
+- Unit tests: 290 passed (1 pre-existing failure in `test_moderation.py` unrelated to auth)
+
+**Status:** COMPLETED (pending production DB update)
 
 ---

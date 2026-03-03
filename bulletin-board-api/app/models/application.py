@@ -32,7 +32,11 @@ class Application(Base):
     marketing_pitch: Mapped[str] = mapped_column(Text, nullable=False)
     platform_ideas: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus, name="application_status"),
+        Enum(
+            ApplicationStatus,
+            name="application_status",
+            values_callable=lambda e: [x.value for x in e],
+        ),
         default=ApplicationStatus.NEW,
     )
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)

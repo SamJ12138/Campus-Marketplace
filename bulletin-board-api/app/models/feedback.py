@@ -32,7 +32,11 @@ class Feedback(Base):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[FeedbackStatus] = mapped_column(
-        Enum(FeedbackStatus, name="feedback_status"),
+        Enum(
+            FeedbackStatus,
+            name="feedback_status",
+            values_callable=lambda e: [x.value for x in e],
+        ),
         default=FeedbackStatus.NEW,
     )
     admin_note: Mapped[str | None] = mapped_column(Text, nullable=True)
