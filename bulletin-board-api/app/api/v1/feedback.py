@@ -49,6 +49,7 @@ class FeedbackListResponse(BaseModel):
 class FeedbackUpdateRequest(BaseModel):
     status: str | None = None
     admin_note: str | None = None
+    email: str | None = None
 
 
 # ── Helpers ──
@@ -217,19 +218,21 @@ async def update_feedback(
     if data.admin_note is not None:
         feedback.admin_note = data.admin_note
 
+    if data.email is not None:
+        feedback.email = data.email
+
     await db.commit()
 
     # Send review notification email when status changes to "reviewed"
     if data.status == "reviewed":
         await db.refresh(feedback, ["user"])
-        if feedback.user and feedback.user.email:
+        recipient_email = (feedback.user.email if feedback.user else None) or feedback.email
+        display_name = (feedback.user.display_name if feedback.user else None) or "there"
+        if recipient_email:
             try:
-                html, text = feedback_reviewed_email(
-                    feedback.user.display_name or "there",
-                    feedback.admin_note,
-                )
+                html, text = feedback_reviewed_email(display_name, feedback.admin_note)
                 await email_svc.send_email(
-                    feedback.user.email,
+                    recipient_email,
                     "Update on your feedback - GimmeDat",
                     html,
                     text,
