@@ -13,6 +13,7 @@ import {
   Clock,
   User,
   Mail,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { api } from "@/lib/api/client";
@@ -25,6 +26,7 @@ interface FeedbackUser {
   id: string;
   display_name: string;
   email: string;
+  phone_number: string | null;
   avatar_url: string | null;
 }
 
@@ -176,10 +178,18 @@ function FeedbackRow({
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={item.status} />
             {item.user ? (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <User className="h-3 w-3" />
-                {item.user.display_name}
-              </span>
+              <>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <User className="h-3 w-3" />
+                  {item.user.display_name}
+                </span>
+                {item.user.phone_number && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Phone className="h-3 w-3" />
+                    {item.user.phone_number}
+                  </span>
+                )}
+              </>
             ) : item.email ? (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Mail className="h-3 w-3" />
@@ -228,6 +238,9 @@ function FeedbackRow({
                 )}
                 <span className="text-sm">{item.user.display_name}</span>
                 <span className="text-xs text-muted-foreground">{item.user.email}</span>
+                {item.user.phone_number && (
+                  <span className="text-xs text-muted-foreground">{item.user.phone_number}</span>
+                )}
               </div>
             </div>
           )}

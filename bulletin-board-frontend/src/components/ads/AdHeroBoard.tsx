@@ -22,9 +22,11 @@ import {
   Loader2,
   Send,
 } from "lucide-react";
+import Link from "next/link";
 import type { Ad } from "@/lib/types/ads";
 import { useAds } from "@/lib/hooks/use-ads";
 import { useAuthStore } from "@/lib/hooks/use-auth";
+import { api } from "@/lib/api/client";
 import { trackAdImpression, trackAdClick } from "@/lib/utils/ad-tracking";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/Button";
@@ -133,7 +135,6 @@ async function handleShare(): Promise<"shared" | "copied" | "failed"> {
 
 function FeedbackModal({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const user = useAuthStore((s) => s.user);
@@ -162,21 +163,9 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
     setError(null);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/feedback`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: message.trim(),
-            email: !user ? email || undefined : undefined,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to submit");
-      }
+      await api.post("/api/v1/feedback", {
+        message: message.trim(),
+      });
 
       setIsSending(false);
       setSubmitted(true);
@@ -208,6 +197,27 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
               Close
             </Button>
           </div>
+        ) : !user ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <MessageSquarePlus className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold">Log in to send feedback</h3>
+            <p className="text-sm text-muted-foreground">
+              Please sign in so we can follow up on your feedback and keep you updated.
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Log in
+              </Link>
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+            </div>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
@@ -235,16 +245,6 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
-              {!user && (
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email (optional)"
-                  className="flex h-10 w-full rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-              )}
-
               <textarea
                 ref={textareaRef}
                 value={message}

@@ -426,6 +426,13 @@ function FeedContent() {
   const [debouncedMinPrice, setDebouncedMinPrice] = useState("");
   const [debouncedMaxPrice, setDebouncedMaxPrice] = useState("");
 
+  // Sync URL → state when navigating via external links (e.g., navbar dropdown)
+  useEffect(() => {
+    setType(initialType);
+    setCategory(initialCategory);
+    setSort(initialSort);
+  }, [initialType, initialCategory, initialSort]);
+
   // View mode (grid / list) — persisted in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 

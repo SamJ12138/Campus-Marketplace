@@ -1,16 +1,21 @@
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_current_user, require_moderator
-from app.dependencies import get_db
+from app.api.deps import get_current_active_user, require_moderator
+from app.dependencies import get_db, get_email_svc
 from app.models.feedback import Feedback, FeedbackStatus
 from app.models.user import User
+from app.services.email_service import EmailService
+from app.services.email_templates import feedback_received_email, feedback_reviewed_email
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
@@ -20,7 +25,6 @@ router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 class FeedbackCreate(BaseModel):
     message: str
-    email: str | None = None
 
 
 class FeedbackResponse(BaseModel):
@@ -57,6 +61,7 @@ def _feedback_to_response(fb: Feedback) -> FeedbackResponse:
             "id": str(fb.user.id),
             "display_name": fb.user.display_name,
             "email": fb.user.email,
+            "phone_number": fb.user.phone_number,
             "avatar_url": fb.user.avatar_url,
         }
     reviewer_data = None
@@ -78,16 +83,35 @@ def _feedback_to_response(fb: Feedback) -> FeedbackResponse:
     )
 
 
+# ── Email helper ──
+
+
+def _send_email_background(
+    email_svc: EmailService,
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str | None,
+) -> None:
+    """Send email in a background thread. Errors are logged, never raised."""
+    try:
+        email_svc.send_email_sync(to_email, subject, html_content, text_content)
+    except Exception as e:
+        logger.error("Background feedback email send failed: %s", e, exc_info=True)
+
+
 # ── Public: Submit feedback ──
 
 
 @router.post("", status_code=201)
 async def submit_feedback(
     data: FeedbackCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User | None = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
+    email_svc: EmailService = Depends(get_email_svc),
 ):
-    """Submit feedback. Works for both authenticated and anonymous users."""
+    """Submit feedback. Requires authentication."""
     if not data.message or not data.message.strip():
         raise HTTPException(400, "Feedback message is required")
 
@@ -95,13 +119,24 @@ async def submit_feedback(
         raise HTTPException(400, "Feedback message is too long (max 5000 characters)")
 
     feedback = Feedback(
-        user_id=current_user.id if current_user else None,
-        email=data.email if not current_user else current_user.email,
+        user_id=current_user.id,
+        email=current_user.email,
         message=data.message.strip(),
         status=FeedbackStatus.NEW,
     )
     db.add(feedback)
     await db.commit()
+
+    # Send confirmation email
+    html, text = feedback_received_email(current_user.display_name or "there")
+    background_tasks.add_task(
+        _send_email_background,
+        email_svc,
+        current_user.email,
+        "We received your feedback - GimmeDat",
+        html,
+        text,
+    )
 
     return {
         "ok": True,
@@ -181,8 +216,10 @@ async def feedback_stats(
 async def update_feedback(
     feedback_id: UUID,
     data: FeedbackUpdateRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_moderator),
+    email_svc: EmailService = Depends(get_email_svc),
 ):
     """Update feedback status or add admin note. Moderator+ access."""
     feedback = await db.get(Feedback, feedback_id)
@@ -199,6 +236,23 @@ async def update_feedback(
         feedback.admin_note = data.admin_note
 
     await db.commit()
+
+    # Send review notification email when status changes to "reviewed"
+    if data.status == "reviewed":
+        await db.refresh(feedback, ["user"])
+        if feedback.user and feedback.user.email:
+            html, text = feedback_reviewed_email(
+                feedback.user.display_name or "there",
+                feedback.admin_note,
+            )
+            background_tasks.add_task(
+                _send_email_background,
+                email_svc,
+                feedback.user.email,
+                "Update on your feedback - GimmeDat",
+                html,
+                text,
+            )
 
     await db.refresh(feedback, ["user", "reviewer"])
     return _feedback_to_response(feedback)

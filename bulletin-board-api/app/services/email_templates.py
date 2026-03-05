@@ -527,3 +527,98 @@ Manage settings: {settings_url}
                             </p>'''
 
     return _base_template(content, footer_extra), plain
+
+
+def feedback_received_email(display_name: str) -> tuple[str, str]:
+    """Confirmation email sent when a user submits feedback. Returns (html, plain_text)."""
+    safe_name = escape(display_name)
+
+    content = f'''
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            We Got Your Feedback
+        </h1>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            Hey {safe_name}, thanks for taking the time to share your thoughts with us.
+            Your feedback is important and our team will review it shortly.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            <tr>
+                <td style="background-color: #f8f8fa; border-radius: 6px; padding: 14px 18px; text-align: center;">
+                    <p style="margin: 0; font-size: 14px; color: #444; line-height: 1.5;">
+                        Your submission is currently <strong>under review</strong>.
+                        We will reach out if we need more details.
+                    </p>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            Have more to share? You can always submit another feedback from the feed page.
+        </p>
+    '''
+
+    plain_text = f"""We Got Your Feedback
+
+Hey {display_name}, thanks for taking the time to share your thoughts with us.
+Your feedback is important and our team will review it shortly.
+
+Your submission is currently under review. We will reach out if we need more details.
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
+
+
+def feedback_reviewed_email(
+    display_name: str,
+    admin_note: str | None,
+) -> tuple[str, str]:
+    """Email sent when admin marks feedback as reviewed. Returns (html, plain_text)."""
+    safe_name = escape(display_name)
+
+    note_html = ""
+    note_plain = ""
+    if admin_note:
+        safe_note = escape(admin_note)
+        note_html = f'''
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            <tr>
+                <td style="background-color: #f8f8fa; border-radius: 6px; padding: 14px 18px; border-left: 3px solid #8b5cf6;">
+                    <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Response from the GimmeDat Team
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #444; line-height: 1.5;">
+                        {safe_note}
+                    </p>
+                </td>
+            </tr>
+        </table>'''
+        note_plain = f"\nResponse from the GimmeDat Team:\n\n{admin_note}\n"
+
+    content = f'''
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            Update on Your Feedback
+        </h1>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            Hey {safe_name}, our team has reviewed your feedback. Thank you for helping us improve GimmeDat!
+        </p>
+
+        {note_html}
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            Have more to share? You can always submit another feedback from the feed page.
+        </p>
+    '''
+
+    plain_text = f"""Update on Your Feedback
+
+Hey {display_name}, our team has reviewed your feedback. Thank you for helping us improve GimmeDat!
+{note_plain}
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text

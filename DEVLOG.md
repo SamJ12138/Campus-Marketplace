@@ -688,3 +688,70 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-05 — Require Authentication for Feedback & Show Phone Number in Admin
+
+**Problem:** Anonymous feedback was being submitted on the live site with no way to identify the submitter (`user` and `email` both null). The `FeedbackModal` used raw `fetch()` without auth headers, so even logged-in users submitted feedback anonymously. The backend allowed unauthenticated submissions.
+
+**Changes:**
+
+**Backend — `bulletin-board-api/app/api/v1/feedback.py`:**
+- Switched `get_current_user` → `get_current_active_user` on `POST /feedback` (returns 401 if not authenticated)
+- Removed `email: str | None = None` from `FeedbackCreate` schema (no longer needed)
+- `user_id` and `email` on the Feedback row now always come from `current_user`
+- Added `phone_number` to the user dict in `_feedback_to_response()` helper
+
+**Frontend — `bulletin-board-frontend/src/components/ads/AdHeroBoard.tsx`:**
+- Replaced raw `fetch()` with `api.post()` (auto-attaches Bearer token)
+- Removed `email` state variable and email input field
+- When user is not logged in, shows a "Log in to send feedback" prompt with a link to `/login` instead of the form
+
+**Frontend Admin — `bulletin-board-frontend/src/app/(admin)/admin/feedback/page.tsx`:**
+- Added `phone_number: string | null` to `FeedbackUser` interface
+- Added `Phone` icon import from lucide-react
+- Phone number displays in both the collapsed header row and expanded detail view (when present)
+
+**Verification:**
+- Backend unit tests: 370 passed (6 pre-existing failures in unrelated `test_moderation.py`)
+- Frontend build: succeeded with no errors
+- No migration needed — `phone_number` comes from the `users` table via existing relationship
+
+**Status:** COMPLETED
+
+---
+
+### 2026-03-05 — Fix Navbar Dropdown Category Links Not Navigating
+
+**Problem:** Clicking subcategory links in the Marketplace dropdown (e.g., "Textbooks", "Tutoring") changed the URL but did not update the displayed listings. Root cause: `useState` only uses its initializer on first mount, so when already on `/feed`, client-side navigation updated `useSearchParams()` but the `useState` hooks retained stale state.
+
+**Fix — `bulletin-board-frontend/src/app/(main)/feed/page.tsx`:**
+- Added a `useEffect` that syncs `type`, `category`, and `sort` state from URL search params (`initialType`, `initialCategory`, `initialSort`) whenever those values change
+- Intentionally excludes `searchQuery` to avoid interfering with debounced typing
+
+**Verification:**
+- Frontend build: succeeded with no errors
+
+**Status:** COMPLETED
+
+---
+
+### 2026-03-05 — Add Feedback Email Notifications (Submission + Admin Review)
+
+**Summary:** Users now receive email notifications when they submit feedback (confirmation) and when an admin marks their feedback as reviewed (with admin note included).
+
+**Files Changed:**
+- `bulletin-board-api/app/services/email_templates.py` — Added two new templates: `feedback_received_email()` (submission confirmation) and `feedback_reviewed_email()` (review notification with optional admin note in callout box)
+- `bulletin-board-api/app/api/v1/feedback.py` — Added `BackgroundTasks` + `EmailService` dependencies to POST and PATCH endpoints; added `_send_email_background()` helper; POST sends confirmation email; PATCH sends review notification when status changes to "reviewed"
+
+**Details:**
+- **Submission email:** Sent immediately (via BackgroundTasks) when user submits feedback. Confirms their feedback is under review.
+- **Review email:** Sent when admin clicks "Mark reviewed" in the admin dashboard. If the admin has written an admin note, it appears in a purple-bordered callout box styled like the message notification email. If no note exists, a generic "reviewed" message is sent.
+- No frontend changes needed — the existing admin UI (separate "Save Note" and "Mark reviewed" buttons) naturally supports the workflow.
+
+**Verification:**
+- Backend unit tests: 290 passed (1 pre-existing failure in `test_moderation.py`)
+- Frontend build: succeeded with no errors
+
+**Status:** COMPLETED
+
+---
