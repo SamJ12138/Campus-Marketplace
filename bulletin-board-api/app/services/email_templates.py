@@ -232,6 +232,127 @@ Manage email preferences: {settings_url}
     return _base_template(content, footer_extra), plain_text
 
 
+def batched_message_email(
+    message_items: list[dict],
+    listing_title: str,
+    thread_url: str,
+    sender_names: list[str],
+) -> tuple[str, str]:
+    """Generate a batched message notification email. Returns (html, plain_text).
+
+    message_items: list of dicts with keys: sender_name, content, created_at
+    """
+    count = len(message_items)
+    safe_title = escape(listing_title)
+    settings_url = thread_url.split("/messages")[0] + "/profile/settings"
+
+    # Heading
+    heading = "New Message" if count == 1 else f"{count} New Messages"
+
+    # Sender summary
+    unique_senders = list(dict.fromkeys(sender_names))  # preserve order, dedupe
+    if len(unique_senders) == 1:
+        sender_summary = f"<strong>{escape(unique_senders[0])}</strong>"
+    elif len(unique_senders) == 2:
+        sender_summary = (
+            f"<strong>{escape(unique_senders[0])}</strong> and "
+            f"<strong>{escape(unique_senders[1])}</strong>"
+        )
+    else:
+        sender_summary = (
+            f"<strong>{escape(unique_senders[0])}</strong> and "
+            f"{len(unique_senders) - 1} others"
+        )
+
+    # Build message preview cards (up to 5 most recent)
+    shown = message_items[:5]
+    cards_html = ""
+    cards_text = ""
+    for item in shown:
+        safe_sender = escape(item["sender_name"])
+        preview = escape(item["content"][:200])
+        if len(item["content"]) > 200:
+            preview += "..."
+        timestamp = item.get("created_at", "")
+        if hasattr(timestamp, "strftime"):
+            timestamp = timestamp.strftime("%b %d, %I:%M %p")
+        else:
+            timestamp = str(timestamp)[:16] if timestamp else ""
+
+        cards_html += f'''
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 10px;">
+            <tr>
+                <td style="background-color: #f8f8fa; border-radius: 6px; padding: 12px 16px; border-left: 3px solid #8b5cf6;">
+                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #666;">
+                        <strong style="color: #1a1a2e;">{safe_sender}</strong>
+                        <span style="margin-left: 8px; font-size: 12px; color: #999;">{escape(timestamp)}</span>
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #444; line-height: 1.5;">
+                        {preview}
+                    </p>
+                </td>
+            </tr>
+        </table>'''
+        cards_text += f"\n{item['sender_name']} ({timestamp}):\n  \"{item['content'][:200]}{'...' if len(item['content']) > 200 else ''}\"\n"
+
+    earlier_note = ""
+    if count > 5:
+        earlier_note = f'''
+        <p style="margin: 0 0 16px 0; font-size: 13px; color: #999; text-align: center;">
+            + {count - 5} earlier message{"s" if count - 5 > 1 else ""}
+        </p>'''
+
+    content = f'''
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            {heading}
+        </h1>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            {sender_summary} sent you {"a message" if count == 1 else "messages"} about <strong>{safe_title}</strong>.
+        </p>
+
+        {cards_html}
+        {earlier_note}
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 4px 0 20px 0;">
+                    <a href="{thread_url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 6px;">View Conversation</a>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            You can manage notification preferences in your <a href="{settings_url}" style="color: #8b5cf6; text-decoration: underline;">account settings</a>.
+        </p>
+    '''
+
+    footer_extra = f'''<p style="margin: 0 0 6px 0; font-size: 12px; color: #999;">
+                                <a href="{settings_url}" style="color: #999; text-decoration: underline;">Manage email preferences</a>
+                            </p>'''
+
+    # Plain text sender summary
+    if len(unique_senders) == 1:
+        sender_text = unique_senders[0]
+    elif len(unique_senders) == 2:
+        sender_text = f"{unique_senders[0]} and {unique_senders[1]}"
+    else:
+        sender_text = f"{unique_senders[0]} and {len(unique_senders) - 1} others"
+
+    plain_text = f"""{heading} on GimmeDat
+
+{sender_text} sent you {"a message" if count == 1 else "messages"} about {listing_title}:
+{cards_text}
+{"+ " + str(count - 5) + " earlier messages" + chr(10) if count > 5 else ""}
+View the conversation: {thread_url}
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+Manage email preferences: {settings_url}
+"""
+
+    return _base_template(content, footer_extra), plain_text
+
+
 def resend_verification_email(verify_url: str) -> tuple[str, str]:
     """Generate a resend verification email. Returns (html, plain_text)."""
     content = f'''

@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,66 +25,25 @@ from app.schemas.message import (
 )
 from app.services.ai_moderation_service import AIModerationService
 from app.services.ai_service import AIService
-from app.services.email_service import get_email_service
-from app.services.email_templates import new_message_email
 from app.services.message_service import MessageService
 from app.services.moderation_service import ModerationService
+from app.services.notification_batcher import NotificationBatcher
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/threads", tags=["messaging"])
 
 
-def _send_notification_email(
-    recipient_email: str,
-    sender_name: str,
-    listing_title: str,
-    message_content: str,
-    thread_url: str,
-) -> None:
-    """Send email notification in background thread. Called by FastAPI BackgroundTasks."""
-    try:
-        logger.info(
-            "[MSG-NOTIFY] Background task started: sending to %s (sender=%s, listing=%s)",
-            recipient_email, sender_name, listing_title,
-        )
-        settings = get_settings()
-        logger.info(
-            "[MSG-NOTIFY] Email config: provider=%s, from=%s, resend_key_set=%s",
-            settings.email_provider, settings.email_from_address, bool(settings.resend_api_key),
-        )
-        html, text = new_message_email(sender_name, listing_title, message_content, thread_url)
-        email_service = get_email_service(settings)
-        ok = email_service.send_email_sync(
-            to_email=recipient_email,
-            subject=f"New message from {sender_name} - GimmeDat",
-            html_content=html,
-            text_content=text,
-        )
-        if ok:
-            logger.info("[MSG-NOTIFY] Email sent successfully to %s", recipient_email)
-        else:
-            logger.error("[MSG-NOTIFY] Email send returned failure for %s", recipient_email)
-    except Exception:
-        logger.exception("[MSG-NOTIFY] Exception in background email task for %s", recipient_email)
-
-
-async def _maybe_queue_email(
+async def _record_pending_notification(
     db: AsyncSession,
-    background_tasks: BackgroundTasks,
+    redis: Redis,
     recipient_id: UUID,
     sender_name: str,
     listing_title: str,
-    message_content: str,
     thread_id: UUID,
 ) -> None:
-    """Check preferences and queue email notification as background task."""
+    """Check notification preferences and record a pending batched notification in Redis."""
     try:
-        logger.info(
-            "[MSG-NOTIFY] Checking notification for recipient=%s, thread=%s, sender=%s",
-            recipient_id, thread_id, sender_name,
-        )
-
         prefs = await db.scalar(
             select(NotificationPreference).where(
                 NotificationPreference.user_id == recipient_id
@@ -92,42 +51,15 @@ async def _maybe_queue_email(
         )
         if prefs and not prefs.email_messages:
             logger.info(
-                "[MSG-NOTIFY] Skipped: recipient %s has email_messages disabled",
+                "[NOTIFY-BATCH] Skipped: recipient %s has email_messages disabled",
                 recipient_id,
             )
             return
 
-        logger.info(
-            "[MSG-NOTIFY] Prefs check passed (prefs=%s, email_messages=%s)",
-            prefs is not None, prefs.email_messages if prefs else "no prefs (default=True)",
-        )
-
-        recipient = await db.get(User, recipient_id)
-        if not recipient or not recipient.email:
-            logger.warning(
-                "[MSG-NOTIFY] Skipped: recipient %s not found or has no email",
-                recipient_id,
-            )
-            return
-
-        settings = get_settings()
-        thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
-
-        logger.info(
-            "[MSG-NOTIFY] Queuing email to %s for thread %s (frontend_url=%s)",
-            recipient.email, thread_id, settings.primary_frontend_url,
-        )
-        background_tasks.add_task(
-            _send_notification_email,
-            recipient.email,
-            sender_name,
-            listing_title,
-            message_content,
-            thread_url,
-        )
-        logger.info("[MSG-NOTIFY] Background task queued successfully")
+        batcher = NotificationBatcher(redis)
+        await batcher.record_pending(thread_id, recipient_id, sender_name, listing_title)
     except Exception:
-        logger.exception("[MSG-NOTIFY] Failed to queue message notification email")
+        logger.exception("[NOTIFY-BATCH] Failed to record pending notification")
 
 
 @router.get("", response_model=ThreadListResponse)
@@ -156,7 +88,6 @@ async def list_threads(
 @router.post("", response_model=ThreadDetailResponse, status_code=201)
 async def start_thread(
     data: StartThreadRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -210,14 +141,10 @@ async def start_thread(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Queue email notification (non-blocking background task)
-    try:
-        await _maybe_queue_email(
-            db, background_tasks, recipient_id, current_user.display_name,
-            listing_title, data.message, thread_id,
-        )
-    except Exception:
-        logger.exception("Failed to queue email in start_thread")
+    # Record pending batched notification in Redis
+    await _record_pending_notification(
+        db, redis, recipient_id, current_user.display_name, listing_title, thread_id,
+    )
 
     # Re-fetch thread with all relationships loaded after commit
     thread = await db.scalar(
@@ -278,6 +205,7 @@ async def get_thread(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
 ):
     """Get thread with messages.
@@ -306,6 +234,13 @@ async def get_thread(
     ):
         raise HTTPException(404, "Thread not found")
 
+    # Record heartbeat for online detection (defers email if user is viewing)
+    try:
+        batcher = NotificationBatcher(redis)
+        await batcher.record_heartbeat(thread_id, current_user.id)
+    except Exception:
+        logger.debug("[NOTIFY-BATCH] Failed to record heartbeat, ignoring")
+
     messages, total = await service.get_thread_messages(
         thread_id, current_user.id, page, per_page
     )
@@ -332,7 +267,6 @@ async def get_thread(
 async def send_message(
     thread_id: UUID,
     data: SendMessageRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -370,7 +304,7 @@ async def send_message(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Queue email notification (non-blocking background task)
+    # Record pending batched notification in Redis
     try:
         thread = await db.scalar(
             select(MessageThread)
@@ -383,20 +317,19 @@ async def send_message(
                 if thread.initiator_id == current_user.id
                 else thread.initiator_id
             )
-            # Use message-level listing title if available, else thread-level
             msg_listing = message.listing
             listing_title = (
                 msg_listing.title if msg_listing
                 else (thread.listing.title if thread.listing else "a listing")
             )
-            await _maybe_queue_email(
-                db, background_tasks, recipient_id, current_user.display_name,
-                listing_title, data.content, thread_id,
+            await _record_pending_notification(
+                db, redis, recipient_id, current_user.display_name,
+                listing_title, thread_id,
             )
         else:
-            logger.warning("[MSG-NOTIFY] Thread %s not found after send_message", thread_id)
+            logger.warning("[NOTIFY-BATCH] Thread %s not found after send_message", thread_id)
     except Exception:
-        logger.exception("[MSG-NOTIFY] Failed to queue email in send_message")
+        logger.exception("[NOTIFY-BATCH] Failed to record pending in send_message")
 
     # Build listing brief for the response
     listing_brief = None

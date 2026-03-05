@@ -762,3 +762,40 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-05 — Debounced/Batched Email Notifications for Messages
+
+**Summary:** Replaced per-message email notifications with a Redis-based debounce/batch system. Instead of sending one email per message (burning through Resend's 100/day free tier during active conversations), notifications now accumulate with a sliding debounce window and send a single batched email per thread after a quiet period.
+
+**Files Changed:**
+- `bulletin-board-api/app/config.py` — Added 5 new settings: `msg_notify_debounce_first_seconds` (60s), `msg_notify_debounce_reply_seconds` (180s), `msg_notify_min_interval_seconds` (600s), `msg_notify_online_ttl_seconds` (45s), `msg_notify_max_daily_emails` (80)
+- `bulletin-board-api/app/services/notification_batcher.py` — **NEW** (~160 lines). `NotificationBatcher` class with Redis-backed sliding debounce: `record_pending()`, `record_heartbeat()`, `get_ripe_notifications()`, `is_recipient_online()`, `check_rate_limit()`, `check_daily_limit()`, `mark_sent()`, `extend_debounce()`, `acquire_lock()`/`release_lock()`
+- `bulletin-board-api/app/api/v1/messages.py` — Removed `_send_notification_email()` and `_maybe_queue_email()` (immediate email per message). Added `_record_pending_notification()` (records to Redis). Removed `BackgroundTasks` from `start_thread()` and `send_message()`. Added `redis` dependency + heartbeat call to `get_thread()`. Cleaned up unused `email_service`/`email_templates` imports.
+- `bulletin-board-api/app/services/email_templates.py` — Added `batched_message_email()` template: shows "New Message" or "N New Messages" heading, sender names summary, up to 5 message preview cards with timestamps, "+ N earlier messages" note, "View Conversation" CTA, settings link
+- `bulletin-board-api/app/workers/tasks.py` — Added `process_pending_message_notifications()`: scans ripe debounce keys, acquires locks, checks online status (defers if viewing), checks rate limits, queries DB for unread messages, renders batched template, sends via email service, cleans up Redis state
+- `bulletin-board-api/app/workers/main.py` — Added Redis client to worker startup/shutdown context. Registered `process_pending_message_notifications` in functions list and as `cron(second={0, 30})` (runs every 30s)
+
+**How It Works:**
+1. On each message: `_record_pending_notification()` stores metadata in Redis with sliding debounce timer (60s first msg, 180s replies)
+2. Every 30s (ARQ cron): `process_pending_message_notifications()` scans for ripe notifications
+3. Online detection: `get_thread()` writes a 45s heartbeat; if recipient is viewing, email is deferred
+4. Safety: SET NX locks prevent duplicate sends, per-thread rate limit (10min), global daily cap (80)
+5. At send time: queries DB for actual unread messages (skips if user already read via UI)
+
+**Redis Keys:**
+- `notify:msg:pending:{thread}:{user}` — JSON metadata + count (30min TTL)
+- `notify:msg:debounce:{thread}:{user}` — ripe-at timestamp (30min TTL)
+- `notify:msg:online:{thread}:{user}` — heartbeat (45s TTL)
+- `notify:msg:lastsent:{thread}:{user}` — rate limit (24h TTL)
+- `notify:msg:firstsent:{thread}` — first-ever flag (7d TTL)
+- `notify:msg:daily_count:{date}` — global counter (24h TTL)
+
+**Expected Impact:**
+- Resend usage: ~1 email per conversation burst (vs N emails per N messages)
+- No spam during active conversations
+- No email when user is already reading the thread
+- All timing configurable via env vars
+
+**Status:** COMPLETED
+
+---

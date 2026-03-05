@@ -8,6 +8,8 @@ settings = get_settings()
 
 async def startup(ctx):
     """Initialize worker context."""
+    from redis.asyncio import Redis
+
     from app.db import create_engine, create_session_factory
     from app.services.email_service import get_email_service
 
@@ -15,6 +17,7 @@ async def startup(ctx):
     ctx["db_session"] = create_session_factory(engine)
     ctx["settings"] = settings
     ctx["email_service"] = get_email_service(settings)
+    ctx["redis"] = Redis.from_url(settings.redis_url, decode_responses=True)
 
 
 async def shutdown(ctx):
@@ -22,6 +25,9 @@ async def shutdown(ctx):
     email_svc = ctx.get("email_service")
     if email_svc:
         await email_svc.close()
+    redis = ctx.get("redis")
+    if redis:
+        await redis.aclose()
 
 
 class WorkerSettings:
@@ -43,6 +49,7 @@ class WorkerSettings:
         "app.workers.tasks.send_re_engagement_campaign",
         "app.workers.tasks.send_expiry_nudges",
         "app.workers.tasks.send_price_drop_alerts",
+        "app.workers.tasks.process_pending_message_notifications",
     ]
 
     cron_jobs = [
@@ -58,6 +65,8 @@ class WorkerSettings:
         cron("app.workers.tasks.send_re_engagement_campaign", weekday=3, hour=14),
         cron("app.workers.tasks.send_expiry_nudges", hour=9, minute=30),
         cron("app.workers.tasks.send_price_drop_alerts", hour={10, 18}),
+        # Message notification batcher - runs every 30s
+        cron("app.workers.tasks.process_pending_message_notifications", second={0, 30}),
     ]
 
     on_startup = startup

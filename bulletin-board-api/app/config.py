@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     ai_max_tokens: int = 1024
     embedding_dimension: int = 384
 
+    # Message notification batching
+    msg_notify_debounce_first_seconds: int = 60     # First msg in thread: 1min
+    msg_notify_debounce_reply_seconds: int = 180    # Replies: 3min
+    msg_notify_min_interval_seconds: int = 600      # Max 1 email/thread/10min
+    msg_notify_online_ttl_seconds: int = 45         # Heartbeat TTL
+    msg_notify_max_daily_emails: int = 80           # Daily cap (leaves 20 for verification/reset)
+
     # Sentry (optional)
     sentry_dsn: str | None = None
 

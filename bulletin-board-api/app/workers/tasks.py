@@ -520,3 +520,146 @@ async def send_price_drop_alerts(ctx):
             sent += 1
 
         print(f"[PRICE_DROP] Sent {sent} price drop alerts")
+
+
+async def process_pending_message_notifications(ctx):
+    """Scan Redis for ripe debounced notifications and send batched emails.
+
+    Runs every 30s via ARQ cron. For each ripe notification:
+    - Acquires a lock to prevent duplicate processing
+    - Checks if recipient is online (defers if so)
+    - Checks per-thread rate limit
+    - Queries DB for unread messages
+    - Sends a single batched email with all unread messages
+    """
+    import logging
+
+    from app.services.email_templates import batched_message_email
+    from app.services.notification_batcher import NotificationBatcher
+
+    logger = logging.getLogger(__name__)
+    redis = ctx["redis"]
+    batcher = NotificationBatcher(redis)
+    settings = ctx["settings"]
+
+    # Check global daily limit
+    if not await batcher.check_daily_limit():
+        logger.warning("[NOTIFY-BATCH] Daily email limit reached, skipping cycle")
+        return
+
+    ripe = await batcher.get_ripe_notifications()
+    if not ripe:
+        return
+
+    sent = 0
+    skipped_online = 0
+    skipped_rate = 0
+
+    for notification in ripe:
+        thread_id = notification["thread_id"]
+        recipient_id = notification["recipient_id"]
+
+        # Acquire lock to prevent duplicate processing
+        if not await batcher.acquire_lock(thread_id, recipient_id):
+            continue
+
+        try:
+            # Check if recipient is online (viewing the thread)
+            if await batcher.is_recipient_online(thread_id, recipient_id):
+                await batcher.extend_debounce(thread_id, recipient_id)
+                skipped_online += 1
+                continue
+
+            # Check per-thread rate limit
+            if not await batcher.check_rate_limit(thread_id, recipient_id):
+                skipped_rate += 1
+                continue
+
+            # Re-check daily limit
+            if not await batcher.check_daily_limit():
+                logger.warning("[NOTIFY-BATCH] Daily limit hit mid-cycle")
+                break
+
+            # Query DB for unread messages in thread from other users
+            async with ctx["db_session"]() as db:
+                from app.models.message import Message, MessageThread
+                from app.models.user import User
+
+                thread = await db.get(MessageThread, UUID(thread_id))
+                if not thread or thread.status != "active":
+                    # Thread deleted or blocked, clean up
+                    await batcher.mark_sent(thread_id, recipient_id)
+                    continue
+
+                recipient = await db.get(User, UUID(recipient_id))
+                if not recipient or not recipient.email:
+                    await batcher.mark_sent(thread_id, recipient_id)
+                    continue
+
+                # Get unread messages from other users (up to 10 most recent)
+                result = await db.execute(
+                    select(Message)
+                    .where(
+                        Message.thread_id == UUID(thread_id),
+                        Message.sender_id != UUID(recipient_id),
+                        Message.is_read == False,  # noqa: E712
+                    )
+                    .order_by(Message.created_at.desc())
+                    .limit(10)
+                )
+                unread_messages = list(result.scalars().all())
+
+                if not unread_messages:
+                    # User already read all messages via UI
+                    await batcher.mark_sent(thread_id, recipient_id)
+                    continue
+
+                # Build message items for template
+                message_items = []
+                for msg in reversed(unread_messages):  # chronological order
+                    sender = msg.sender
+                    message_items.append({
+                        "sender_name": sender.display_name if sender else "Unknown",
+                        "content": msg.content,
+                        "created_at": msg.created_at,
+                    })
+
+                listing_title = notification.get("listing_title", "a listing")
+                sender_names = notification.get("senders", ["Someone"])
+                thread_url = f"{settings.primary_frontend_url}/messages?thread={thread_id}"
+
+                # Render and send email
+                html, text = batched_message_email(
+                    message_items, listing_title, thread_url, sender_names,
+                )
+
+                count = len(unread_messages)
+                if count == 1:
+                    subject = f"New message from {sender_names[0]} - GimmeDat"
+                else:
+                    subject = f"{count} new messages about {listing_title} - GimmeDat"
+
+                email_service = ctx["email_service"]
+                await email_service.send_email(
+                    to_email=recipient.email,
+                    subject=subject,
+                    html_content=html,
+                    text_content=text,
+                )
+
+                await batcher.mark_sent(thread_id, recipient_id)
+                sent += 1
+
+        except Exception:
+            logger.exception(
+                "[NOTIFY-BATCH] Error processing notification thread=%s user=%s",
+                thread_id, recipient_id,
+            )
+        finally:
+            await batcher.release_lock(thread_id, recipient_id)
+
+    if sent or skipped_online or skipped_rate:
+        logger.info(
+            "[NOTIFY-BATCH] Cycle complete: sent=%d, skipped_online=%d, skipped_rate=%d",
+            sent, skipped_online, skipped_rate,
+        )
