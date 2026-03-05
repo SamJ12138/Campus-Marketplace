@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -83,30 +83,12 @@ def _feedback_to_response(fb: Feedback) -> FeedbackResponse:
     )
 
 
-# ── Email helper ──
-
-
-def _send_email_background(
-    email_svc: EmailService,
-    to_email: str,
-    subject: str,
-    html_content: str,
-    text_content: str | None,
-) -> None:
-    """Send email in a background thread. Errors are logged, never raised."""
-    try:
-        email_svc.send_email_sync(to_email, subject, html_content, text_content)
-    except Exception as e:
-        logger.error("Background feedback email send failed: %s", e, exc_info=True)
-
-
 # ── Public: Submit feedback ──
 
 
 @router.post("", status_code=201)
 async def submit_feedback(
     data: FeedbackCreate,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
     email_svc: EmailService = Depends(get_email_svc),
@@ -128,15 +110,16 @@ async def submit_feedback(
     await db.commit()
 
     # Send confirmation email
-    html, text = feedback_received_email(current_user.display_name or "there")
-    background_tasks.add_task(
-        _send_email_background,
-        email_svc,
-        current_user.email,
-        "We received your feedback - GimmeDat",
-        html,
-        text,
-    )
+    try:
+        html, text = feedback_received_email(current_user.display_name or "there")
+        await email_svc.send_email(
+            current_user.email,
+            "We received your feedback - GimmeDat",
+            html,
+            text,
+        )
+    except Exception as e:
+        logger.error("Feedback confirmation email failed: %s", e, exc_info=True)
 
     return {
         "ok": True,
@@ -216,7 +199,6 @@ async def feedback_stats(
 async def update_feedback(
     feedback_id: UUID,
     data: FeedbackUpdateRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_moderator),
     email_svc: EmailService = Depends(get_email_svc),
@@ -241,18 +223,19 @@ async def update_feedback(
     if data.status == "reviewed":
         await db.refresh(feedback, ["user"])
         if feedback.user and feedback.user.email:
-            html, text = feedback_reviewed_email(
-                feedback.user.display_name or "there",
-                feedback.admin_note,
-            )
-            background_tasks.add_task(
-                _send_email_background,
-                email_svc,
-                feedback.user.email,
-                "Update on your feedback - GimmeDat",
-                html,
-                text,
-            )
+            try:
+                html, text = feedback_reviewed_email(
+                    feedback.user.display_name or "there",
+                    feedback.admin_note,
+                )
+                await email_svc.send_email(
+                    feedback.user.email,
+                    "Update on your feedback - GimmeDat",
+                    html,
+                    text,
+                )
+            except Exception as e:
+                logger.error("Feedback review email failed: %s", e, exc_info=True)
 
     await db.refresh(feedback, ["user", "reviewer"])
     return _feedback_to_response(feedback)
