@@ -740,17 +740,20 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Summary:** Users now receive email notifications when they submit feedback (confirmation) and when an admin marks their feedback as reviewed (with admin note included).
 
 **Files Changed:**
-- `bulletin-board-api/app/services/email_templates.py` — Added two new templates: `feedback_received_email()` (submission confirmation) and `feedback_reviewed_email()` (review notification with optional admin note in callout box)
-- `bulletin-board-api/app/api/v1/feedback.py` — Added `BackgroundTasks` + `EmailService` dependencies to POST and PATCH endpoints; added `_send_email_background()` helper; POST sends confirmation email; PATCH sends review notification when status changes to "reviewed"
+- `bulletin-board-api/app/services/email_templates.py` — Added two new templates: `feedback_received_email()` (submission confirmation) and `feedback_reviewed_email()` (review notification with optional admin note in purple-bordered callout box)
+- `bulletin-board-api/app/api/v1/feedback.py` — Added `EmailService` dependency to POST and PATCH endpoints; POST sends confirmation email via `await email_svc.send_email()`; PATCH sends review notification when status changes to "reviewed"
 
 **Details:**
-- **Submission email:** Sent immediately (via BackgroundTasks) when user submits feedback. Confirms their feedback is under review.
-- **Review email:** Sent when admin clicks "Mark reviewed" in the admin dashboard. If the admin has written an admin note, it appears in a purple-bordered callout box styled like the message notification email. If no note exists, a generic "reviewed" message is sent.
+- **Submission email:** Sent inline (async) when user submits feedback. Confirms their feedback is under review.
+- **Review email:** Sent when admin clicks "Mark reviewed" in the admin dashboard. If the admin has written an admin note, it appears in a purple-bordered callout box. If no note exists, a generic "reviewed" message is sent.
 - No frontend changes needed — the existing admin UI (separate "Save Note" and "Mark reviewed" buttons) naturally supports the workflow.
+- **Note:** Initial implementation used `BackgroundTasks` with `send_email_sync()`, but emails were silently failing in the thread context. Switched to `await email_svc.send_email()` (true async via httpx) inline in the handler, which resolved the issue.
 
 **Verification:**
 - Backend unit tests: 290 passed (1 pre-existing failure in `test_moderation.py`)
 - Frontend build: succeeded with no errors
+- Live testing: both emails delivered successfully via Resend to `jiati01@gettysburg.edu`
+- Test feedback entries archived during cleanup
 
 **Status:** COMPLETED
 
