@@ -756,6 +756,9 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 - Live testing: both emails delivered successfully via Resend to `jiati01@gettysburg.edu` and `garcbr01@gettysburg.edu`
 - Test feedback entries archived during cleanup
 
+**CI Fix:**
+- `bulletin-board-api/alembic/versions/add_feedback_table.py` — Removed unused `import sqlalchemy as sa` and `from sqlalchemy.dialects import postgresql` that caused ruff F401 lint failures in GitHub Actions
+
 **Status:** COMPLETED
 
 ---
