@@ -1,6 +1,6 @@
 """Add offers, deals, reviews, meetings tables and extend messages/users
 
-Revision ID: add_offers_deals_reviews_meetings
+Revision ID: add_offers_deals_reviews
 Revises: add_feedback_table
 Create Date: 2026-03-16
 
@@ -10,7 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'add_offers_deals_reviews_meetings'
+revision: str = 'add_offers_deals_reviews'
 down_revision: Union[str, None] = 'add_feedback_table'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
