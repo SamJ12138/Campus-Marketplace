@@ -5,13 +5,17 @@ from app.models.application import Application, ApplicationStatus
 from app.models.base import Base, TimestampMixin
 from app.models.block import Block
 from app.models.campus import Campus
+from app.models.deal import Deal
 from app.models.favorite import Favorite
 from app.models.feedback import Feedback, FeedbackStatus
 from app.models.listing import Category, Listing, ListingPhoto
+from app.models.meeting import Meeting
 from app.models.message import Message, MessageThread
 from app.models.notification import DigestFrequency, NotificationPreference
+from app.models.offer import Offer
 from app.models.pending_upload import PendingUpload
 from app.models.report import Report
+from app.models.review import Review
 from app.models.user import EmailVerification, RefreshToken, User
 
 __all__ = [
@@ -41,4 +45,8 @@ __all__ = [
     "FeedbackStatus",
     "Application",
     "ApplicationStatus",
+    "Offer",
+    "Deal",
+    "Review",
+    "Meeting",
 ]

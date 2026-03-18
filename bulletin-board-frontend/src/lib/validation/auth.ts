@@ -87,6 +87,23 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+// ---- Register (simplified single-campus mode) ----
+
+export const registerSchemaSimple = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+  password: passwordRules,
+  display_name: z
+    .string()
+    .max(100, "Display name must be at most 100 characters")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type RegisterSimpleInput = z.infer<typeof registerSchemaSimple>;
+
 // ---- Forgot Password ----
 
 export const forgotPasswordSchema = z.object({

@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -70,6 +71,8 @@ class User(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
     listing_count: Mapped[int] = mapped_column(Integer, default=0)
+    average_rating: Mapped[float] = mapped_column(Float, default=0.0)
+    review_count: Mapped[int] = mapped_column(Integer, default=0)
     last_active_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

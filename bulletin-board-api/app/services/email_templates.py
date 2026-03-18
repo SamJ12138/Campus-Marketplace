@@ -398,6 +398,250 @@ GimmeDat - The student marketplace for services, items, and campus connections.
     return _base_template(content), plain_text
 
 
+def newsletter_digest_email(
+    data: dict,
+    base_url: str,
+    settings_url: str,
+) -> tuple[str, str]:
+    """Generate a visual newsletter digest email with card grid.
+
+    Args:
+        data: Structured dict from generate_newsletter_digest() with keys:
+            user_name, campus_name, subject, is_fallback, stats,
+            featured, listings, trending, price_drops
+        base_url: Frontend base URL for building listing links
+        settings_url: URL to notification settings page
+
+    Returns:
+        (html, plain_text) tuple.
+    """
+    safe_name = escape(data.get("user_name", "there"))
+    campus = escape(data.get("campus_name", "campus"))
+    is_fallback = data.get("is_fallback", False)
+    stats = data.get("stats", {})
+    featured = data.get("featured")
+    listings = data.get("listings", [])
+    trending = data.get("trending", [])
+    price_drops = data.get("price_drops", [])
+
+    heading = "Still Available" if is_fallback else "What's New This Week"
+
+    # ── Stats bar ──
+    stats_html = ""
+    if not is_fallback:
+        new_l = stats.get("new_listings", 0)
+        sold = stats.get("items_sold", 0)
+        active = stats.get("total_active", 0)
+        stats_html = f'''
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            <tr>
+                <td style="text-align: center; padding: 10px; background-color: #f3f0ff; border-radius: 6px;">
+                    <span style="font-size: 22px; font-weight: 700; color: #8b5cf6;">{new_l}</span><br>
+                    <span style="font-size: 12px; color: #666;">new offer{"s" if new_l != 1 else ""}</span>
+                </td>
+                <td style="width: 8px;"></td>
+                <td style="text-align: center; padding: 10px; background-color: #f3f0ff; border-radius: 6px;">
+                    <span style="font-size: 22px; font-weight: 700; color: #8b5cf6;">{sold}</span><br>
+                    <span style="font-size: 12px; color: #666;">sold</span>
+                </td>
+                <td style="width: 8px;"></td>
+                <td style="text-align: center; padding: 10px; background-color: #f3f0ff; border-radius: 6px;">
+                    <span style="font-size: 22px; font-weight: 700; color: #8b5cf6;">{active}</span><br>
+                    <span style="font-size: 12px; color: #666;">active</span>
+                </td>
+            </tr>
+        </table>'''
+
+    # ── Featured listing (full-width card) ──
+    featured_html = ""
+    if featured and not is_fallback:
+        f_title = escape(featured["title"])
+        f_price = escape(featured.get("price_hint") or "")
+        f_cat = escape(featured.get("category_name", ""))
+        f_url = f'{base_url}{featured["listing_url"]}'
+        f_photo = featured.get("photo_url")
+
+        photo_cell = f'''<img src="{f_photo}" alt="{f_title}" width="100%" style="display: block; border-radius: 6px 6px 0 0; max-height: 220px; object-fit: cover;" />''' if f_photo else '''<div style="height: 140px; background-color: #e9e4f5; border-radius: 6px 6px 0 0;"></div>'''
+
+        featured_html = f'''
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            <tr><td colspan="2" style="font-size: 13px; font-weight: 600; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 8px;">Featured</td></tr>
+            <tr>
+                <td colspan="2" style="border: 1px solid #eee; border-radius: 6px; overflow: hidden;">
+                    <a href="{f_url}" style="text-decoration: none; color: inherit;">
+                        {photo_cell}
+                        <div style="padding: 14px 16px;">
+                            <p style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">{f_title}</p>
+                            <p style="margin: 0; font-size: 14px; color: #8b5cf6; font-weight: 600;">{f_price}</p>
+                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #999;">{f_cat}</p>
+                        </div>
+                    </a>
+                </td>
+            </tr>
+        </table>'''
+
+    # ── Listing card grid (2-column) ──
+    grid_listings = [li for li in listings if not featured or li["id"] != featured["id"]]
+    cards_html = ""
+    if grid_listings:
+        section_title = "Still Available" if is_fallback else "New This Week"
+        cards_html = f'''
+        <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">{section_title}</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">'''
+
+        for i in range(0, len(grid_listings), 2):
+            cards_html += '<tr>'
+            for j in range(2):
+                idx = i + j
+                if idx < len(grid_listings):
+                    item = grid_listings[idx]
+                    t = escape(item["title"])
+                    p = escape(item.get("price_hint") or "")
+                    u = f'{base_url}{item["listing_url"]}'
+                    photo = item.get("photo_url")
+
+                    img_cell = f'<img src="{photo}" alt="{t}" width="100%" style="display: block; border-radius: 4px 4px 0 0; height: 120px; object-fit: cover;" />' if photo else '<div style="height: 80px; background-color: #e9e4f5; border-radius: 4px 4px 0 0;"></div>'
+
+                    cards_html += f'''
+                <td width="48%" style="vertical-align: top; padding-bottom: 12px;">
+                    <a href="{u}" style="text-decoration: none; color: inherit;">
+                        <div style="border: 1px solid #eee; border-radius: 4px; overflow: hidden;">
+                            {img_cell}
+                            <div style="padding: 8px 10px;">
+                                <p style="margin: 0 0 2px 0; font-size: 13px; font-weight: 600; color: #1a1a2e; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">{t}</p>
+                                <p style="margin: 0; font-size: 13px; color: #8b5cf6; font-weight: 600;">{p}</p>
+                            </div>
+                        </div>
+                    </a>
+                </td>'''
+                else:
+                    cards_html += '<td width="48%"></td>'
+                if j == 0:
+                    cards_html += '<td width="4%"></td>'
+            cards_html += '</tr>'
+
+        cards_html += '</table>'
+
+    # ── Browse all CTA ──
+    browse_url = f"{base_url}/feed"
+    browse_html = f'''
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 16px 0 24px 0;">
+            <tr>
+                <td style="text-align: center;">
+                    <a href="{browse_url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 6px;">Browse All Listings</a>
+                </td>
+            </tr>
+        </table>'''
+
+    # ── Trending categories ──
+    trending_html = ""
+    if trending and not is_fallback:
+        cats = " | ".join(
+            f'{escape(c["name"])} ({c["count"]})' for c in trending
+        )
+        trending_html = f'''
+        <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">Trending Categories</p>
+        <p style="margin: 0 0 24px 0; font-size: 14px; color: #444;">{cats}</p>'''
+
+    # ── Price drops on favorites ──
+    price_drops_html = ""
+    if price_drops:
+        drops_rows = ""
+        for item in price_drops:
+            t = escape(item["title"])
+            p = escape(item.get("price_hint") or "updated")
+            u = f'{base_url}{item["listing_url"]}'
+            drops_rows += f'''
+            <tr>
+                <td style="padding: 6px 0; font-size: 14px; color: #1a1a2e;">{t}</td>
+                <td style="padding: 6px 8px; font-size: 14px; color: #8b5cf6; font-weight: 600;">{p}</td>
+                <td style="padding: 6px 0; text-align: right;">
+                    <a href="{u}" style="font-size: 13px; color: #8b5cf6; text-decoration: underline;">View</a>
+                </td>
+            </tr>'''
+
+        price_drops_html = f'''
+        <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">Price Drops on Your Favorites</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            {drops_rows}
+        </table>'''
+
+    # ── Assemble content ──
+    content = f'''
+        <h1 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            {heading}
+        </h1>
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            Hey {safe_name}, here is what is new at {campus} this week
+        </p>
+
+        {stats_html}
+        {featured_html}
+        {cards_html}
+        {browse_html}
+        {trending_html}
+        {price_drops_html}
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            Manage digest preferences in your <a href="{settings_url}" style="color: #8b5cf6; text-decoration: underline;">account settings</a>.
+        </p>
+    '''
+
+    footer_extra = f'''<p style="margin: 0 0 6px 0; font-size: 12px; color: #999;">
+                                <a href="{settings_url}" style="color: #999; text-decoration: underline;">Manage email preferences</a>
+                            </p>'''
+
+    # ── Plain text ──
+    plain_lines = [f"{heading}", ""]
+    plain_lines.append(f"Hey {data.get('user_name', 'there')}, here is what is new at {data.get('campus_name', 'campus')} this week.")
+    plain_lines.append("")
+
+    if not is_fallback:
+        plain_lines.append(
+            f"Stats: {stats.get('new_listings', 0)} new | "
+            f"{stats.get('items_sold', 0)} sold | "
+            f"{stats.get('total_active', 0)} active"
+        )
+        plain_lines.append("")
+
+    if featured and not is_fallback:
+        plain_lines.append(f"FEATURED: {featured['title']} - {featured.get('price_hint', '')}")
+        plain_lines.append(f"  {base_url}{featured['listing_url']}")
+        plain_lines.append("")
+
+    section = "STILL AVAILABLE:" if is_fallback else "NEW THIS WEEK:"
+    if grid_listings:
+        plain_lines.append(section)
+        for item in grid_listings:
+            price = f" - {item['price_hint']}" if item.get("price_hint") else ""
+            plain_lines.append(f"  - {item['title']}{price}")
+            plain_lines.append(f"    {base_url}{item['listing_url']}")
+        plain_lines.append("")
+
+    if trending and not is_fallback:
+        plain_lines.append("TRENDING: " + ", ".join(
+            f"{c['name']} ({c['count']})" for c in trending
+        ))
+        plain_lines.append("")
+
+    if price_drops:
+        plain_lines.append("PRICE DROPS ON YOUR FAVORITES:")
+        for item in price_drops:
+            plain_lines.append(f"  - {item['title']} -> {item.get('price_hint', 'updated')}")
+            plain_lines.append(f"    {base_url}{item['listing_url']}")
+        plain_lines.append("")
+
+    plain_lines.append(f"Browse all: {browse_url}")
+    plain_lines.append("")
+    plain_lines.append("--")
+    plain_lines.append("GimmeDat - The student marketplace for services, items, and campus connections.")
+    plain_lines.append(f"Manage email preferences: {settings_url}")
+
+    plain_text = "\n".join(plain_lines)
+
+    return _base_template(content, footer_extra), plain_text
+
+
 def digest_email(
     display_name: str,
     subject: str,

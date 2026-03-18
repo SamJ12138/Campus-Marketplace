@@ -12,6 +12,7 @@ import {
   UserX,
   Clock,
   Mail,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -23,6 +24,8 @@ import { ApiError } from "@/lib/api/client";
 import type { UserBrief } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useUIStore } from "@/lib/stores/ui";
+import { resetOnboarding } from "@/lib/utils/onboarding";
 
 function ChangePasswordSection() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -709,6 +712,40 @@ function DeleteAccountSection() {
   );
 }
 
+function ReplayTourSection() {
+  const setShowOnboarding = useUIStore((s) => s.setShowOnboarding);
+
+  function handleReplay() {
+    resetOnboarding();
+    setShowOnboarding(true);
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <RotateCcw className="h-5 w-5 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">Welcome tour</h2>
+      </div>
+      <p className="text-sm text-muted-foreground max-w-md">
+        Replay the onboarding walkthrough to revisit GimmeDat&apos;s core features.
+      </p>
+      <button
+        type="button"
+        onClick={handleReplay}
+        className={cn(
+          "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+          "border border-input bg-background px-4 py-2",
+          "text-sm font-medium",
+          "hover:bg-accent transition-colors",
+        )}
+      >
+        <RotateCcw className="h-4 w-4" />
+        Replay Welcome Tour
+      </button>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   return (
     <ProtectedPage>
@@ -720,6 +757,8 @@ export default function SettingsPage() {
       <NotificationPreferencesSection />
       <hr className="border-border" />
       <BlockedUsersSection />
+      <hr className="border-border" />
+      <ReplayTourSection />
       <hr className="border-border" />
       <DeleteAccountSection />
     </div>

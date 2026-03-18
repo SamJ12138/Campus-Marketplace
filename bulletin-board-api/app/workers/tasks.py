@@ -389,16 +389,29 @@ async def send_daily_digests(ctx):
 
 
 async def send_weekly_digests(ctx):
-    """Send personalized weekly digest emails to opted-in users."""
+    """Send visual newsletter digest emails to opted-in users.
+
+    Gathers campus-level data once per campus, then personalizes
+    per-user with price drops on their favorites.
+    """
+    import asyncio
+    import logging
+
     from app.services.ai_service import AIService
+    from app.services.email_templates import newsletter_digest_email
     from app.services.smart_notification_service import SmartNotificationService
 
+    logger = logging.getLogger(__name__)
     settings = ctx["settings"]
     service = SmartNotificationService(AIService(settings), settings)
+    base_url = settings.primary_frontend_url
+    settings_url = f"{base_url}/profile/settings"
 
     async with ctx["db_session"]() as db:
         users = await service.get_users_due_for_digest(db, "weekly")
         sent = 0
+        errors = 0
+
         for user_info in users:
             if service.is_within_quiet_hours(
                 user_info.get("quiet_hours_start"),
@@ -406,25 +419,47 @@ async def send_weekly_digests(ctx):
             ):
                 continue
 
-            digest = await service.generate_digest(
-                db, user_info["user_id"], frequency="weekly"
-            )
-            if digest.get("subject"):
+            try:
+                digest_data = await service.generate_newsletter_digest(
+                    db,
+                    campus_id=user_info["campus_id"],
+                    user_id=user_info["user_id"],
+                    frequency="weekly",
+                )
+
+                if not digest_data.get("subject"):
+                    continue
+
+                html, plain_text = newsletter_digest_email(
+                    data=digest_data,
+                    base_url=base_url,
+                    settings_url=settings_url,
+                )
+
                 await send_email(
                     ctx,
                     "digest",
                     user_info["email"],
                     {
-                        "user_name": user_info["display_name"],
-                        "subject": digest["subject"],
-                        "body_html": digest.get("body_html", ""),
-                        "body_text": digest.get("body_text", ""),
+                        "subject": digest_data["subject"],
+                        "body_html": html,
+                        "body_text": plain_text,
                     },
                 )
                 await service.update_digest_sent(db, user_info["user_id"])
                 sent += 1
 
-        print(f"[DIGEST] Sent {sent} weekly digests")
+                # Respect Resend rate limits
+                await asyncio.sleep(0.1)
+
+            except Exception:
+                logger.exception(
+                    "[DIGEST] Error sending weekly digest to user=%s",
+                    user_info["user_id"],
+                )
+                errors += 1
+
+        print(f"[DIGEST] Sent {sent} weekly digests, {errors} errors")
 
 
 async def send_re_engagement_campaign(ctx):

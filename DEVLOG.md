@@ -799,3 +799,119 @@ No backend changes. The backend validation (auth.py:77-84) already rejects email
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-13 — Weekly Newsletter Digest Enhancement
+
+**What:** Reworked the weekly digest email from a text-heavy personalized summary into a visually engaging "What's New This Week" broadcast newsletter with a 2-column card grid layout.
+
+**Files Modified:**
+- `bulletin-board-api/app/services/smart_notification_service.py` — Added `generate_newsletter_digest()` public method, 7 new private data-gathering queries (_get_new_campus_listings_with_photos, _get_campus_stats, _get_trending_categories, _get_featured_listing, _get_price_drops_for_user, _get_recent_fallback_listings, _serialize_listing_card), subject line generator, and updated `get_users_due_for_digest()` to return campus_id.
+- `bulletin-board-api/app/services/email_templates.py` — Added `newsletter_digest_email()` with table-based 600px layout: stats bar, full-width featured listing card, 2-column card grid with photos, trending categories bar, price drops section, and plain text alternative.
+- `bulletin-board-api/app/workers/tasks.py` — Rewrote `send_weekly_digests()` to use the new newsletter pipeline with per-user error handling and `asyncio.sleep(0.1)` rate limiting.
+
+**Design Decisions:**
+- Table-based HTML layout for email client compatibility
+- 2-column card grid (Poshmark/Depop style) for highest CTR
+- GimmeDat purple (#8b5cf6) brand color for CTAs
+- Fallback mode ("Still Available") for slow weeks with no new listings
+- Reuses existing EmailService, ARQ cron, and notification preference infrastructure
+
+**Status:** COMPLETED
+
+---
+
+### 2026-03-16 — Offer/Deal/Review/Meeting System: Session 1 (Database Models + Migration)
+
+**Summary:** Added 4 new database tables (offers, deals, reviews, meetings) and extended the messages and users tables with new columns to support on-platform negotiation, deal tracking, reviews, and meeting coordination.
+
+**Files Created:**
+- `bulletin-board-api/app/models/offer.py` — Offer model (thread-scoped price offers with counter-offer chaining, 48h expiry, links to messages)
+- `bulletin-board-api/app/models/deal.py` — Deal model (buyer/seller deal tracking with dual-confirmation flow, links to offers)
+- `bulletin-board-api/app/models/review.py` — Review model (1-5 star ratings with optional comments, unique per deal+reviewer)
+- `bulletin-board-api/app/models/meeting.py` — Meeting model (location/time proposals with accept/counter flow)
+- `bulletin-board-api/alembic/versions/add_offers_deals_reviews_meetings.py` — Single idempotent migration creating all 4 tables + extending messages/users
+
+**Files Modified:**
+- `bulletin-board-api/app/models/message.py` — Added `message_type` (VARCHAR(20), default "text") and `meta` (JSONB, nullable; DB column name "metadata") to Message. Note: Python attribute is `meta` because `metadata` is reserved by SQLAlchemy DeclarativeBase.
+- `bulletin-board-api/app/models/user.py` — Added `average_rating` (Float, default 0.0) and `review_count` (Integer, default 0) to User
+- `bulletin-board-api/app/models/__init__.py` — Added imports/exports for Offer, Deal, Review, Meeting
+
+**Schema Details:**
+- offers: UUID PK, FK to threads/listings/users/messages, amount(VARCHAR100), status(pending/accepted/declined/countered/expired), parent_offer_id for counter-chains, expires_at, indexes on thread/status/listing
+- deals: UUID PK, FK to listings/threads/users/offers, agreed_price, status(pending/buyer_confirmed/seller_confirmed/completed/cancelled), dual timestamps, indexes on listing/buyer/seller/status
+- reviews: UUID PK, FK to deals/users, rating(INT 1-5), comment(TEXT), unique(deal_id,reviewer_id), indexes on reviewee/deal
+- meetings: UUID PK, FK to deals/threads/users/messages, location_name/details, proposed_time, status(proposed/accepted/cancelled), indexes on deal/thread
+
+**Verification:**
+- All model imports: OK (`from app.models import Offer, Deal, Review, Meeting`)
+- Ruff lint: all files pass
+- Unit tests: 370 passed (pre-existing failures in test_moderation.py and integration/listing_flow unrelated to this change)
+
+**Next Steps:**
+- Session 2: Backend services + schemas + routes for Offers & Deals
+- Session 3: Backend services + routes for Reviews & Meetings
+- Session 4: Frontend types, API clients, hooks, chat card components
+- Session 5: Frontend reviews UI, profile integration, polish
+
+**Status:** COMPLETED
+
+---
+
+### 2026-03-17 — Simplify Signup: Hide Multi-Campus Fields Behind Feature Flag
+
+**Summary:** Reduced the registration form from 9 fields to 3 (email, password, optional display name) for the single-campus Gettysburg College launch. All multi-campus fields are preserved behind a `MULTI_CAMPUS_MODE` flag — flip it to `true` to restore everything.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/app/(auth)/register/page.tsx` — Added `MULTI_CAMPUS_MODE = false` flag; gated campus dropdown, class year, phone number, notification preferences behind `{MULTI_CAMPUS_MODE && (...)}` conditionals; replaced terms checkbox with implicit agreement text; hardcoded `campus_slug: "gettysburg-college"` and `accept_terms: true` when flag is off; gated campus fetch `useEffect` to skip API call; updated email placeholder to `"you@gettysburg.edu"` and display name placeholder to `"(optional)"`; split `handleSubmit` validation to use `registerSchemaSimple` in single-campus mode
+- `bulletin-board-frontend/src/lib/validation/auth.ts` — Added `registerSchemaSimple` Zod schema (email + password required, display_name optional, no campus/phone/notifications/terms); original `registerSchema` untouched
+- `bulletin-board-api/app/schemas/auth.py` — Made `display_name` optional (`str | None = Field(None, max_length=100)`); added `validate_display_name` field validator that only enforces min_length=2 when value is non-empty
+- `bulletin-board-api/app/api/v1/auth.py` — Added auto-generation of `display_name` from email prefix when not provided (`data.email.split("@")[0][:100]`)
+
+**What Users See (single-campus mode):**
+1. Email (placeholder: "you@gettysburg.edu")
+2. Password (with strength bar + rules checklist, unchanged)
+3. Display name (optional, auto-generated from email if blank)
+4. Implicit terms text with links (no checkbox)
+5. "Create Account" button
+
+**Restoring Multi-Campus:**
+Set `MULTI_CAMPUS_MODE = true` on line 17 of `register/page.tsx` — all original fields (campus dropdown, class year, phone, notifications, terms checkbox) reappear with no other changes needed.
+
+**Verification:**
+- TypeScript: zero errors (`tsc --noEmit`)
+- ESLint: zero errors on modified files
+- Ruff: all checks passed on modified backend files
+- Frontend tests: 7/7 passed
+- Backend tests: pre-existing `listing_status` enum failure (unrelated to auth changes)
+
+**Status:** COMPLETED
+
+---
+
+### 2026-03-17 - New-User Onboarding Carousel
+
+**Summary:** Added a 5-slide onboarding carousel that appears once after first login, walking new users through core features.
+
+**Files Changed:**
+- `src/lib/utils/onboarding.ts` - NEW: localStorage helpers (hasCompletedOnboarding, markOnboardingComplete, resetOnboarding)
+- `src/lib/stores/ui.ts` - Added showOnboarding state + setShowOnboarding action
+- `src/components/onboarding/slides.ts` - NEW: Static slide data array (5 slides)
+- `src/components/onboarding/DeviceFrame.tsx` - NEW: CSS-only device frame component
+- `src/components/onboarding/OnboardingSlide.tsx` - NEW: Single slide presentational component
+- `src/components/onboarding/OnboardingCarousel.tsx` - NEW: Main carousel with motion animations, keyboard nav, focus trap, a11y
+- `src/app/(main)/layout.tsx` - Added OnboardingCarousel after ReportModal
+- `src/app/(main)/profile/settings/page.tsx` - Added "Replay Welcome Tour" section
+- `scripts/capture-onboarding-screenshots.ts` - NEW: Playwright script for capturing screenshot PNGs
+- `package.json` - Added screenshots:onboarding script
+
+**Details:**
+Full-screen overlay carousel appears once for first-time authenticated users (detected via `cb_onboarding_completed` localStorage key). 5 slides: Welcome, Browse & Discover, Post in Seconds, Message Directly, You're All Set. Slides 1-4 show a real screenshot in a CSS device frame with gradient backdrop. Slide 5 shows logo + "Get Started" CTA. AnimatePresence spring transitions with prefers-reduced-motion fallback to fade-only. ESC closes, arrow keys navigate, focus trapped. "Replay Tour" button added to settings page. Playwright screenshot script created but actual screenshots need to be captured with running dev server + seed data.
+
+**Next Steps:**
+- Run `npm run screenshots:onboarding` with dev server + seed data to capture actual PNGs
+- Visually test carousel on mobile viewports
+- Consider adding placeholder/fallback images for when screenshots are missing
+
+**Status:** COMPLETED
+
+---

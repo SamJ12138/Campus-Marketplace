@@ -11,7 +11,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -79,6 +79,10 @@ class Message(Base):
         UUID(as_uuid=True), ForeignKey("listings.id", ondelete="SET NULL"), nullable=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    message_type: Mapped[str] = mapped_column(
+        String(20), default="text", nullable=False
+    )
+    meta: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     is_flagged: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(

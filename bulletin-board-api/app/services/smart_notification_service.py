@@ -10,10 +10,12 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import Settings
+from app.models.campus import Campus
 from app.models.favorite import Favorite
-from app.models.listing import Listing, ListingStatus
+from app.models.listing import Category, Listing, ListingStatus
 from app.models.message import Message, MessageThread
 from app.models.notification import DigestFrequency, NotificationPreference
 from app.models.user import User, UserStatus
@@ -450,6 +452,7 @@ class SmartNotificationService:
                 "email": user.email,
                 "display_name": user.display_name,
                 "engagement_score": prefs.engagement_score,
+                "campus_id": str(user.campus_id),
             })
 
         return users
@@ -496,6 +499,242 @@ class SmartNotificationService:
             user.last_active_at if user else None,
         )
         await db.commit()
+
+    # ── Newsletter digest ───────────────────────────────────────
+
+    async def generate_newsletter_digest(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        user_id: str,
+        frequency: str = "weekly",
+    ) -> dict:
+        """Generate a visually-oriented newsletter digest for a user.
+
+        Gathers new listings with photos, campus stats, trending categories,
+        a featured listing, and price drops on favorited items.
+
+        Returns a structured dict ready for the newsletter_digest_email template.
+        """
+        user = await db.get(User, user_id)
+        if not user:
+            return {"sections": {}, "is_fallback": True, "stats": {}}
+
+        campus = await db.get(Campus, campus_id)
+        campus_name = campus.name if campus else "your campus"
+
+        period_days = 1 if frequency == "daily" else 7
+        cutoff = datetime.now(timezone.utc) - timedelta(days=period_days)
+
+        new_listings = await self._get_new_campus_listings_with_photos(
+            db, campus_id, cutoff
+        )
+        stats = await self._get_campus_stats(db, campus_id, cutoff)
+        trending = await self._get_trending_categories(db, campus_id, cutoff)
+        featured = await self._get_featured_listing(db, campus_id, cutoff)
+        price_drops = await self._get_price_drops_for_user(db, user_id, cutoff)
+
+        is_fallback = len(new_listings) == 0
+        if is_fallback:
+            new_listings = await self._get_recent_fallback_listings(db, campus_id)
+
+        listing_cards = [self._serialize_listing_card(item) for item in new_listings]
+        featured_card = self._serialize_listing_card(featured) if featured else None
+        price_drop_cards = [self._serialize_listing_card(item) for item in price_drops]
+
+        subject = self._generate_newsletter_subject(
+            campus_name, stats, is_fallback
+        )
+
+        return {
+            "user_name": user.display_name,
+            "campus_name": campus_name,
+            "subject": subject,
+            "frequency": frequency,
+            "is_fallback": is_fallback,
+            "stats": stats,
+            "featured": featured_card,
+            "listings": listing_cards,
+            "trending": trending,
+            "price_drops": price_drop_cards,
+        }
+
+    def _generate_newsletter_subject(
+        self,
+        campus_name: str,
+        stats: dict,
+        is_fallback: bool,
+    ) -> str:
+        """Generate a concise newsletter subject line (30-45 chars)."""
+        count = stats.get("new_listings", 0)
+        if is_fallback or count == 0:
+            return f"What's available at {campus_name}"
+        return f"{count} new offer{'s' if count != 1 else ''} at {campus_name} this week"
+
+    def _serialize_listing_card(self, listing) -> dict:
+        """Convert a listing ORM object to a template-ready dict."""
+        photo_url = None
+        if listing.photos:
+            photo = listing.photos[0]
+            photo_url = photo.thumbnail_url or photo.url
+
+        category_name = listing.category.name if listing.category else ""
+
+        return {
+            "id": str(listing.id),
+            "title": listing.title,
+            "price_hint": listing.price_hint,
+            "photo_url": photo_url,
+            "category_name": category_name,
+            "view_count": listing.view_count or 0,
+            "listing_url": f"/listings/{listing.id}",
+        }
+
+    # ── Private: newsletter data queries ──────────────────────
+
+    async def _get_new_campus_listings_with_photos(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        cutoff: datetime,
+        limit: int = 10,
+    ) -> list:
+        """Fetch active listings created since cutoff, with photos and category."""
+        result = await db.execute(
+            select(Listing)
+            .options(selectinload(Listing.photos), selectinload(Listing.category))
+            .where(
+                Listing.campus_id == campus_id,
+                Listing.status == ListingStatus.ACTIVE,
+                Listing.created_at >= cutoff,
+            )
+            .order_by(Listing.view_count.desc(), Listing.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().unique().all())
+
+    async def _get_campus_stats(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        cutoff: datetime,
+    ) -> dict:
+        """Aggregate campus stats: new listings, items sold, total active."""
+        new_count_q = await db.execute(
+            select(func.count(Listing.id)).where(
+                Listing.campus_id == campus_id,
+                Listing.created_at >= cutoff,
+            )
+        )
+        new_listings = new_count_q.scalar() or 0
+
+        sold_count_q = await db.execute(
+            select(func.count(Listing.id)).where(
+                Listing.campus_id == campus_id,
+                Listing.status == ListingStatus.SOLD,
+                Listing.updated_at >= cutoff,
+            )
+        )
+        items_sold = sold_count_q.scalar() or 0
+
+        active_count_q = await db.execute(
+            select(func.count(Listing.id)).where(
+                Listing.campus_id == campus_id,
+                Listing.status == ListingStatus.ACTIVE,
+            )
+        )
+        total_active = active_count_q.scalar() or 0
+
+        return {
+            "new_listings": new_listings,
+            "items_sold": items_sold,
+            "total_active": total_active,
+        }
+
+    async def _get_trending_categories(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        cutoff: datetime,
+        limit: int = 4,
+    ) -> list[dict]:
+        """Top categories by new listing count in the period."""
+        result = await db.execute(
+            select(Category.name, func.count(Listing.id).label("count"))
+            .join(Listing, Listing.category_id == Category.id)
+            .where(
+                Listing.campus_id == campus_id,
+                Listing.created_at >= cutoff,
+            )
+            .group_by(Category.name)
+            .order_by(func.count(Listing.id).desc())
+            .limit(limit)
+        )
+        return [{"name": row.name, "count": row.count} for row in result.all()]
+
+    async def _get_featured_listing(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        cutoff: datetime,
+    ):
+        """Highest-engagement new listing (view_count + message_count * 3)."""
+        result = await db.execute(
+            select(Listing)
+            .options(selectinload(Listing.photos), selectinload(Listing.category))
+            .where(
+                Listing.campus_id == campus_id,
+                Listing.status == ListingStatus.ACTIVE,
+                Listing.created_at >= cutoff,
+            )
+            .order_by(
+                (Listing.view_count + Listing.message_count * 3).desc()
+            )
+            .limit(1)
+        )
+        return result.scalars().first()
+
+    async def _get_price_drops_for_user(
+        self,
+        db: AsyncSession,
+        user_id: str,
+        cutoff: datetime,
+        limit: int = 3,
+    ) -> list:
+        """Favorited listings updated in the period, with photos."""
+        result = await db.execute(
+            select(Listing)
+            .options(selectinload(Listing.photos), selectinload(Listing.category))
+            .join(Favorite, Favorite.listing_id == Listing.id)
+            .where(
+                Favorite.user_id == user_id,
+                Listing.status == ListingStatus.ACTIVE,
+                Listing.updated_at >= cutoff,
+                Listing.price_hint.isnot(None),
+            )
+            .order_by(Listing.updated_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().unique().all())
+
+    async def _get_recent_fallback_listings(
+        self,
+        db: AsyncSession,
+        campus_id: str,
+        limit: int = 5,
+    ) -> list:
+        """Most recent active listings for slow weeks."""
+        result = await db.execute(
+            select(Listing)
+            .options(selectinload(Listing.photos), selectinload(Listing.category))
+            .where(
+                Listing.campus_id == campus_id,
+                Listing.status == ListingStatus.ACTIVE,
+            )
+            .order_by(Listing.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().unique().all())
 
     # ── Private: data queries ──────────────────────────────────
 

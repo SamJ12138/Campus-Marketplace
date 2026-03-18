@@ -69,6 +69,10 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ):
     """Register a new user account."""
+    # Auto-generate display_name from email if not provided
+    if not data.display_name:
+        data.display_name = data.email.split("@")[0][:100]
+
     # Find campus
     campus = await db.scalar(select(Campus).where(Campus.slug == data.campus_slug))
     if not campus:

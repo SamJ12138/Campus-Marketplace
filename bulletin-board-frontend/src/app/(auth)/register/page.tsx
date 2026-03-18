@@ -9,10 +9,12 @@ import { cn } from "@/lib/utils/cn";
 import { safeRedirect } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { registerSchema } from "@/lib/validation/auth";
+import { registerSchema, registerSchemaSimple } from "@/lib/validation/auth";
 import { ApiError } from "@/lib/api/client";
 import { getCampuses } from "@/lib/api/auth";
 import type { Campus } from "@/lib/types";
+
+const MULTI_CAMPUS_MODE = false;
 
 const FALLBACK_CAMPUSES: Campus[] = [
   { id: "gettysburg-college", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg-college", allow_non_edu: false },
@@ -39,9 +41,10 @@ function RegisterContent() {
   const { register } = useAuth();
 
   const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [campusesLoading, setCampusesLoading] = useState(true);
+  const [campusesLoading, setCampusesLoading] = useState(MULTI_CAMPUS_MODE);
 
   useEffect(() => {
+    if (!MULTI_CAMPUS_MODE) return;
     getCampuses()
       .then((data) => {
         setCampuses(data.length > 0 ? data : FALLBACK_CAMPUSES);
@@ -54,12 +57,12 @@ function RegisterContent() {
     email: "",
     password: "",
     display_name: "",
-    campus_slug: "",
+    campus_slug: MULTI_CAMPUS_MODE ? "" : "gettysburg-college",
     class_year: "" as string,
     phone_number: "",
     notify_email: true,
     notify_sms: true,
-    accept_terms: false,
+    accept_terms: MULTI_CAMPUS_MODE ? false : true,
   });
 
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
@@ -132,41 +135,74 @@ function RegisterContent() {
       phone_number: form.phone_number || undefined,
     };
 
-    const result = registerSchema.safeParse(payload);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const key = String(issue.path[0]);
-        if (!fieldErrors[key]) {
-          fieldErrors[key] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
-      return;
-    }
+    // Validate and build register args based on mode
+    let registerEmail: string;
+    let registerPassword: string;
+    let registerDisplayName: string;
+    let registerCampusSlug: string;
+    let registerClassYear: number | undefined;
+    let registerPhone: string | undefined;
+    let registerNotifPrefs: { notify_email: boolean; notify_sms: boolean } | undefined;
 
-    // Client-side .edu domain check
-    if (selectedCampus && selectedCampus.allow_non_edu === false) {
-      const emailDomain = result.data.email.split("@")[1]?.toLowerCase();
-      if (emailDomain !== selectedCampus.domain) {
-        setErrors({ email: `You must use an @${selectedCampus.domain} email address for ${selectedCampus.name}` });
+    if (MULTI_CAMPUS_MODE) {
+      const result = registerSchema.safeParse(payload);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        for (const issue of result.error.issues) {
+          const key = String(issue.path[0]);
+          if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+        }
+        setErrors(fieldErrors);
         return;
       }
+
+      // Client-side .edu domain check
+      if (selectedCampus && selectedCampus.allow_non_edu === false) {
+        const domain = result.data.email.split("@")[1]?.toLowerCase();
+        if (domain !== selectedCampus.domain) {
+          setErrors({ email: `You must use an @${selectedCampus.domain} email address for ${selectedCampus.name}` });
+          return;
+        }
+      }
+
+      registerEmail = result.data.email;
+      registerPassword = result.data.password;
+      registerDisplayName = result.data.display_name;
+      registerCampusSlug = result.data.campus_slug;
+      registerClassYear = result.data.class_year ?? undefined;
+      registerPhone = result.data.phone_number && result.data.phone_number !== "" ? result.data.phone_number : undefined;
+      registerNotifPrefs = { notify_email: result.data.notify_email, notify_sms: result.data.notify_sms };
+    } else {
+      const result = registerSchemaSimple.safeParse(payload);
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        for (const issue of result.error.issues) {
+          const key = String(issue.path[0]);
+          if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+        }
+        setErrors(fieldErrors);
+        return;
+      }
+
+      registerEmail = result.data.email;
+      registerPassword = result.data.password;
+      registerDisplayName = result.data.display_name || "";
+      registerCampusSlug = "gettysburg-college";
+      registerClassYear = undefined;
+      registerPhone = undefined;
+      registerNotifPrefs = undefined;
     }
 
     setIsSubmitting(true);
     try {
-      const phoneNum = result.data.phone_number && result.data.phone_number !== ""
-        ? result.data.phone_number
-        : undefined;
       await register(
-        result.data.email,
-        result.data.password,
-        result.data.display_name,
-        result.data.campus_slug,
-        result.data.class_year ?? undefined,
-        phoneNum,
-        { notify_email: result.data.notify_email, notify_sms: result.data.notify_sms },
+        registerEmail,
+        registerPassword,
+        registerDisplayName,
+        registerCampusSlug,
+        registerClassYear,
+        registerPhone,
+        registerNotifPrefs,
       );
       router.push(redirectTo ? `/verify-email?redirect=${encodeURIComponent(redirectTo)}` : "/verify-email");
     } catch (err) {
@@ -222,7 +258,7 @@ function RegisterContent() {
               autoComplete="email"
               value={form.email}
               onChange={(e) => updateField("email", e.target.value)}
-              placeholder="you@university.edu"
+              placeholder={MULTI_CAMPUS_MODE ? "you@university.edu" : "you@gettysburg.edu"}
               disabled={isSubmitting}
               className={cn(
                 "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
@@ -233,11 +269,13 @@ function RegisterContent() {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              {selectedCampus && selectedCampus.allow_non_edu === false
-                ? `Use your @${selectedCampus.domain} email address`
-                : emailDomain && !form.campus_slug
-                  ? `Matching campuses for @${emailDomain}`
-                  : "Any email works"}
+              {MULTI_CAMPUS_MODE
+                ? (selectedCampus && selectedCampus.allow_non_edu === false
+                    ? `Use your @${selectedCampus.domain} email address`
+                    : emailDomain && !form.campus_slug
+                      ? `Matching campuses for @${emailDomain}`
+                      : "Any email works")
+                : "Use your @gettysburg.edu email address"}
             </p>
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
@@ -319,7 +357,7 @@ function RegisterContent() {
               autoComplete="name"
               value={form.display_name}
               onChange={(e) => updateField("display_name", e.target.value)}
-              placeholder="How others will see you"
+              placeholder={MULTI_CAMPUS_MODE ? "How others will see you" : "How others will see you (optional)"}
               disabled={isSubmitting}
               className={cn(
                 "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
@@ -334,158 +372,180 @@ function RegisterContent() {
             )}
           </div>
 
-          {/* Campus */}
-          <div className="space-y-2">
-            <label htmlFor="campus_slug" className="text-sm font-medium leading-none">
-              {t.auth.campusLabel}
-            </label>
-            <select
-              id="campus_slug"
-              value={form.campus_slug}
-              onChange={(e) => updateField("campus_slug", e.target.value)}
-              disabled={isSubmitting || campusesLoading}
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                !form.campus_slug && "text-muted-foreground",
-                errors.campus_slug ? "border-destructive" : "border-input",
-              )}
-            >
-              <option value="" disabled>
-                {campusesLoading ? "Loading campuses..." : "Select your campus"}
-              </option>
-              {filteredCampuses.map((campus) => (
-                <option key={campus.slug} value={campus.slug}>
-                  {campus.name}
-                </option>
-              ))}
-            </select>
-            {errors.campus_slug && (
-              <p className="text-xs text-destructive">{errors.campus_slug}</p>
-            )}
-          </div>
-
-          {/* Class Year */}
-          <div className="space-y-2">
-            <label htmlFor="class_year" className="text-sm font-medium leading-none">
-              Class year{" "}
-              <span className="font-normal text-muted-foreground">(optional)</span>
-            </label>
-            <select
-              id="class_year"
-              value={form.class_year}
-              onChange={(e) => updateField("class_year", e.target.value)}
-              disabled={isSubmitting}
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                !form.class_year && "text-muted-foreground",
-                "border-input",
-              )}
-            >
-              <option value="">Select class year</option>
-              {CLASS_YEARS.map((year) => (
-                <option key={year} value={String(year)}>
-                  Class of {year}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Phone Number */}
-          <div className="space-y-2">
-            <label htmlFor="phone_number" className="text-sm font-medium leading-none">
-              {t.auth.phoneNumberLabel}{" "}
-              <span className="font-normal text-muted-foreground">
-                {form.notify_sms ? "(required)" : "(optional)"}
-              </span>
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                id="phone_number"
-                type="tel"
-                autoComplete="tel"
-                value={form.phone_number}
-                onChange={(e) => updateField("phone_number", e.target.value)}
-                placeholder="(555) 123-4567"
-                disabled={isSubmitting}
+          {/* Campus (multi-campus only) */}
+          {MULTI_CAMPUS_MODE && (
+            <div className="space-y-2">
+              <label htmlFor="campus_slug" className="text-sm font-medium leading-none">
+                {t.auth.campusLabel}
+              </label>
+              <select
+                id="campus_slug"
+                value={form.campus_slug}
+                onChange={(e) => updateField("campus_slug", e.target.value)}
+                disabled={isSubmitting || campusesLoading}
                 className={cn(
-                  "flex h-10 w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm",
-                  "placeholder:text-muted-foreground",
+                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "disabled:cursor-not-allowed disabled:opacity-50",
-                  errors.phone_number ? "border-destructive" : "border-input",
+                  !form.campus_slug && "text-muted-foreground",
+                  errors.campus_slug ? "border-destructive" : "border-input",
                 )}
-              />
+              >
+                <option value="" disabled>
+                  {campusesLoading ? "Loading campuses..." : "Select your campus"}
+                </option>
+                {filteredCampuses.map((campus) => (
+                  <option key={campus.slug} value={campus.slug}>
+                    {campus.name}
+                  </option>
+                ))}
+              </select>
+              {errors.campus_slug && (
+                <p className="text-xs text-destructive">{errors.campus_slug}</p>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Enter your 10-digit US phone number
-            </p>
-            {errors.phone_number && (
-              <p className="text-xs text-destructive">{errors.phone_number}</p>
-            )}
-          </div>
+          )}
 
-          {/* Notification Preferences */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium leading-none">
-              {t.auth.notificationPreferencesLabel}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t.auth.notificationPreferencesHelp}
-            </p>
-            <div className="space-y-2 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.notify_email}
-                  onChange={(e) => updateField("notify_email", e.target.checked)}
-                  disabled={isSubmitting}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Email notifications</span>
+          {/* Class Year (multi-campus only) */}
+          {MULTI_CAMPUS_MODE && (
+            <div className="space-y-2">
+              <label htmlFor="class_year" className="text-sm font-medium leading-none">
+                Class year{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.notify_sms}
-                  onChange={(e) => updateField("notify_sms", e.target.checked)}
-                  disabled={isSubmitting}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">SMS notifications</span>
-              </label>
+              <select
+                id="class_year"
+                value={form.class_year}
+                onChange={(e) => updateField("class_year", e.target.value)}
+                disabled={isSubmitting}
+                className={cn(
+                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                  !form.class_year && "text-muted-foreground",
+                  "border-input",
+                )}
+              >
+                <option value="">Select class year</option>
+                {CLASS_YEARS.map((year) => (
+                  <option key={year} value={String(year)}>
+                    Class of {year}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
+          )}
+
+          {/* Phone Number (multi-campus only) */}
+          {MULTI_CAMPUS_MODE && (
+            <div className="space-y-2">
+              <label htmlFor="phone_number" className="text-sm font-medium leading-none">
+                {t.auth.phoneNumberLabel}{" "}
+                <span className="font-normal text-muted-foreground">
+                  {form.notify_sms ? "(required)" : "(optional)"}
+                </span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  id="phone_number"
+                  type="tel"
+                  autoComplete="tel"
+                  value={form.phone_number}
+                  onChange={(e) => updateField("phone_number", e.target.value)}
+                  placeholder="(555) 123-4567"
+                  disabled={isSubmitting}
+                  className={cn(
+                    "flex h-10 w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm",
+                    "placeholder:text-muted-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    errors.phone_number ? "border-destructive" : "border-input",
+                  )}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter your 10-digit US phone number
+              </p>
+              {errors.phone_number && (
+                <p className="text-xs text-destructive">{errors.phone_number}</p>
+              )}
+            </div>
+          )}
+
+          {/* Notification Preferences (multi-campus only) */}
+          {MULTI_CAMPUS_MODE && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">
+                {t.auth.notificationPreferencesLabel}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t.auth.notificationPreferencesHelp}
+              </p>
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.notify_email}
+                    onChange={(e) => updateField("notify_email", e.target.checked)}
+                    disabled={isSubmitting}
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm">Email notifications</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.notify_sms}
+                    onChange={(e) => updateField("notify_sms", e.target.checked)}
+                    disabled={isSubmitting}
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm">SMS notifications</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Terms */}
-          <div className="space-y-2">
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.accept_terms}
-                onChange={(e) => updateField("accept_terms", e.target.checked)}
-                disabled={isSubmitting}
-                className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-muted-foreground">
-                I agree to the{" "}
-                <Link href="/terms" target="_blank" className="text-primary hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" target="_blank" className="text-primary hover:underline">
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
-            {errors.accept_terms && (
-              <p className="text-xs text-destructive">{errors.accept_terms}</p>
-            )}
-          </div>
+          {MULTI_CAMPUS_MODE ? (
+            <div className="space-y-2">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.accept_terms}
+                  onChange={(e) => updateField("accept_terms", e.target.checked)}
+                  disabled={isSubmitting}
+                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-muted-foreground">
+                  I agree to the{" "}
+                  <Link href="/terms" target="_blank" className="text-primary hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+              {errors.accept_terms && (
+                <p className="text-xs text-destructive">{errors.accept_terms}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              By creating an account, you agree to our{" "}
+              <Link href="/terms" target="_blank" className="text-primary hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
 
           {/* Submit */}
           <button

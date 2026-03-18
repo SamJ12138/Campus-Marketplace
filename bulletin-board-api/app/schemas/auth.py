@@ -11,7 +11,14 @@ class NotificationPreferencesInput(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=72)
-    display_name: str = Field(..., min_length=2, max_length=100)
+    display_name: str | None = Field(None, max_length=100)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, v: str | None) -> str | None:
+        if v is not None and v != "" and len(v) < 2:
+            raise ValueError("Display name must be at least 2 characters")
+        return v or None
     campus_slug: str
     class_year: int | None = Field(None, ge=2020, le=2035)
     phone_number: str | None = Field(None, max_length=20)
