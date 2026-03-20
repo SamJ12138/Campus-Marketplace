@@ -14,6 +14,7 @@ import {
   Car,
   Music,
   Laptop,
+  Bike,
   ShoppingBag,
   TrendingUp,
   Clock,
@@ -34,6 +35,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   music: Music,
   technology: Laptop,
   repair: Wrench,
+  "bikes-scooters": Bike,
   default: Briefcase,
 };
 
@@ -43,6 +45,7 @@ const CATEGORY_COLOR_MAP: Record<string, string> = {
   music: "from-purple-400 to-pink-500",
   technology: "from-orange-400 to-red-500",
   repair: "from-amber-400 to-orange-500",
+  "bikes-scooters": "from-lime-400 to-emerald-500",
   default: "from-slate-400 to-slate-500",
 };
 

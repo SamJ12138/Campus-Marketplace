@@ -939,3 +939,21 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-20 — Add "Bikes & Scooters" Item Category
+
+**Summary:** Added a new "Bikes & Scooters" item category (sort_order 6, between Tickets and Other Items) across backend and frontend.
+
+**Files Changed:**
+- `bulletin-board-api/alembic/versions/add_bikes_scooters_category.py` — **NEW** — Alembic data migration inserting the category row (slug: `bikes-scooters`, icon: 🚲, sort_order: 6)
+- `bulletin-board-api/scripts/seed_data.py` — Added category to seed list before "Other Items"
+- `bulletin-board-frontend/src/lib/constants/seo.ts` — Added `bikes-scooters` SEO entry with title, description, and keywords
+- `bulletin-board-frontend/src/components/listings/ListingCard.tsx` — Added `Bike` icon import, `bikes-scooters` entry in `CATEGORY_ICON_MAP` and `CATEGORY_COLOR_MAP` (lime-to-emerald gradient)
+
+**Next Steps:**
+- Run migration on production: `alembic upgrade head`
+- Verify `GET /categories?type=item` includes "Bikes & Scooters"
+
+**Status:** COMPLETED
+
+---

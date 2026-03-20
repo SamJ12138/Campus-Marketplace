@@ -130,6 +130,17 @@ export const SERVICE_CATEGORIES = {
       "game day tickets college",
     ],
   },
+  "bikes-scooters": {
+    slug: "bikes-scooters",
+    title: "Bikes & Scooters",
+    description: "Buy and sell bikes, scooters, and rides on campus",
+    keywords: [
+      "bikes for sale college",
+      "electric scooter campus",
+      "student bike marketplace",
+      "used scooter college",
+    ],
+  },
   "hair-beauty": {
     slug: "hair-beauty",
     title: "Hair & Beauty",

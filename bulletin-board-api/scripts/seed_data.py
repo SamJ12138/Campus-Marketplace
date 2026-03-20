@@ -32,6 +32,7 @@ CATEGORIES = [
     {"name": "Furniture", "slug": "furniture", "listing_type": "item", "sort_order": 3},
     {"name": "Clothing", "slug": "clothing", "listing_type": "item", "sort_order": 4},
     {"name": "Tickets", "slug": "tickets", "listing_type": "item", "sort_order": 5},
+    {"name": "Bikes & Scooters", "slug": "bikes-scooters", "listing_type": "item", "sort_order": 6},
     {"name": "Other Items", "slug": "other-items", "listing_type": "item", "sort_order": 99},
 ]
 
