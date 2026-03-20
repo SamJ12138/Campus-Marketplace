@@ -116,16 +116,13 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
     <>
       {/* Main carousel */}
       <div className="relative overflow-hidden rounded-xl bg-slate-900">
-        <div className="relative flex items-center justify-center" style={{ minHeight: '280px', maxHeight: '70vh' }}>
-          <Image
+        <div className="flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={photos[current].url}
             alt={`Photo ${current + 1} of ${photos.length}`}
-            fill
-            sizes="(max-width: 1024px) 100vw, 60vw"
-            className="cursor-pointer object-contain"
+            className="max-h-[70vh] max-w-full cursor-pointer"
             onClick={() => setLightboxOpen(true)}
-            priority
-            unoptimized={photos[current].url.includes('r2.dev') || undefined}
           />
         </div>
 

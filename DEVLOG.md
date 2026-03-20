@@ -989,3 +989,18 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-20 — Adaptive Photo Frame on Listing Detail Page
+
+**Problem:** The listing detail photo gallery used a fixed-size container (`minHeight: 280px`, `maxHeight: 70vh`) with Next.js `Image fill` + `object-contain`. This left dead space around images that didn't match the container's proportions (e.g. portrait or square photos in a wide frame).
+
+**Fix:**
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` line 119: replaced Next.js `Image` (with `fill`) with a native `<img>` element using `max-h-[70vh] max-w-full`. The container now shrink-wraps to each image's natural dimensions — no more dead space.
+- Thumbnails, lightbox, and feed card images unchanged (they use intentional fixed sizes).
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+
+**Status:** COMPLETED
+
+---
