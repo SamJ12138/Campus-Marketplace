@@ -957,3 +957,21 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-20 — Fix Image Display + Complete Edit Functionality + Show "Last Edited"
+
+**Summary:** Three related fixes: (1) listing detail page no longer crops portrait/vertical images, (2) backend edit schema now accepts `category_id` and `is_regulated` so category changes actually persist, (3) `updated_at` is exposed in the API and displayed as "Edited X ago" on the detail page.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` — Main carousel: `aspect-[4/3]` + `object-cover` → flexible height (`minHeight: 280px`, `maxHeight: 70vh`) + `object-contain` on `bg-slate-900`; no-photo fallback updated to match; added "Edited X ago" with Pencil icon in meta section (only shown when `updated_at` differs from `created_at`)
+- `bulletin-board-api/app/schemas/listing.py` — Added `category_id: UUID | None` and `is_regulated: bool | None` to `ListingUpdate`; added `updated_at: datetime` to `ListingResponse`
+- `bulletin-board-frontend/src/lib/types/index.ts` — Added `updated_at: string | null` to `Listing` interface
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `python -m pytest tests/` — 370 passed (6 failures + 3 errors are pre-existing moderation_service coroutine bug, unrelated)
+- Card thumbnails in feed remain uniform (`aspect-[4/3]` + `object-cover` in `ListingCard.tsx` unchanged)
+
+**Status:** COMPLETED
+
+---

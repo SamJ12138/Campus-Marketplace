@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Loader2,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -105,7 +106,7 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
 
   if (photos.length === 0) {
     return (
-      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl bg-slate-100">
+      <div className="flex w-full items-center justify-center rounded-xl bg-slate-100" style={{ minHeight: '280px' }}>
         <Eye className="h-16 w-16 text-slate-300" />
       </div>
     );
@@ -114,14 +115,14 @@ function PhotoGallery({ photos }: { photos: Listing["photos"] }) {
   return (
     <>
       {/* Main carousel */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-100">
-        <div className="aspect-[4/3] w-full relative">
+      <div className="relative overflow-hidden rounded-xl bg-slate-900">
+        <div className="relative flex items-center justify-center" style={{ minHeight: '280px', maxHeight: '70vh' }}>
           <Image
             src={photos[current].url}
             alt={`Photo ${current + 1} of ${photos.length}`}
             fill
             sizes="(max-width: 1024px) 100vw, 60vw"
-            className="cursor-pointer object-cover"
+            className="cursor-pointer object-contain"
             onClick={() => setLightboxOpen(true)}
             priority
             unoptimized={photos[current].url.includes('r2.dev') || undefined}
@@ -543,6 +544,12 @@ export default function ListingDetailPage() {
               {t.listings.viewCount.replace("{count}", String(listing.view_count))}
             </span>
             <span>Posted {timeAgo}</span>
+            {listing.updated_at && listing.updated_at !== listing.created_at && (
+              <span className="flex items-center gap-1">
+                <Pencil className="h-3.5 w-3.5" />
+                Edited {formatDistanceToNow(new Date(listing.updated_at), { addSuffix: true })}
+              </span>
+            )}
             {daysUntilExpiry > 0 && (
               <span
                 className={cn(

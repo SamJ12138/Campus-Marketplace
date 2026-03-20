@@ -57,6 +57,8 @@ class ListingUpdate(BaseModel):
     availability: dict | None = None
     contact_preference: ContactPreference | None = None
     contact_details: str | None = None
+    category_id: UUID | None = None
+    is_regulated: bool | None = None
 
 
 class PhotoResponse(BaseModel):
@@ -107,6 +109,7 @@ class ListingResponse(BaseModel):
     is_favorited: bool = False
     is_own: bool = False
     created_at: datetime
+    updated_at: datetime
     expires_at: datetime
 
     model_config = {"from_attributes": True}

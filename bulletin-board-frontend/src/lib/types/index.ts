@@ -112,6 +112,7 @@ export interface Listing {
   is_favorited: boolean;
   is_own: boolean;
   created_at: string;
+  updated_at: string | null;
   expires_at: string;
 }
 
