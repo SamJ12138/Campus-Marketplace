@@ -490,5 +490,6 @@ class ListingService:
             is_favorited=listing.id in favorited_ids,
             is_own=viewer_id is not None and listing.user_id == viewer_id,
             created_at=listing.created_at,
+            updated_at=listing.updated_at,
             expires_at=listing.expires_at,
         )

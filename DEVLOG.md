@@ -975,3 +975,17 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-20 — Fix 500 Error on Listings API (missing `updated_at` in `_to_response`)
+
+**Problem:** After commit `45ffb01` added `updated_at: datetime` to `ListingResponse`, the production listings endpoint returned 500 because `_to_response()` in `listing_service.py` did not pass `updated_at` to the response constructor. Pydantic validation error during serialization broke all listing endpoints.
+
+**Fix:**
+- `bulletin-board-api/app/services/listing_service.py` line 493: added `updated_at=listing.updated_at,` to the `ListingResponse` constructor in `_to_response()`
+
+**Verification:**
+- `python -m pytest tests/` — 370 passed (6 failures + 3 errors are pre-existing moderation_service coroutine bug, unrelated)
+
+**Status:** COMPLETED
+
+---
