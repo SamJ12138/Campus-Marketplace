@@ -510,7 +510,7 @@ function FeedContent() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useListings(filters, { enabled: authLoading || isAuthenticated });
+  } = useListings(filters, { enabled: true });
 
   // Flatten pages into a single array
   const listings: Listing[] = useMemo(
@@ -553,10 +553,6 @@ function FeedContent() {
     debouncedSearch !== "" ||
     debouncedMinPrice !== "" ||
     debouncedMaxPrice !== "";
-
-  if (!authLoading && !isAuthenticated) {
-    return <SignInPrompt />;
-  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-6">

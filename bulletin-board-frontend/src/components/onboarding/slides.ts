@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles,
+  Eye,
   Search,
   PlusCircle,
   MessageCircle,
@@ -23,6 +24,14 @@ export const slides: SlideData[] = [
       "Your campus marketplace at Gettysburg. Here\u2019s a quick look around.",
     icon: Sparkles,
     accentColor: "bg-purple-500/15 text-purple-500",
+  },
+  {
+    id: "preview",
+    title: "Open Preview Mode",
+    description:
+      "We\u2019re in launch phase! Browse every listing without an account. Sign up when you\u2019re ready to post, message, or save favorites.",
+    icon: Eye,
+    accentColor: "bg-amber-500/15 text-amber-500",
   },
   {
     id: "browse",

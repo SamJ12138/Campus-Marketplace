@@ -39,23 +39,10 @@ async def list_listings(
     db: AsyncSession = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    """Browse listings. Campus-scoped to authenticated user's campus."""
-    if not current_user:
-        return ListingListResponse(
-            items=[],
-            pagination=PaginationMeta(
-                page=1,
-                per_page=per_page,
-                total_items=0,
-                total_pages=0,
-                has_next=False,
-                has_prev=False,
-            ),
-        )
-
+    """Browse listings. Campus-scoped when authenticated, all campuses when anonymous."""
     service = ListingService(db)
     items, total = await service.search_listings(
-        campus_id=current_user.campus_id,
+        campus_id=current_user.campus_id if current_user else None,
         type=type,
         category_slug=category,
         query=q,
@@ -64,7 +51,7 @@ async def list_listings(
         page=page,
         per_page=per_page,
         sort=sort,
-        viewer_id=current_user.id,
+        viewer_id=current_user.id if current_user else None,
     )
 
     return ListingListResponse(

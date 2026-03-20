@@ -12,6 +12,9 @@ import {
   BookOpen,
   Laptop,
   Tag,
+  Eye,
+  UserPlus,
+  Unlock,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { DeviceFrame } from "./DeviceFrame";
@@ -53,6 +56,47 @@ function WelcomeIllustration() {
             <div className="h-1.5 w-10 rounded bg-muted" />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PreviewIllustration() {
+  return (
+    <div className="flex flex-col gap-2.5 p-3">
+      {/* Open badge */}
+      <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+        <Unlock className="h-4 w-4 text-amber-500" />
+        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+          Open Preview — No sign-in required
+        </span>
+      </div>
+      {/* Preview listing cards */}
+      {[
+        { title: "Organic Chemistry Textbook", price: "$45", tag: "Textbooks" },
+        { title: "Box Braids — All Lengths", price: "From $80", tag: "Services" },
+        { title: "MacBook Air M2", price: "$750", tag: "Electronics" },
+      ].map((item) => (
+        <div
+          key={item.title}
+          className="flex items-center gap-2 rounded-lg border border-border/50 bg-card p-2 shadow-sm"
+        >
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10">
+            <Eye className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate">{item.title}</p>
+            <p className="text-[10px] text-muted-foreground">{item.tag}</p>
+          </div>
+          <span className="text-xs font-bold text-primary">{item.price}</span>
+        </div>
+      ))}
+      {/* Sign-up nudge */}
+      <div className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+        <UserPlus className="h-3.5 w-3.5 text-primary" />
+        <span className="text-[10px] font-medium text-primary">
+          Sign up to post, message & save
+        </span>
       </div>
     </div>
   );
@@ -191,6 +235,7 @@ function ReadyIllustration() {
 
 const illustrations: Record<string, () => React.JSX.Element> = {
   welcome: WelcomeIllustration,
+  preview: PreviewIllustration,
   browse: BrowseIllustration,
   create: CreateIllustration,
   messages: MessagesIllustration,

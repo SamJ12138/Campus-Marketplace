@@ -38,17 +38,16 @@ export function OnboardingCarousel() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const prefersReduced = useReducedMotion();
 
-  const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const showOnboarding = useUIStore((s) => s.showOnboarding);
   const setShowOnboarding = useUIStore((s) => s.setShowOnboarding);
 
-  // Show carousel for first-time authenticated users
+  // Show carousel for all first-time visitors
   useEffect(() => {
-    if (user && !isLoading && !hasCompletedOnboarding()) {
+    if (!isLoading && !hasCompletedOnboarding()) {
       setShowOnboarding(true);
     }
-  }, [user, isLoading, setShowOnboarding]);
+  }, [isLoading, setShowOnboarding]);
 
   const close = useCallback(() => {
     markOnboardingComplete();

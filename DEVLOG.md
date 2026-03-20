@@ -915,3 +915,27 @@ Full-screen overlay carousel appears once for first-time authenticated users (de
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-20 — Open Marketplace for Partners & Launch-Phase Carousel Slide
+
+**Summary:** Unauthenticated visitors can now browse real listings and see the onboarding carousel. Added a new "Open Preview Mode" carousel slide explaining the launch-phase open preview.
+
+**Files Changed:**
+- `bulletin-board-api/app/api/v1/listings.py` — Removed early-return of empty results for unauthenticated users; now passes `campus_id=None` and `viewer_id=None` when anonymous, returning all active listings across all campuses
+- `bulletin-board-frontend/src/app/(main)/feed/page.tsx` — Removed `SignInPrompt` gate (`if (!authLoading && !isAuthenticated) return <SignInPrompt />`) so feed renders real listings for all visitors; changed `useListings` enabled condition from `authLoading || isAuthenticated` to `true`
+- `bulletin-board-frontend/src/components/onboarding/OnboardingCarousel.tsx` — Changed trigger from `user && !isLoading && !hasCompletedOnboarding()` to `!isLoading && !hasCompletedOnboarding()` so carousel shows for all first-time visitors; removed unused `user` variable
+- `bulletin-board-frontend/src/components/onboarding/slides.ts` — Added new "Open Preview Mode" slide (id: `preview`) as slide 2 with `Eye` icon and amber accent color (6 slides total)
+- `bulletin-board-frontend/src/components/onboarding/OnboardingSlide.tsx` — Added `PreviewIllustration` component (open preview badge, sample listing cards, sign-up nudge) and registered in `illustrations` map
+
+**Why:**
+Potential partners visiting gimme-dat.com to evaluate the platform were seeing fake example listings behind a sign-in wall. Now they see real marketplace content immediately, with the carousel explaining the open preview.
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `ruff check app/api/v1/listings.py` — all checks passed
+- Carousel now has 6 slides (Welcome → Open Preview → Browse → Post → Messages → Ready)
+- Actions like posting/messaging still require auth (unchanged `ProtectedPage` wrappers)
+
+**Status:** COMPLETED
+
+---
