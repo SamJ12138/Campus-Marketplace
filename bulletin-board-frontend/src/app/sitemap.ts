@@ -118,12 +118,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamic listing pages
   const listings = await fetchListings();
-  const listingPages: MetadataRoute.Sitemap = listings.map((listing) => ({
-    url: `${BASE_URL}/listings/${listing.id}`,
-    lastModified: new Date(listing.updated_at),
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
+  const listingPages: MetadataRoute.Sitemap = listings.map((listing) => {
+    const date = new Date(listing.updated_at);
+    return {
+      url: `${BASE_URL}/listings/${listing.id}`,
+      lastModified: isNaN(date.getTime()) ? now : date,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    };
+  });
 
   return [
     ...staticPages,
