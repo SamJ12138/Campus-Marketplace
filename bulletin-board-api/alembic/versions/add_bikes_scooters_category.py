@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.execute("""
-        INSERT INTO categories (id, name, slug, listing_type, icon, sort_order, is_active)
+        INSERT INTO categories (id, name, slug, listing_type, icon, sort_order, is_active, requires_regulated_flag)
         VALUES (
             gen_random_uuid(),
             'Bikes & Scooters',
@@ -26,7 +26,8 @@ def upgrade() -> None:
             'item',
             '🚲',
             6,
-            true
+            true,
+            false
         )
     """)
 
