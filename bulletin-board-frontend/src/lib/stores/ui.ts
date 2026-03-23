@@ -10,11 +10,13 @@ interface UIState {
   sidebarOpen: boolean;
   reportModal: ReportModalState;
   showOnboarding: boolean;
+  showOfferTutorial: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   openReportModal: (targetType: string, targetId: string) => void;
   closeReportModal: () => void;
   setShowOnboarding: (show: boolean) => void;
+  setShowOfferTutorial: (show: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -25,6 +27,7 @@ export const useUIStore = create<UIState>((set) => ({
     targetId: undefined,
   },
   showOnboarding: false,
+  showOfferTutorial: false,
 
   toggleSidebar: () =>
     set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -44,4 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   setShowOnboarding: (show: boolean) =>
     set({ showOnboarding: show }),
+
+  setShowOfferTutorial: (show: boolean) =>
+    set({ showOfferTutorial: show }),
 }));

@@ -1,0 +1,54 @@
+import { cn } from "@/lib/utils/cn";
+import { DeviceFrame } from "@/components/onboarding/DeviceFrame";
+import type { SlideData } from "@/components/onboarding/slides";
+
+interface TutorialSlideProps {
+  slide: SlideData;
+  illustrations: Record<string, () => React.JSX.Element>;
+  lastSlideId?: string;
+}
+
+export function TutorialSlide({
+  slide,
+  illustrations,
+  lastSlideId,
+}: TutorialSlideProps) {
+  const Icon = slide.icon;
+  const Illustration = illustrations[slide.id];
+
+  return (
+    <div className="flex w-full flex-col items-center px-4 sm:px-8">
+      {/* Visual area */}
+      <div className="relative mb-6 w-full max-w-lg">
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/10 via-background to-primary/5" />
+
+        {slide.id !== lastSlideId ? (
+          <div className="relative p-4 sm:p-6">
+            <DeviceFrame>
+              {Illustration && <Illustration />}
+            </DeviceFrame>
+          </div>
+        ) : (
+          Illustration && <Illustration />
+        )}
+      </div>
+
+      {/* Text content */}
+      <div className="flex flex-col items-center text-center">
+        <div
+          className={cn(
+            "mb-3 flex h-10 w-10 items-center justify-center rounded-full",
+            slide.accentColor,
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+
+        <h2 className="text-2xl font-bold">{slide.title}</h2>
+        <p className="mt-2 max-w-sm text-muted-foreground">
+          {slide.description}
+        </p>
+      </div>
+    </div>
+  );
+}

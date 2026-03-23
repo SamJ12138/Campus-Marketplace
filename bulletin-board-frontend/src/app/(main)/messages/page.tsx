@@ -24,6 +24,8 @@ import {
   Search,
   X,
   Package,
+  CircleDollarSign,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
@@ -35,6 +37,11 @@ import {
   useMarkRead,
 } from "@/lib/hooks/use-messages";
 import { useListing } from "@/lib/hooks/use-listings";
+import { useUIStore } from "@/lib/stores/ui";
+import {
+  hasCompletedOfferTutorial,
+  resetOfferTutorial,
+} from "@/lib/utils/offer-tutorial";
 import type { MessageThread, Message, ThreadListingBrief } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
@@ -599,6 +606,7 @@ function ChatPanel({
   const markReadMutation = useMarkRead();
   const startThread = useStartThread();
   const { data: composeListing } = useListing(composeListingId ?? undefined);
+  const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
 
   const [messageText, setMessageText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -948,6 +956,43 @@ function ChatPanel({
               "max-h-[120px]",
             )}
           />
+          {/* Make an Offer button */}
+          {(threadId || composeListingId) && (
+            <div className="relative flex items-center gap-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!hasCompletedOfferTutorial()) {
+                    setShowOfferTutorial(true);
+                  } else {
+                    // TODO: open offer form when backend is ready
+                    setShowOfferTutorial(true);
+                  }
+                }}
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 shrink-0",
+                  "text-white",
+                  "hover:bg-emerald-700 transition-all",
+                )}
+                aria-label="Make an offer"
+                title="Make an offer"
+              >
+                <CircleDollarSign className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetOfferTutorial();
+                  setShowOfferTutorial(true);
+                }}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+                aria-label="How offers work"
+                title="How offers work"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           <button
             type="submit"
             disabled={isPending || !messageText.trim()}

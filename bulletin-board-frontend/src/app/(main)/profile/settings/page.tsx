@@ -26,6 +26,7 @@ import { ProtectedPage } from "@/components/auth/ProtectedPage";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useUIStore } from "@/lib/stores/ui";
 import { resetOnboarding } from "@/lib/utils/onboarding";
+import { resetOfferTutorial } from "@/lib/utils/offer-tutorial";
 
 function ChangePasswordSection() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -714,34 +715,55 @@ function DeleteAccountSection() {
 
 function ReplayTourSection() {
   const setShowOnboarding = useUIStore((s) => s.setShowOnboarding);
+  const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
 
-  function handleReplay() {
+  function handleReplayOnboarding() {
     resetOnboarding();
     setShowOnboarding(true);
+  }
+
+  function handleReplayOfferTutorial() {
+    resetOfferTutorial();
+    setShowOfferTutorial(true);
   }
 
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
         <RotateCcw className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">Welcome tour</h2>
+        <h2 className="text-lg font-semibold">Tutorials</h2>
       </div>
       <p className="text-sm text-muted-foreground max-w-md">
-        Replay the onboarding walkthrough to revisit GimmeDat&apos;s core features.
+        Replay walkthroughs to revisit how GimmeDat works.
       </p>
-      <button
-        type="button"
-        onClick={handleReplay}
-        className={cn(
-          "inline-flex h-10 items-center justify-center gap-2 rounded-md",
-          "border border-input bg-background px-4 py-2",
-          "text-sm font-medium",
-          "hover:bg-accent transition-colors",
-        )}
-      >
-        <RotateCcw className="h-4 w-4" />
-        Replay Welcome Tour
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={handleReplayOnboarding}
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+            "border border-input bg-background px-4 py-2",
+            "text-sm font-medium",
+            "hover:bg-accent transition-colors",
+          )}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Replay Welcome Tour
+        </button>
+        <button
+          type="button"
+          onClick={handleReplayOfferTutorial}
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+            "border border-input bg-background px-4 py-2",
+            "text-sm font-medium",
+            "hover:bg-accent transition-colors",
+          )}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Replay Offer Tutorial
+        </button>
+      </div>
     </section>
   );
 }

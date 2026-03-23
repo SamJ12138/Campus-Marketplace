@@ -1004,3 +1004,38 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-23 — Offer Tutorial Carousel + Generic Tutorial System
+
+**Goal:** Add a 4-slide tutorial carousel that teaches users how offers work (What's an Offer, How to Send, Counter-Offers, 48-Hour Window). Must match the existing onboarding carousel style exactly and only show once per user.
+
+**Architecture change:** Extracted a reusable `TutorialCarousel` + `TutorialSlide` from the onboarding code so future tutorials (reviews, deals) are trivial to add.
+
+**Files created (6):**
+- `src/components/tutorials/TutorialCarousel.tsx` — Generic carousel shell (animations, focus trap, keyboard nav, progress bar)
+- `src/components/tutorials/TutorialSlide.tsx` — Generic slide renderer (gradient bg, DeviceFrame, icon badge, text)
+- `src/components/tutorials/offer/slides.ts` — 4 slide definitions with unique accent colors
+- `src/components/tutorials/offer/OfferTutorialSlide.tsx` — 4 mini-mockup illustrations (offer card, price input, counter-offer chain, expiry countdown)
+- `src/components/tutorials/offer/OfferTutorialCarousel.tsx` — Thin wrapper wiring slides + Zustand + localStorage
+- `src/lib/utils/offer-tutorial.ts` — localStorage helpers (key: `cb_offer_tutorial_completed`)
+
+**Files modified (5):**
+- `src/components/onboarding/OnboardingCarousel.tsx` — Refactored from 215 lines to ~40 lines (now wraps TutorialCarousel)
+- `src/lib/stores/ui.ts` — Added `showOfferTutorial` + `setShowOfferTutorial` to Zustand store
+- `src/app/(main)/layout.tsx` — Mounted `<OfferTutorialCarousel />`
+- `src/app/(main)/messages/page.tsx` — Added green `$` offer button + `?` help button in chat input bar
+- `src/app/(main)/profile/settings/page.tsx` — Added "Replay Offer Tutorial" button alongside "Replay Welcome Tour"
+
+**Behavior:**
+- First click on `$` button in a message thread → tutorial appears (4 slides)
+- After completion, `$` button placeholder-ready for future offer form
+- `?` button always replays the tutorial
+- Settings page has both replay buttons under unified "Tutorials" section
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `npm run build` — all 50 pages compiled, zero errors
+
+**Status:** COMPLETED
+
+---
