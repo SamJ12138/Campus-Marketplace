@@ -1036,6 +1036,12 @@ Potential partners visiting gimme-dat.com to evaluate the platform were seeing f
 - `npx tsc --noEmit` — zero TypeScript errors
 - `npm run build` — all 50 pages compiled, zero errors
 
+**Follow-up fix (`ad7980f`):**
+Three UX issues corrected in `messages/page.tsx`:
+1. `$` button changed from icon-only to labeled button (`[$ Offer]`) so users know what it does
+2. `$` button no longer opens the tutorial — reserved for the future offer form (currently no-op). Only the `?` button replays the tutorial.
+3. Tutorial now auto-appears the first time a user enters any chat thread (via `useEffect` + `hasShownTutorial` ref + localStorage check), instead of requiring a manual button click
+
 **Status:** COMPLETED
 
 ---
