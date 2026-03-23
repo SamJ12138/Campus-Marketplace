@@ -613,9 +613,18 @@ function ChatPanel({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasMarkedRead = useRef(false);
+  const hasShownTutorial = useRef(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   const thread = data?.thread;
+
+  // Auto-show offer tutorial the first time a user enters any chat thread
+  useEffect(() => {
+    if ((threadId || composeListingId) && !hasShownTutorial.current && !hasCompletedOfferTutorial()) {
+      hasShownTutorial.current = true;
+      setShowOfferTutorial(true);
+    }
+  }, [threadId, composeListingId, setShowOfferTutorial]);
   const messages = useMemo(() => data?.messages?.items ?? [], [data]);
   const grouped = useMemo(() => groupMessages(messages), [messages]);
 
@@ -956,21 +965,16 @@ function ChatPanel({
               "max-h-[120px]",
             )}
           />
-          {/* Make an Offer button */}
+          {/* Make an Offer button + help */}
           {(threadId || composeListingId) && (
-            <div className="relative flex items-center gap-0.5 shrink-0">
+            <div className="relative flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  if (!hasCompletedOfferTutorial()) {
-                    setShowOfferTutorial(true);
-                  } else {
-                    // TODO: open offer form when backend is ready
-                    setShowOfferTutorial(true);
-                  }
+                  // TODO: open offer form when backend is ready
                 }}
                 className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 shrink-0",
+                  "inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 shrink-0",
                   "text-white",
                   "hover:bg-emerald-700 transition-all",
                 )}
@@ -978,6 +982,7 @@ function ChatPanel({
                 title="Make an offer"
               >
                 <CircleDollarSign className="h-4 w-4" />
+                <span className="text-xs font-medium">Offer</span>
               </button>
               <button
                 type="button"
