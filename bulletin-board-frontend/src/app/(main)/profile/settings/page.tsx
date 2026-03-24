@@ -27,6 +27,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useUIStore } from "@/lib/stores/ui";
 import { resetOnboarding } from "@/lib/utils/onboarding";
 import { resetOfferTutorial } from "@/lib/utils/offer-tutorial";
+import { resetOfferPostingTutorial } from "@/lib/utils/offer-posting-tutorial";
 
 function ChangePasswordSection() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -716,6 +717,7 @@ function DeleteAccountSection() {
 function ReplayTourSection() {
   const setShowOnboarding = useUIStore((s) => s.setShowOnboarding);
   const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
+  const setShowOfferPostingTutorial = useUIStore((s) => s.setShowOfferPostingTutorial);
 
   function handleReplayOnboarding() {
     resetOnboarding();
@@ -725,6 +727,11 @@ function ReplayTourSection() {
   function handleReplayOfferTutorial() {
     resetOfferTutorial();
     setShowOfferTutorial(true);
+  }
+
+  function handleReplayOfferPostingTutorial() {
+    resetOfferPostingTutorial();
+    setShowOfferPostingTutorial(true);
   }
 
   return (
@@ -762,6 +769,19 @@ function ReplayTourSection() {
         >
           <RotateCcw className="h-4 w-4" />
           Replay Offer Tutorial
+        </button>
+        <button
+          type="button"
+          onClick={handleReplayOfferPostingTutorial}
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-md",
+            "border border-input bg-background px-4 py-2",
+            "text-sm font-medium",
+            "hover:bg-accent transition-colors",
+          )}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Replay Offer Posting Guide
         </button>
       </div>
     </section>

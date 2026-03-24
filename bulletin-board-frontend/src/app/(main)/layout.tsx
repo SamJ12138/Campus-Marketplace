@@ -9,6 +9,7 @@ import { SupportChat } from "@/components/chat/SupportChat";
 import { ReportModal } from "@/components/modals/ReportModal";
 import { OnboardingCarousel } from "@/components/onboarding/OnboardingCarousel";
 import { OfferTutorialCarousel } from "@/components/tutorials/offer/OfferTutorialCarousel";
+import { OfferPostingTutorialCarousel } from "@/components/tutorials/offer-posting/OfferPostingTutorialCarousel";
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const initialize = useAuthStore((s) => s.initialize);
@@ -42,6 +43,7 @@ export default function MainLayout({
         <ReportModal />
         <OnboardingCarousel />
         <OfferTutorialCarousel />
+        <OfferPostingTutorialCarousel />
       </div>
     </AuthInit>
   );

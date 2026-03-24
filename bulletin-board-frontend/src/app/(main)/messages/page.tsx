@@ -40,8 +40,11 @@ import { useListing } from "@/lib/hooks/use-listings";
 import { useUIStore } from "@/lib/stores/ui";
 import {
   hasCompletedOfferTutorial,
-  resetOfferTutorial,
 } from "@/lib/utils/offer-tutorial";
+import {
+  hasCompletedOfferPostingTutorial,
+  resetOfferPostingTutorial,
+} from "@/lib/utils/offer-posting-tutorial";
 import type { MessageThread, Message, ThreadListingBrief } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
@@ -607,6 +610,7 @@ function ChatPanel({
   const startThread = useStartThread();
   const { data: composeListing } = useListing(composeListingId ?? undefined);
   const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
+  const setShowOfferPostingTutorial = useUIStore((s) => s.setShowOfferPostingTutorial);
 
   const [messageText, setMessageText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -971,7 +975,11 @@ function ChatPanel({
               <button
                 type="button"
                 onClick={() => {
-                  // TODO: open offer form when backend is ready
+                  if (!hasCompletedOfferPostingTutorial()) {
+                    setShowOfferPostingTutorial(true);
+                  } else {
+                    // TODO: open offer form when backend is ready
+                  }
                 }}
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 shrink-0",
@@ -987,12 +995,12 @@ function ChatPanel({
               <button
                 type="button"
                 onClick={() => {
-                  resetOfferTutorial();
-                  setShowOfferTutorial(true);
+                  resetOfferPostingTutorial();
+                  setShowOfferPostingTutorial(true);
                 }}
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
-                aria-label="How offers work"
-                title="How offers work"
+                aria-label="How to post an offer"
+                title="How to post an offer"
               >
                 <HelpCircle className="h-3.5 w-3.5" />
               </button>

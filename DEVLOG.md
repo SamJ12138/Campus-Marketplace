@@ -1045,3 +1045,31 @@ Three UX issues corrected in `messages/page.tsx`:
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-23 — Offer Posting Tutorial Carousel (5 slides)
+
+**Goal:** Add a second offer-related carousel focused on the step-by-step posting process, triggered when users click the green [$ Offer] button for the first time.
+
+**Two carousels, different purposes:**
+- Offer Intro (auto-shows on first chat entry) → what offers are, counter-offers, expiry
+- Offer Posting (shows on first Offer button click) → how to fill out and send an offer
+
+**Files created (4):**
+- `src/components/tutorials/offer-posting/slides.ts` — 5 slides: Ready to Make an Offer, Name Your Price, Add a Message, What Happens Next, Tips for Success
+- `src/components/tutorials/offer-posting/OfferPostingTutorialSlide.tsx` — 5 illustration mockups (chat with highlighted Offer button, price input, message textarea, seller notification, 3 tip cards)
+- `src/components/tutorials/offer-posting/OfferPostingTutorialCarousel.tsx` — Thin wrapper, lastSlideButtonText: "Start Offering"
+- `src/lib/utils/offer-posting-tutorial.ts` — localStorage helpers (key: `cb_offer_posting_tutorial_completed`)
+
+**Files modified (4):**
+- `src/lib/stores/ui.ts` — Added `showOfferPostingTutorial` + `setShowOfferPostingTutorial`
+- `src/app/(main)/layout.tsx` — Mounted `<OfferPostingTutorialCarousel />`
+- `src/app/(main)/messages/page.tsx` — [$ Offer] button now triggers posting tutorial on first click; ? button replays posting tutorial
+- `src/app/(main)/profile/settings/page.tsx` — Added "Replay Offer Posting Guide" button (3 replay buttons total)
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `npm run build` — all 50 pages compiled, zero errors
+
+**Status:** COMPLETED
+
+---
