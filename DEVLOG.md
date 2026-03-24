@@ -1187,3 +1187,59 @@ After Entry 37 fixed the 404 (backend campus_id filter) and Entry 38 improved er
 **Status:** COMPLETED
 
 ---
+
+### Entry 40 — 2026-03-24 (Session 40)
+**Scope:** Production Incident — Database Wipe on Deploy + Recovery
+
+**Incident Summary:**
+After pushing commit `2496061` (Entry 39 fixes) and triggering a Render redeploy, the production database appeared to be completely reset. All user accounts, listings (27→1), categories (14→2), and campus data (Gettysburg College→Test University) were gone. Login failed with "Invalid email or password" because the user's account no longer existed in the active database.
+
+**Root Cause Analysis:**
+The `render.yaml` blueprint defines a Render-managed PostgreSQL database (`gimme-dat-db`) via:
+```yaml
+databases:
+  - name: gimme-dat-db
+    plan: starter
+```
+And the `DATABASE_URL` env var was set via `fromDatabase: gimme-dat-db`. However, the actual production data lived on a **separate Neon serverless PostgreSQL** instance. During the Render deploy (or a blueprint sync), the `DATABASE_URL` may have been overridden to point to the empty Render-managed DB. When `alembic upgrade head` ran on startup, it created fresh empty tables, and `auto_seed_examples()` populated it with minimal seed data (Test University, 2 categories, 1 example listing).
+
+**Key finding:** The Neon `main` branch was **never wiped**. All original data (users, listings, categories, Gettysburg College campus) remained intact on Neon. The "wipe" was actually the app connecting to the wrong database.
+
+**Recovery Steps Taken:**
+1. Attempted Neon point-in-time restore (6 hours back) — created branch `production_old_2026-03-24T07:45:00Z`
+2. Restored branch was auto-archived by Neon; required adding a compute endpoint to access it
+3. Queried restored branch — showed wiped state (1,1,2,1) — restore point was already after the issue
+4. Switched back to Neon `main` branch — **all original data intact**
+5. Confirmed the incident was a `DATABASE_URL` mismatch, not actual data loss
+6. Created a manual backup snapshot of Neon `main` branch for safety
+7. User is rolling back Render deployment to commit `45ffb01` (last known working version)
+
+**Marketplace Feed Error:**
+After confirming database data is intact and moderator dashboard works, the public marketplace feed (`/feed`) still shows "An error occurred — Something went wrong. Please try again." This is the **original bug from Entry 38/39** that was being investigated before the database scare — it is a frontend rendering crash, not a data issue. The category tabs load correctly (confirming API connectivity), but the listing grid fails to render.
+
+**Infrastructure Vulnerabilities Identified:**
+1. **`render.yaml` defines a competing database** — `gimme-dat-db` can override the Neon `DATABASE_URL` during blueprint syncs
+2. **`alembic upgrade head` runs blindly on every deploy** — silently creates empty tables on wrong/empty databases
+3. **No deploy-time database validation** — no check that the connected DB has expected data before proceeding
+4. **No Neon branch protection** — main branch can be auto-archived
+
+**Planned Remediation (not yet applied):**
+1. Remove `databases:` section from `render.yaml` and set Neon `DATABASE_URL` directly in Render dashboard
+2. Disable Blueprint Sync in Render settings
+3. Add migration safety check — verify DB has data before running `alembic upgrade head`
+4. Protect Neon main branch from archiving
+5. Routine: create Neon backup branch before every deploy (max 10 branches on free plan, rotate old ones)
+
+**Files Changed:** None (investigation and recovery only — no code changes this session)
+
+**Commits:** None
+
+**Next Steps:**
+- Apply render.yaml fix (remove managed DB definition)
+- Verify Render `DATABASE_URL` points to Neon
+- Investigate and fix the marketplace feed rendering error (original bug from Entry 38)
+- Consider adding migration safety check to Dockerfile CMD
+
+**Status:** IN PROGRESS
+
+---

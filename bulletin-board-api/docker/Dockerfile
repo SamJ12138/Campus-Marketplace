@@ -20,4 +20,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head || echo 'WARN: some migrations failed, starting app anyway'; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python scripts/pre_migrate_check.py && alembic upgrade head || echo 'WARN: pre-migration check failed or migrations failed, starting app anyway'; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

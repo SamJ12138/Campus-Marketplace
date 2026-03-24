@@ -33,10 +33,9 @@ services:
         generateValue: true
       - key: JWT_SECRET_KEY
         generateValue: true
+      # Set manually in Render dashboard (Neon). DO NOT use fromDatabase.
       - key: DATABASE_URL
-        fromDatabase:
-          name: gimme-dat-db
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         fromService:
           type: redis
@@ -90,10 +89,9 @@ services:
           type: web
           name: gimme-dat-api
           envVarKey: JWT_SECRET_KEY
+      # Set manually in Render dashboard (Neon). DO NOT use fromDatabase.
       - key: DATABASE_URL
-        fromDatabase:
-          name: gimme-dat-db
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         fromService:
           type: redis
@@ -119,9 +117,3 @@ services:
         sync: false
       - key: EMAIL_FROM_NAME
         value: Gimme Dat
-
-databases:
-  - name: gimme-dat-db
-    plan: starter
-    region: ohio
-    postgresMajorVersion: 16
