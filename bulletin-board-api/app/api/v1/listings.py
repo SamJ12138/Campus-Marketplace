@@ -121,15 +121,32 @@ async def get_listing(
     current_user: User | None = Depends(get_current_user),
 ):
     """Get listing details. Not campus-scoped — direct links should always work."""
-    service = ListingService(db)
-    listing = await service.get_listing(
-        listing_id=listing_id,
-        viewer_id=current_user.id if current_user else None,
-        increment_views=True,
-    )
-    if not listing:
-        raise HTTPException(404, "Listing not found")
-    return listing
+    import logging
+    logger = logging.getLogger("app.listings")
+    try:
+        service = ListingService(db)
+        listing = await service.get_listing(
+            listing_id=listing_id,
+            viewer_id=current_user.id if current_user else None,
+            increment_views=True,
+        )
+        if not listing:
+            raise HTTPException(404, "Listing not found")
+        return listing
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(
+            "get_listing error: listing_id=%s user=%s error=%s",
+            listing_id,
+            current_user.id if current_user else None,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            500,
+            f"Listing detail error: {type(exc).__name__}: {exc}",
+        )
 
 
 @router.patch("/{listing_id}", response_model=ListingResponse)
