@@ -8,16 +8,43 @@ settings = get_settings()
 
 async def startup(ctx):
     """Initialize worker context."""
+    import logging
+
     from redis.asyncio import Redis
 
     from app.db import create_engine, create_session_factory
     from app.services.email_service import get_email_service
+
+    logger = logging.getLogger("app.worker")
 
     engine = create_engine(settings.database_url)
     ctx["db_session"] = create_session_factory(engine)
     ctx["settings"] = settings
     ctx["email_service"] = get_email_service(settings)
     ctx["redis"] = Redis.from_url(settings.redis_url, decode_responses=True)
+
+    # Startup validation — surface misconfig immediately in logs
+    logger.info("[WORKER] ARQ worker started successfully")
+    logger.info("[WORKER] Email provider: %s", settings.email_provider)
+    logger.info(
+        "[WORKER] Email from: %s <%s>",
+        settings.email_from_name, settings.email_from_address,
+    )
+    logger.info("[WORKER] Frontend URL: %s", settings.primary_frontend_url)
+
+    if settings.email_provider == "resend" and not settings.resend_api_key:
+        logger.error(
+            "[WORKER] RESEND_API_KEY is not set! All email sends will fail. "
+            "Set this env var on the worker service in Render."
+        )
+    if "localhost" in settings.primary_frontend_url:
+        logger.error(
+            "[WORKER] FRONTEND_URL is '%s' — email links will point to localhost! "
+            "Set FRONTEND_URL env var on the worker service.",
+            settings.frontend_url,
+        )
+    if settings.email_provider == "console":
+        logger.warning("[WORKER] Email provider is 'console' — no real emails will be sent.")
 
 
 async def shutdown(ctx):

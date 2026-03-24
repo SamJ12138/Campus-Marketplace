@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,17 +33,58 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/threads", tags=["messaging"])
 
+# Rate limit key for direct message notifications (10 min per thread)
+_NOTIFY_RATE_KEY = "notify:msg:direct:{thread}:{user}"
+_NOTIFY_RATE_SECONDS = 600  # 10 minutes
 
-async def _record_pending_notification(
+
+def _send_notification_email_background(
+    email_svc,
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str | None,
+) -> None:
+    """Send notification email in background thread (sync)."""
+    try:
+        success = email_svc.send_email_sync(
+            to_email, subject, html_content, text_content,
+        )
+        if success:
+            logger.info(
+                "[NOTIFY-DIRECT] Sent '%s' to %s", subject, to_email,
+            )
+        else:
+            logger.error(
+                "[NOTIFY-DIRECT] send_email_sync returned False "
+                "for '%s' to %s",
+                subject, to_email,
+            )
+    except Exception as e:
+        logger.error(
+            "[NOTIFY-DIRECT] Failed to send to %s: %s",
+            to_email, e, exc_info=True,
+        )
+
+
+async def _send_message_notification(
     db: AsyncSession,
-    redis: Redis,
+    redis: Redis | None,
+    background_tasks: BackgroundTasks,
     recipient_id: UUID,
     sender_name: str,
     listing_title: str,
     thread_id: UUID,
+    message_preview: str,
 ) -> None:
-    """Check notification preferences and record a pending batched notification in Redis."""
+    """Send message notification email directly via BackgroundTasks.
+
+    Uses a Redis rate limit (1 email per thread per 10 min) to
+    prevent spam during rapid conversations. Falls back to sending
+    without rate limiting if Redis is unavailable.
+    """
     try:
+        # Check notification preferences
         prefs = await db.scalar(
             select(NotificationPreference).where(
                 NotificationPreference.user_id == recipient_id
@@ -51,15 +92,64 @@ async def _record_pending_notification(
         )
         if prefs and not prefs.email_messages:
             logger.info(
-                "[NOTIFY-BATCH] Skipped: recipient %s has email_messages disabled",
+                "[NOTIFY-DIRECT] Skipped: recipient %s has "
+                "email_messages disabled",
                 recipient_id,
             )
             return
 
-        batcher = NotificationBatcher(redis)
-        await batcher.record_pending(thread_id, recipient_id, sender_name, listing_title)
+        # Rate limit: max 1 email per thread+recipient per 10 min
+        if redis:
+            rate_key = _NOTIFY_RATE_KEY.format(
+                thread=thread_id, user=recipient_id,
+            )
+            already_sent = await redis.get(rate_key)
+            if already_sent:
+                logger.info(
+                    "[NOTIFY-DIRECT] Rate limited: thread=%s "
+                    "user=%s (sent within last %ds)",
+                    thread_id, recipient_id, _NOTIFY_RATE_SECONDS,
+                )
+                return
+
+        # Look up recipient email
+        recipient = await db.get(User, recipient_id)
+        if not recipient or not recipient.email:
+            return
+
+        settings = get_settings()
+        thread_url = (
+            f"{settings.primary_frontend_url}"
+            f"/messages?thread={thread_id}"
+        )
+
+        from app.services.email_templates import new_message_email
+        html, text = new_message_email(
+            sender_name, listing_title, message_preview, thread_url,
+        )
+        subject = f"New message from {sender_name} - GimmeDat"
+
+        from app.services.email_service import get_email_service
+        email_svc = get_email_service(settings)
+
+        background_tasks.add_task(
+            _send_notification_email_background,
+            email_svc, recipient.email, subject, html, text,
+        )
+
+        # Set rate limit key in Redis
+        if redis:
+            await redis.set(rate_key, "1", ex=_NOTIFY_RATE_SECONDS)
+
+        logger.info(
+            "[NOTIFY-DIRECT] Queued email for thread=%s "
+            "recipient=%s (%s)",
+            thread_id, recipient_id, recipient.email,
+        )
     except Exception:
-        logger.exception("[NOTIFY-BATCH] Failed to record pending notification")
+        logger.exception(
+            "[NOTIFY-DIRECT] Failed to send notification"
+        )
 
 
 @router.get("", response_model=ThreadListResponse)
@@ -88,6 +178,7 @@ async def list_threads(
 @router.post("", response_model=ThreadDetailResponse, status_code=201)
 async def start_thread(
     data: StartThreadRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -141,9 +232,11 @@ async def start_thread(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Record pending batched notification in Redis
-    await _record_pending_notification(
-        db, redis, recipient_id, current_user.display_name, listing_title, thread_id,
+    # Send notification email directly (no worker needed)
+    await _send_message_notification(
+        db, redis, background_tasks, recipient_id,
+        current_user.display_name, listing_title, thread_id,
+        data.message[:200],
     )
 
     # Re-fetch thread with all relationships loaded after commit
@@ -267,6 +360,7 @@ async def get_thread(
 async def send_message(
     thread_id: UUID,
     data: SendMessageRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: User = Depends(get_current_active_user),
@@ -304,7 +398,7 @@ async def send_message(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Record pending batched notification in Redis
+    # Send notification email directly (no worker needed)
     try:
         thread = await db.scalar(
             select(MessageThread)
@@ -320,16 +414,26 @@ async def send_message(
             msg_listing = message.listing
             listing_title = (
                 msg_listing.title if msg_listing
-                else (thread.listing.title if thread.listing else "a listing")
+                else (
+                    thread.listing.title
+                    if thread.listing else "a listing"
+                )
             )
-            await _record_pending_notification(
-                db, redis, recipient_id, current_user.display_name,
-                listing_title, thread_id,
+            await _send_message_notification(
+                db, redis, background_tasks, recipient_id,
+                current_user.display_name, listing_title,
+                thread_id, data.content[:200],
             )
         else:
-            logger.warning("[NOTIFY-BATCH] Thread %s not found after send_message", thread_id)
+            logger.warning(
+                "[NOTIFY-DIRECT] Thread %s not found after "
+                "send_message", thread_id,
+            )
     except Exception:
-        logger.exception("[NOTIFY-BATCH] Failed to record pending in send_message")
+        logger.exception(
+            "[NOTIFY-DIRECT] Failed to send notification "
+            "in send_message"
+        )
 
     # Build listing brief for the response
     listing_brief = None

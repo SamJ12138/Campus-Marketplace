@@ -185,7 +185,10 @@ async def send_expiry_reminders(ctx):
                     "user_name": user.display_name,
                     "listing_title": listing.title,
                     "expires_at": listing.expires_at.isoformat(),
-                    "renew_url": f"{ctx['settings'].frontend_url}/listings/{listing.id}/renew",
+                    "renew_url": (
+                        f"{ctx['settings'].primary_frontend_url}"
+                        f"/listings/{listing.id}/renew"
+                    ),
                 },
             )
 
@@ -212,7 +215,10 @@ async def notify_moderators_new_report(ctx, report_id: str):
                 mod.email,
                 {
                     "user_name": mod.display_name,
-                    "thread_url": f"{ctx['settings'].frontend_url}/admin/reports/{report_id}",
+                    "thread_url": (
+                        f"{ctx['settings'].primary_frontend_url}"
+                        f"/admin/reports/{report_id}"
+                    ),
                 },
             )
 
@@ -233,7 +239,7 @@ async def send_new_message_email(ctx, recipient_id: str, thread_id: str):
             )
         )
 
-        thread_url = f"{ctx['settings'].frontend_url}/messages/{thread_id}"
+        thread_url = f"{ctx['settings'].primary_frontend_url}/messages/{thread_id}"
 
         # Send email if enabled
         if not prefs or prefs.email_messages:
@@ -271,7 +277,7 @@ async def send_report_resolved_email(ctx, reporter_id: str, report_id: str):
             user.email,
             {
                 "user_name": user.display_name,
-                "report_url": f"{ctx['settings'].frontend_url}/reports/{report_id}",
+                "report_url": f"{ctx['settings'].primary_frontend_url}/reports/{report_id}",
             },
         )
 
@@ -675,15 +681,22 @@ async def process_pending_message_notifications(ctx):
                     subject = f"{count} new messages about {listing_title} - GimmeDat"
 
                 email_service = ctx["email_service"]
-                await email_service.send_email(
+                success = await email_service.send_email(
                     to_email=recipient.email,
                     subject=subject,
                     html_content=html,
                     text_content=text,
                 )
 
-                await batcher.mark_sent(thread_id, recipient_id)
-                sent += 1
+                if success:
+                    await batcher.mark_sent(thread_id, recipient_id)
+                    sent += 1
+                else:
+                    logger.error(
+                        "[NOTIFY-BATCH] Email send failed for thread=%s user=%s email=%s "
+                        "— notification NOT marked sent, will retry next cycle",
+                        thread_id, recipient_id, recipient.email,
+                    )
 
         except Exception:
             logger.exception(

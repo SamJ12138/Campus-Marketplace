@@ -55,10 +55,22 @@ def _send_email_background(
     text_content: str | None,
 ) -> None:
     """Send email in a background thread. Errors are logged, never raised."""
+    logger = logging.getLogger("app.auth")
     try:
-        email_svc.send_email_sync(to_email, subject, html_content, text_content)
+        success = email_svc.send_email_sync(to_email, subject, html_content, text_content)
+        if success:
+            logger.info("[AUTH-EMAIL] Sent '%s' to %s", subject, to_email)
+        else:
+            logger.error(
+                "[AUTH-EMAIL] send_email_sync returned False for '%s' to %s "
+                "— check RESEND_API_KEY, EMAIL_FROM_ADDRESS, and domain verification",
+                subject, to_email,
+            )
     except Exception as e:
-        logging.getLogger("app.auth").error("Background email send failed: %s", e, exc_info=True)
+        logger.error(
+            "[AUTH-EMAIL] Background email send failed for %s: %s",
+            to_email, e, exc_info=True,
+        )
 
 
 @router.post("/register", status_code=201)

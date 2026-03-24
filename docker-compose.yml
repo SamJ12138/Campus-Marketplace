@@ -62,6 +62,21 @@ services:
     volumes:
       - ./bulletin-board-api/app:/app/app
 
+  # ── Background Worker (ARQ) ────────────────────────────────
+  worker:
+    build:
+      context: ./bulletin-board-api
+      dockerfile: docker/Dockerfile.worker
+    env_file:
+      - ./bulletin-board-api/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./bulletin-board-api/app:/app/app
+
   # ── Frontend ────────────────────────────────────────────────
   web:
     build:

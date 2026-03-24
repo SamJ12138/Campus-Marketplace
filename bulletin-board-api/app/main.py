@@ -160,5 +160,35 @@ async def health():
     )
 
 
+# Email config diagnostic
+@app.get("/health/email")
+async def health_email():
+    """Check email service configuration (does NOT send an email)."""
+    config = {
+        "provider": settings.email_provider,
+        "from_address": settings.email_from_address,
+        "from_name": settings.email_from_name,
+        "frontend_url": settings.primary_frontend_url,
+    }
+
+    issues = []
+    if settings.email_provider == "resend":
+        if not settings.resend_api_key:
+            issues.append("RESEND_API_KEY is not set — all email sends will fail")
+        if "resend.dev" in settings.email_from_address:
+            issues.append("Using Resend sandbox address — emails only delivered to account owner")
+    elif settings.email_provider == "console":
+        issues.append("Using console provider — emails are printed to stdout, not sent")
+
+    if "localhost" in settings.primary_frontend_url:
+        issues.append("FRONTEND_URL points to localhost — email links will be broken")
+
+    return {
+        "status": "ok" if not issues else "warning",
+        "config": config,
+        "issues": issues,
+    }
+
+
 # API routes
 app.include_router(api_router, prefix="/api/v1")
