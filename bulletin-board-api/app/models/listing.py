@@ -117,7 +117,8 @@ class Listing(Base, TimestampMixin):
     is_regulated: Mapped[bool] = mapped_column(Boolean, default=False)
     disclaimer_accepted: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[ListingStatus] = mapped_column(
-        Enum(ListingStatus, name="listing_status"), default=ListingStatus.ACTIVE
+        Enum(ListingStatus, name="listing_status", values_callable=lambda e: [x.value for x in e]),
+        default=ListingStatus.ACTIVE,
     )
     removal_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     view_count: Mapped[int] = mapped_column(Integer, default=0)

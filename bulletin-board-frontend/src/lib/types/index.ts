@@ -99,7 +99,7 @@ export interface Listing {
   title: string;
   description: string;
   price_hint: string | null;
-  category: CategoryBrief;
+  category: CategoryBrief | null;
   location_type: LocationType;
   location_hint: string | null;
   availability: string | null;

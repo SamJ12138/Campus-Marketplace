@@ -145,7 +145,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
   );
 
   const { Icon: CategoryIcon, gradient: categoryGradient } = getCategoryVisual(
-    listing.category.slug,
+    listing.category?.slug ?? "default",
   );
 
   return (

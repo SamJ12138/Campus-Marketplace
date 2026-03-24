@@ -217,7 +217,7 @@ export default function EditListingPage() {
       reset({
         title: listing.title,
         description: listing.description,
-        category_id: listing.category.id,
+        category_id: listing.category?.id ?? "",
         price_hint: listing.price_hint ?? "",
         location_type: listing.location_type,
         location_hint: listing.location_hint ?? "",

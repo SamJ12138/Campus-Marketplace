@@ -2,7 +2,9 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+import json
+
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.common import PaginationMeta
 from app.schemas.user import UserBrief
@@ -99,7 +101,7 @@ class ListingResponse(BaseModel):
     category: CategoryBrief | None
     location_type: LocationType
     location_hint: str | None
-    availability: dict | None
+    availability: str | None
     contact_preference: ContactPreference
     is_regulated: bool
     status: ListingStatus
@@ -113,6 +115,15 @@ class ListingResponse(BaseModel):
     expires_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("availability", mode="before")
+    @classmethod
+    def coerce_availability(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v
+        return json.dumps(v)
 
 
 class ListingListResponse(BaseModel):

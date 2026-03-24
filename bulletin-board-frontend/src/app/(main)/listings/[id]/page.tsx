@@ -508,9 +508,11 @@ export default function ListingDetailPage() {
                 ? t.listings.servicesTab
                 : t.listings.itemsTab}
             </span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-              {listing.category.name}
-            </span>
+            {listing.category && (
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                {listing.category.name}
+              </span>
+            )}
             {listing.status === "sold" && (
               <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
                 {t.listings.statusSold}
@@ -559,7 +561,9 @@ export default function ListingDetailPage() {
           {listing.availability && (
             <p className="text-sm text-slate-600">
               <span className="font-medium">Availability:</span>{" "}
-              {listing.availability}
+              {typeof listing.availability === 'string'
+                ? listing.availability
+                : JSON.stringify(listing.availability)}
             </p>
           )}
 

@@ -14,7 +14,7 @@ interface ListingSchemaProps {
     category?: {
       name: string;
       slug: string;
-    };
+    } | null;
     photos?: Array<{
       url: string;
     }>;
