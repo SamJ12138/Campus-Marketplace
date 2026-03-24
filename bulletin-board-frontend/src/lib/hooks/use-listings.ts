@@ -26,6 +26,7 @@ import {
   addFavorite,
   removeFavorite,
 } from "@/lib/api/listings";
+import { ApiError } from "@/lib/api/client";
 
 // ---- Query key factories ----
 
@@ -66,6 +67,11 @@ export function useListing(id: string | undefined) {
     queryKey: listingKeys.detail(id!),
     queryFn: () => getListing(id!),
     enabled: !!id,
+    staleTime: 0,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 }
 

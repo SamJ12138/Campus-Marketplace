@@ -40,6 +40,7 @@ import {
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRequireAuth } from "@/lib/hooks/use-require-auth";
 import { useUIStore } from "@/lib/stores/ui";
+import { ApiError } from "@/lib/api/client";
 
 // ----------------------------------------------------------------
 // Skeleton for loading state
@@ -85,6 +86,27 @@ function NotFound() {
       >
         Back to listings
       </Link>
+    </div>
+  );
+}
+
+function ErrorRetry({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <AlertTriangle className="h-16 w-16 text-amber-400" />
+      <h2 className="mt-4 text-xl font-semibold text-slate-700">
+        Something went wrong
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        We couldn&apos;t load this listing. Please try again.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-6 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        Try again
+      </button>
     </div>
   );
 }
@@ -345,7 +367,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const listingId = params.id as string;
 
-  const { data: listing, isLoading, isError } = useListing(listingId);
+  const { data: listing, isLoading, isError, error, refetch } = useListing(listingId);
   const { user: _user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const openReportModal = useUIStore((s) => s.openReportModal);
@@ -438,8 +460,15 @@ export default function ListingDetailPage() {
   // Loading
   if (isLoading) return <DetailSkeleton />;
 
-  // Error / not found
-  if (isError || !listing) return <NotFound />;
+  // Error handling
+  if (isError) {
+    if (error instanceof ApiError && error.status === 404) {
+      return <NotFound />;
+    }
+    return <ErrorRetry onRetry={() => refetch()} />;
+  }
+
+  if (!listing) return <NotFound />;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">

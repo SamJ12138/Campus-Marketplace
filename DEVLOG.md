@@ -1114,3 +1114,35 @@ Removed the `campus_id` parameter from the `get_listing` service call in the det
 **Status:** COMPLETED
 
 ---
+
+### Entry 38 — 2026-03-24: Improve listing detail error handling (resilience fix)
+
+**Scope:** Frontend robustness for listing detail page
+
+**Problem:**
+"Offer not found" persisted after Entry 37's backend fix. Root causes:
+1. React Query global `retry: 1` — only one retry before caching the error
+2. Detail page treated ALL errors (404, 500, network timeout) identically as "not found"
+3. `staleTime: 60s` meant cached errors were served for up to a minute without refetch
+
+**Fix — `useListing` hook (`src/lib/hooks/use-listings.ts`):**
+- `staleTime: 0` — always refetch listing detail on mount (user expects fresh data)
+- Smart `retry` function: skip retry on 404 (listing truly doesn't exist), retry up to 3 times on transient errors (500, network)
+
+**Fix — Detail page (`src/app/(main)/listings/[id]/page.tsx`):**
+- Extract `error` and `refetch` from the hook
+- If error is 404 → show "Offer not found" (permanent)
+- If error is anything else → show "Something went wrong" with a "Try again" button
+- Added `ErrorRetry` component for the retry UI
+
+**Files modified (2):**
+- `bulletin-board-frontend/src/lib/hooks/use-listings.ts` — Smart retry + staleTime: 0 on `useListing`
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` — ErrorRetry component, 404 vs transient error distinction
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `npm run build` — all pages compiled, zero errors
+
+**Status:** COMPLETED
+
+---
