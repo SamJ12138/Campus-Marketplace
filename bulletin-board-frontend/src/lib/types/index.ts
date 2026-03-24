@@ -141,10 +141,44 @@ export interface Message {
   sender_id: string;
   sender_name: string;
   content: string;
+  message_type?: string;
+  meta?: {
+    offer_id?: string;
+    amount?: string;
+    status?: string;
+    note?: string;
+    parent_offer_id?: string;
+  } | null;
   is_read: boolean;
   is_own: boolean;
   listing: ThreadListingBrief | null;
   created_at: string;
+}
+
+// ──────────────────────────────────────────────
+// Offers
+// ──────────────────────────────────────────────
+
+export type OfferStatus = "pending" | "accepted" | "declined" | "countered" | "expired";
+
+export interface Offer {
+  id: string;
+  thread_id: string;
+  listing: ThreadListingBrief | null;
+  offerer: UserBrief;
+  recipient: UserBrief;
+  amount: string;
+  status: OfferStatus;
+  parent_offer_id: string | null;
+  message_id: string | null;
+  expires_at: string | null;
+  responded_at: string | null;
+  created_at: string;
+}
+
+export interface OfferActionResponse {
+  offer: Offer;
+  message: string;
 }
 
 // ──────────────────────────────────────────────

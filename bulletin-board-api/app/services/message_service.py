@@ -194,6 +194,8 @@ class MessageService:
                     sender_id=msg.sender_id,
                     sender_name=msg.sender.display_name if msg.sender else "Unknown",
                     content=msg.content,
+                    message_type=msg.message_type,
+                    meta=msg.meta,
                     is_read=msg.is_read,
                     is_own=msg.sender_id == user_id,
                     listing=listing_brief,
@@ -210,6 +212,8 @@ class MessageService:
         content: str,
         flagged: bool = False,
         listing_id: UUID | None = None,
+        message_type: str = "text",
+        meta: dict | None = None,
     ) -> Message:
         """Send a message in a thread."""
         thread = await self.db.get(MessageThread, thread_id)
@@ -228,6 +232,8 @@ class MessageService:
             content=content,
             is_flagged=flagged,
             listing_id=listing_id,
+            message_type=message_type,
+            meta=meta,
         )
         self.db.add(message)
 

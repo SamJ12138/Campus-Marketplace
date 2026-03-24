@@ -30,6 +30,8 @@ class MessageResponse(BaseModel):
     sender_id: UUID
     sender_name: str
     content: str
+    message_type: str = "text"
+    meta: dict | None = None
     is_read: bool
     is_own: bool
     listing: ThreadListingBrief | None = None

@@ -16,6 +16,7 @@ from app.api.v1 import (
     listing_assist,
     listings,
     messages,
+    offers,
     reports,
     search,
     uploads,
@@ -30,6 +31,7 @@ api_router.include_router(users.router)
 api_router.include_router(listings.router)
 api_router.include_router(favorites.router)
 api_router.include_router(messages.router)
+api_router.include_router(offers.router)
 api_router.include_router(reports.router)
 api_router.include_router(blocks.router)
 api_router.include_router(uploads.router)

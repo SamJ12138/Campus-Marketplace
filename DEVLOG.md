@@ -1300,3 +1300,43 @@ The feed page (`search_listings`) worked because it never calls `commit()` — i
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-24 - Full Offer System: Backend API + Frontend UI
+
+**Summary:** Built the complete offer system from scratch — backend API routes/service/schemas + frontend offer form, offer card rendering in chat, and accept/decline/counter functionality.
+
+**Files Changed:**
+
+*Backend — NEW:*
+- `bulletin-board-api/app/schemas/offer.py` — Pydantic schemas: CreateOfferRequest, CounterOfferRequest, OfferResponse, OfferActionResponse
+- `bulletin-board-api/app/services/offer_service.py` — OfferService class: create_offer, accept_offer, decline_offer, counter_offer, get_thread_offers
+- `bulletin-board-api/app/api/v1/offers.py` — REST endpoints: POST create, PATCH accept/decline, POST counter, GET list. Rate limited + content moderation on notes
+
+*Backend — MODIFIED:*
+- `bulletin-board-api/app/schemas/message.py` — Added message_type and meta fields to MessageResponse (backward-compatible defaults)
+- `bulletin-board-api/app/services/message_service.py` — Extended send_message() with message_type and meta params; added fields to MessageResponse construction
+- `bulletin-board-api/app/api/v1/router.py` — Registered offers router
+
+*Frontend — NEW:*
+- `bulletin-board-frontend/src/lib/api/offers.ts` — API client: createOffer, acceptOffer, declineOffer, counterOffer
+- `bulletin-board-frontend/src/lib/hooks/use-offers.ts` — TanStack Query mutations with cache invalidation and toast feedback
+- `bulletin-board-frontend/src/components/messages/OfferCard.tsx` — Emerald-themed offer card with status badges, accept/decline/counter actions, inline counter form
+- `bulletin-board-frontend/src/components/messages/OfferForm.tsx` — Inline offer creation panel with amount input, quick price buttons, optional note, listing reference
+
+*Frontend — MODIFIED:*
+- `bulletin-board-frontend/src/lib/types/index.ts` — Extended Message interface with message_type/meta; added Offer, OfferStatus, OfferActionResponse types
+- `bulletin-board-frontend/src/lib/hooks/use-messages.ts` — Added message_type/meta to optimistic message
+- `bulletin-board-frontend/src/app/(main)/messages/page.tsx` — Integrated OfferCard rendering (replaces bubbles for offer messages), OfferForm panel, fixed green button (tutorial first time → offer form after), auto-open form after tutorial, offer messages break bubble grouping
+- `bulletin-board-frontend/src/components/tutorials/offer-posting/OfferPostingTutorialSlide.tsx` — Aligned quick price buttons to match actual OfferForm ($10-$50)
+
+**Details:**
+Offers are now fully functional in the messaging system. Creating an offer creates both an Offer record (with 48h expiry) and a linked Message with message_type="offer" and meta containing offer details. The chat timeline renders offer messages as special emerald cards instead of regular bubbles. Recipients see Accept/Decline/Counter buttons. Counter-offers chain via parent_offer_id with swapped roles. All status changes update the original message's meta so the frontend gets live status via its 10s polling. The green Offer button now shows the tutorial on first click, then opens the offer form on subsequent clicks. The tutorial auto-transitions to the form after completion.
+
+**Next Steps:**
+- Add background job (ARQ) to auto-expire offers past 48 hours
+- Add real-time WebSocket notifications for offer events
+- Consider adding auto-save (debounced) for drafts
+
+**Status:** COMPLETED
+
+---

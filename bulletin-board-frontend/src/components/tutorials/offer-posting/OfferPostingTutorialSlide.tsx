@@ -72,7 +72,7 @@ function PostingPriceIllustration() {
         {/* Price suggestions */}
         <p className="text-[9px] text-muted-foreground mb-1.5">Quick picks:</p>
         <div className="flex gap-1.5">
-          {["$15", "$20", "$25", "$30"].map((price) => (
+          {["$10", "$15", "$20", "$25", "$30", "$50"].map((price) => (
             <span
               key={price}
               className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${

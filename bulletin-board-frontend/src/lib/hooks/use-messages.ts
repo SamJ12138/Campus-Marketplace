@@ -115,6 +115,8 @@ export function useSendMessage() {
           sender_id: userId ?? "",
           sender_name: useAuthStore.getState().user?.display_name ?? "",
           content,
+          message_type: "text",
+          meta: null,
           is_read: true,
           is_own: true,
           listing: null,

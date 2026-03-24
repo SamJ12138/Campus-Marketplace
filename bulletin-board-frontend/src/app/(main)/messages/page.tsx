@@ -46,7 +46,10 @@ import {
   resetOfferPostingTutorial,
 } from "@/lib/utils/offer-posting-tutorial";
 import type { MessageThread, Message, ThreadListingBrief } from "@/lib/types";
+import { useAuthStore } from "@/lib/hooks/use-auth";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
+import { OfferCard } from "@/components/messages/OfferCard";
+import { OfferForm } from "@/components/messages/OfferForm";
 
 // ─── Utilities ──────────────────────────────────────────────
 
@@ -134,7 +137,8 @@ function groupMessages(
           ).getTime()
         : Infinity;
 
-      if (last && last.senderId === msg.sender_id && timeDiff < 120_000) {
+      const isOfferMsg = msg.message_type && msg.message_type !== "text";
+      if (last && last.senderId === msg.sender_id && timeDiff < 120_000 && !isOfferMsg) {
         last.messages.push(msg);
       } else {
         groups.push({
@@ -611,8 +615,12 @@ function ChatPanel({
   const { data: composeListing } = useListing(composeListingId ?? undefined);
   const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
   const setShowOfferPostingTutorial = useUIStore((s) => s.setShowOfferPostingTutorial);
+  const showOfferPostingTutorial = useUIStore((s) => s.showOfferPostingTutorial);
+  const currentUserId = useAuthStore.getState().user?.id ?? "";
 
   const [messageText, setMessageText] = useState("");
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const prevShowTutorial = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -629,6 +637,15 @@ function ChatPanel({
       setShowOfferTutorial(true);
     }
   }, [threadId, composeListingId, setShowOfferTutorial]);
+
+  // Auto-open offer form after tutorial completes
+  useEffect(() => {
+    if (prevShowTutorial.current && !showOfferPostingTutorial && hasCompletedOfferPostingTutorial()) {
+      setShowOfferForm(true);
+    }
+    prevShowTutorial.current = showOfferPostingTutorial;
+  }, [showOfferPostingTutorial]);
+
   const messages = useMemo(() => data?.messages?.items ?? [], [data]);
   const grouped = useMemo(() => groupMessages(messages), [messages]);
 
@@ -895,24 +912,35 @@ function ChatPanel({
                           lastListingId = msgListingId;
                         }
 
+                        const isOfferMessage = msg.message_type && msg.message_type !== "text";
+
                         return (
                           <div key={msg.id}>
                             {showListingContext && msg.listing && (
                               <InlineListingContext listing={msg.listing} />
                             )}
-                            <MessageBubble
-                              message={msg}
-                              isOwn={group.isOwn}
-                              isFirst={mi === 0 || showListingContext}
-                              isLast={mi === group.messages.length - 1}
-                              showAvatar={mi === 0 || showListingContext}
-                              avatarUrl={
-                                group.isOwn
-                                  ? null
-                                  : otherUser?.avatar_url ?? null
-                              }
-                              senderName={msg.sender_name}
-                            />
+                            {isOfferMessage ? (
+                              <OfferCard
+                                message={msg}
+                                isOwn={group.isOwn}
+                                threadId={threadId!}
+                                currentUserId={currentUserId}
+                              />
+                            ) : (
+                              <MessageBubble
+                                message={msg}
+                                isOwn={group.isOwn}
+                                isFirst={mi === 0 || showListingContext}
+                                isLast={mi === group.messages.length - 1}
+                                showAvatar={mi === 0 || showListingContext}
+                                avatarUrl={
+                                  group.isOwn
+                                    ? null
+                                    : otherUser?.avatar_url ?? null
+                                }
+                                senderName={msg.sender_name}
+                              />
+                            )}
                           </div>
                         );
                       })}
@@ -947,6 +975,19 @@ function ChatPanel({
         messageCount={messages.length}
       />
 
+      {/* Offer form panel */}
+      {showOfferForm && threadId && (
+        <OfferForm
+          threadId={threadId}
+          listing={thread?.listing ?? null}
+          onClose={() => setShowOfferForm(false)}
+          onSuccess={() => {
+            setShowOfferForm(false);
+            scrollToBottom();
+          }}
+        />
+      )}
+
       {/* Input bar — WeChat style with white background */}
       <div className="shrink-0 border-t border-border bg-background px-4 py-3">
         <form onSubmit={handleSend} className="flex items-end gap-2">
@@ -975,10 +1016,11 @@ function ChatPanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (hasCompletedOfferPostingTutorial()) {
-                    resetOfferPostingTutorial();
+                  if (!hasCompletedOfferPostingTutorial()) {
+                    setShowOfferPostingTutorial(true);
+                  } else {
+                    setShowOfferForm((prev) => !prev);
                   }
-                  setShowOfferPostingTutorial(true);
                 }}
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 shrink-0",
