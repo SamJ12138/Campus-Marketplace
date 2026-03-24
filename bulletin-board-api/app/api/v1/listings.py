@@ -120,13 +120,12 @@ async def get_listing(
     db: AsyncSession = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    """Get listing details. Campus-scoped when authenticated."""
+    """Get listing details. Not campus-scoped — direct links should always work."""
     service = ListingService(db)
     listing = await service.get_listing(
         listing_id=listing_id,
         viewer_id=current_user.id if current_user else None,
         increment_views=True,
-        campus_id=current_user.campus_id if current_user else None,
     )
     if not listing:
         raise HTTPException(404, "Listing not found")

@@ -1097,3 +1097,20 @@ The `PhotoUploader` component previously only supported clicking an "Add" button
 **Status:** COMPLETED
 
 ---
+
+### Entry 37 — 2026-03-24: Fix "Offer not found" on listing detail page
+
+**Scope:** Bug fix — backend API endpoint
+
+**Root cause:**
+The `GET /api/v1/listings/{id}` endpoint filtered by the authenticated user's `campus_id`. When a user's campus didn't match the listing's campus (e.g., after viewing cached feed data from an unauthenticated session, or cross-campus link sharing), the query returned no results and the frontend showed "Offer not found."
+
+**Fix:**
+Removed the `campus_id` parameter from the `get_listing` service call in the detail endpoint. Direct lookups by listing ID should always work — campus filtering only belongs on browse/search endpoints. The listing service's `campus_id` parameter defaults to `None`, so no service-layer changes were needed.
+
+**File modified (1):**
+- `bulletin-board-api/app/api/v1/listings.py` — Removed `campus_id=current_user.campus_id if current_user else None` from `get_listing` endpoint (line 129)
+
+**Status:** COMPLETED
+
+---
