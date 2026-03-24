@@ -1223,23 +1223,59 @@ After confirming database data is intact and moderator dashboard works, the publ
 3. **No deploy-time database validation** — no check that the connected DB has expected data before proceeding
 4. **No Neon branch protection** — main branch can be auto-archived
 
-**Planned Remediation (not yet applied):**
-1. Remove `databases:` section from `render.yaml` and set Neon `DATABASE_URL` directly in Render dashboard
-2. Disable Blueprint Sync in Render settings
-3. Add migration safety check — verify DB has data before running `alembic upgrade head`
-4. Protect Neon main branch from archiving
-5. Routine: create Neon backup branch before every deploy (max 10 branches on free plan, rotate old ones)
+**Remediation Applied:**
+1. Removed `databases:` section from `render.yaml` — eliminates competing Render-managed DB
+2. Changed both `DATABASE_URL` entries (API + worker) from `fromDatabase: gimme-dat-db` to `sync: false` with warning comments
+3. Created `bulletin-board-api/scripts/pre_migrate_check.py` — verifies `campuses` table exists with data before allowing `alembic upgrade head`; bypass with `ALLOW_FRESH_DB=true` for first-time setup
+4. Updated `bulletin-board-api/docker/Dockerfile` CMD to run pre-migration check before alembic
+5. Verified all `.gitignore` files cover `.env`, `.env.local`, `.env.production` — no changes needed
+6. Verified Render `DATABASE_URL` already points to Neon (`...neon.tech/neondb?ssl=require`)
+7. User created manual Neon backup branch snapshot
+8. User protected Neon main branch from archiving
 
-**Files Changed:** None (investigation and recovery only — no code changes this session)
+**Additional Finding:** Render service "Gettysburg-Marketplace" uses Python 3 runtime (not Docker) and was created manually — NOT from the `render.yaml` blueprint. Blueprint Sync was likely never active for this service. The `render.yaml` fix is preventative.
 
-**Commits:** None
+**Files Changed:**
+- `render.yaml` — removed `databases:` section, changed both `DATABASE_URL` entries to `sync: false`
+- `bulletin-board-api/docker/Dockerfile` — updated CMD to run `pre_migrate_check.py` before alembic
+- `bulletin-board-api/scripts/pre_migrate_check.py` — new pre-migration safety check script
+- `DEVLOG.md` — this entry
+
+**Commits:**
+- `fa19d91` — safety: remove Render-managed DB, add pre-migration check
 
 **Next Steps:**
-- Apply render.yaml fix (remove managed DB definition)
-- Verify Render `DATABASE_URL` points to Neon
-- Investigate and fix the marketplace feed rendering error (original bug from Entry 38)
-- Consider adding migration safety check to Dockerfile CMD
+- Verify Render redeploy succeeds (manual deploy triggered)
+- Investigate and fix the marketplace feed rendering error (original bug from Entry 38/39 — frontend crash, not database issue)
+- Consider enabling auto-deploy in Render settings for future pushes
 
-**Status:** IN PROGRESS
+**Status:** COMPLETED
+
+---
+
+### 2026-03-24 — Fix Listing Detail Page 500 Error (MissingGreenlet)
+
+**Summary:** Fixed the listing detail page (`/listings/[id]`) returning 500 Internal Server Error for authenticated users. Root cause: SQLAlchemy `MissingGreenlet` — the `get_listing` service method called `db.commit()` (for view count increment) before serializing the response, which invalidated selectin-loaded relationships. Accessing those relationships in `_to_response()` then triggered synchronous lazy reloads in the async context.
+
+**Files Changed:**
+- `bulletin-board-api/app/services/listing_service.py` — Restructured `get_listing()`: moved favorites check and `_to_response()` serialization BEFORE the view count `commit()`, so ORM relationships are accessed while still valid
+- `bulletin-board-api/app/models/listing.py` — Changed `Category.listings` from `lazy="selectin"` to `lazy="noload"` (was loading ALL listings in a category unnecessarily); added `lazy="noload"` to `ListingPhoto.listing` back-reference
+- `bulletin-board-api/app/models/user.py` — Added `lazy="noload"` to `RefreshToken.user` and `EmailVerification.user` back-references
+- `bulletin-board-api/app/models/message.py` — Added `lazy="noload"` to `Message.thread` back-reference
+- `bulletin-board-api/app/models/notification.py` — Added `lazy="noload"` to `NotificationPreference.user` back-reference
+- `bulletin-board-api/app/api/v1/listings.py` — Temporary debug try/except to surface actual error (added then removed)
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` — Enhanced ErrorRetry component to display error details (status, code, message) in a collapsible section
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/error.tsx` — New route-level error boundary for layout/RSC errors
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/layout.tsx` — Added null guard for API URL + 5s abort timeout on metadata fetch
+- `bulletin-board-frontend/src/lib/api/client.ts` — Added content-type validation before JSON parsing; diagnostic logging for non-JSON error responses
+
+**Root Cause Analysis:**
+The feed page (`search_listings`) worked because it never calls `commit()` — it queries, builds responses, and returns. The detail page (`get_listing`) did `commit()` for the view count increment BEFORE `_to_response()`. After commit, SQLAlchemy invalidated the selectin-loaded relationships (user, category, photos). When `_to_response()` then accessed those relationships, it triggered synchronous lazy reloads → `MissingGreenlet` in the async context. Fix: serialize first, commit after.
+
+**Next Steps:**
+- Monitor for any remaining edge cases
+- The `lazy="noload"` changes on back-references are a good defensive measure regardless
+
+**Status:** COMPLETED
 
 ---
