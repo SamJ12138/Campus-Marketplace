@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   CircleDollarSign,
   Send,
@@ -71,9 +72,11 @@ export function OfferForm({
       {listing && (
         <div className="flex items-center gap-2 rounded-lg bg-white/80 border border-slate-200 px-3 py-2">
           {listing.first_photo_url && (
-            <img
+            <Image
               src={listing.first_photo_url}
               alt=""
+              width={32}
+              height={32}
               className="h-8 w-8 rounded object-cover"
             />
           )}

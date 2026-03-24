@@ -46,7 +46,6 @@ import {
   resetOfferPostingTutorial,
 } from "@/lib/utils/offer-posting-tutorial";
 import type { MessageThread, Message, ThreadListingBrief } from "@/lib/types";
-import { useAuthStore } from "@/lib/hooks/use-auth";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 import { OfferCard } from "@/components/messages/OfferCard";
 import { OfferForm } from "@/components/messages/OfferForm";
@@ -616,7 +615,6 @@ function ChatPanel({
   const setShowOfferTutorial = useUIStore((s) => s.setShowOfferTutorial);
   const setShowOfferPostingTutorial = useUIStore((s) => s.setShowOfferPostingTutorial);
   const showOfferPostingTutorial = useUIStore((s) => s.showOfferPostingTutorial);
-  const currentUserId = useAuthStore.getState().user?.id ?? "";
 
   const [messageText, setMessageText] = useState("");
   const [showOfferForm, setShowOfferForm] = useState(false);
@@ -924,7 +922,6 @@ function ChatPanel({
                                 message={msg}
                                 isOwn={group.isOwn}
                                 threadId={threadId!}
-                                currentUserId={currentUserId}
                               />
                             ) : (
                               <MessageBubble

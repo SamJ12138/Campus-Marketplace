@@ -22,7 +22,6 @@ interface OfferCardProps {
   message: Message;
   isOwn: boolean;
   threadId: string;
-  currentUserId: string;
 }
 
 const statusConfig = {
@@ -67,8 +66,14 @@ export function OfferCard({
   message,
   isOwn,
   threadId,
-  currentUserId,
 }: OfferCardProps) {
+  const acceptMutation = useAcceptOffer(threadId);
+  const declineMutation = useDeclineOffer(threadId);
+  const counterMutation = useCounterOffer(threadId);
+
+  const [showCounter, setShowCounter] = useState(false);
+  const [counterAmount, setCounterAmount] = useState("");
+
   const meta = message.meta;
   if (!meta || !meta.offer_id) return null;
 
@@ -82,13 +87,6 @@ export function OfferCard({
   const isRecipient = !isOwn;
   const isPending = status === "pending";
   const showActions = isRecipient && isPending;
-
-  const acceptMutation = useAcceptOffer(threadId);
-  const declineMutation = useDeclineOffer(threadId);
-  const counterMutation = useCounterOffer(threadId);
-
-  const [showCounter, setShowCounter] = useState(false);
-  const [counterAmount, setCounterAmount] = useState("");
 
   const isActing =
     acceptMutation.isPending ||
