@@ -185,15 +185,7 @@ class ListingService:
             if not viewer_id or listing.user_id != viewer_id:
                 return None
 
-        if increment_views and (not viewer_id or listing.user_id != viewer_id):
-            await self.db.execute(
-                update(Listing)
-                .where(Listing.id == listing_id)
-                .values(view_count=Listing.view_count + 1)
-            )
-            await self.db.commit()
-            listing.view_count += 1
-
+        # Check favorites BEFORE any commit (to keep selectin-loaded relationships valid)
         favorited_ids = set()
         if viewer_id:
             fav = await self.db.scalar(
@@ -205,7 +197,24 @@ class ListingService:
             if fav:
                 favorited_ids.add(listing_id)
 
-        return self._to_response(listing, viewer_id, favorited_ids)
+        # Predict the view count for the response
+        should_increment = increment_views and (not viewer_id or listing.user_id != viewer_id)
+        if should_increment:
+            listing.view_count += 1
+
+        # Build response while ORM relationships are still loaded
+        response = self._to_response(listing, viewer_id, favorited_ids)
+
+        # Persist view count AFTER serialization to avoid commit invalidating relationships
+        if should_increment:
+            await self.db.execute(
+                update(Listing)
+                .where(Listing.id == listing_id)
+                .values(view_count=Listing.view_count + 1)
+            )
+            await self.db.commit()
+
+        return response
 
     async def create_listing(
         self,
