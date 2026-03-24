@@ -1146,3 +1146,44 @@ Removed the `campus_id` parameter from the `get_listing` service call in the det
 **Status:** COMPLETED
 
 ---
+
+### Entry 39 — 2026-03-24 (Session 39)
+**Commit:** `2496061`
+**Scope:** Harden listing detail rendering + backend schema fixes
+
+**Problem:**
+After Entry 37 fixed the 404 (backend campus_id filter) and Entry 38 improved error handling, the listing detail page still crashes on the live site with "Something went wrong." The root error boundary catches a client-side rendering crash after data loads successfully (API returns 200 with valid JSON). Investigation confirmed the API proxy works, data is valid, and all i18n keys exist. The exact browser-side crash could not be reproduced via CLI — likely manifests only during React client-side hydration/rendering.
+
+**Defensive fixes applied (7 files):**
+
+1. **Frontend type safety** — `Listing.category` changed from `CategoryBrief` to `CategoryBrief | null` in types, matching backend Pydantic schema (`CategoryBrief | None`)
+2. **Detail page** (`page.tsx`) — null-safe category badge rendering with `listing.category &&`, safe availability rendering with `typeof` check for dict values
+3. **Edit page** (`edit/page.tsx`) — `listing.category?.id ?? ""` for form reset
+4. **ListingCard** — `listing.category?.slug ?? "default"` for category visual lookup
+5. **ListingSchema** — prop type updated to accept `null` for category
+6. **Backend schema** — `ListingResponse.availability` changed from `dict | None` to `str | None` with `field_validator` to coerce JSONB dicts to JSON strings (prevents React "Objects are not valid as a React child" crash)
+7. **Backend model** — added `values_callable=lambda e: [x.value for x in e]` to `listing_status` enum (fixes case mismatch between Python enum member names and Postgres enum values)
+
+**Files modified (7):**
+- `bulletin-board-frontend/src/lib/types/index.ts` — `category: CategoryBrief | null`
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` — null-safe category + safe availability
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/edit/page.tsx` — null-safe category in form reset
+- `bulletin-board-frontend/src/components/listings/ListingCard.tsx` — null-safe category slug
+- `bulletin-board-frontend/src/components/seo/ListingSchema.tsx` — accept null category in props
+- `bulletin-board-api/app/schemas/listing.py` — availability str coercion validator
+- `bulletin-board-api/app/models/listing.py` — listing_status enum values_callable
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `npm run build` — all pages compiled, zero errors
+- Backend schema test: dict, None, and string availability all coerce correctly
+- Backend unit tests: 290 passed (1 pre-existing failure in moderation mock)
+
+**Next steps:**
+- Deploy and test on live site (gimme-dat.com)
+- If "Something went wrong" persists, check browser DevTools Console (F12) for the exact JavaScript error — the root error boundary logs it via `console.error("Unhandled error:", error)`
+- The exact rendering crash may only manifest in the browser, not reproducible via curl/CLI
+
+**Status:** COMPLETED
+
+---
