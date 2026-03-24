@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-24
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -1069,6 +1069,30 @@ Three UX issues corrected in `messages/page.tsx`:
 **Verification:**
 - `npx tsc --noEmit` — zero TypeScript errors
 - `npm run build` — all 50 pages compiled, zero errors
+
+**Status:** COMPLETED
+
+---
+
+### Entry 36 — 2026-03-24: Add drag-and-drop image upload to PhotoUploader
+
+**Scope:** UX enhancement for listing creation page (`/listings/new`)
+
+**What changed:**
+The `PhotoUploader` component previously only supported clicking an "Add" button to select images via a hidden file input. Now supports native HTML5 drag-and-drop:
+
+- **Empty state**: Large drop zone with upload icon and "Drag photos here or click to browse" text replaces the small Add button for better first-time UX
+- **With photos**: Dragging files over the grid shows a blue "Drop photos here" overlay; shows "Maximum 6 photos reached" if at capacity
+- **Drop handler**: Filters to image files only, runs same validation pipeline (type, size, dimensions) as file input
+- **Refactor**: Extracted shared `processFiles()` function from `handleFilesSelected` to avoid duplicating validation logic between file input and drag-and-drop code paths
+- **Drag state tracking**: Uses `dragCounter` ref pattern to correctly handle dragenter/dragleave across nested child elements
+
+**File modified (1):**
+- `src/components/listings/PhotoUploader.tsx` — Added drag-and-drop support, empty-state drop zone, drag overlay, extracted `processFiles()`
+
+**Verification:**
+- `npx tsc --noEmit` — zero TypeScript errors
+- `npm run build` — all pages compiled, zero errors
 
 **Status:** COMPLETED
 

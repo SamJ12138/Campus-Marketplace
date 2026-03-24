@@ -6,9 +6,10 @@ import {
   useRef,
   useEffect,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 import NextImage from "next/image";
-import { Plus, X, ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
+import { Plus, X, ChevronUp, ChevronDown, Loader2, AlertCircle, Upload } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { uploadFile } from "@/lib/api/uploads";
@@ -102,8 +103,10 @@ export default function PhotoUploader({
       uploaded: p,
     })),
   );
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeUploads = useRef(new Set<string>());
+  const dragCounter = useRef(0);
 
   // Sync completed photos back to parent
   const syncPhotos = useCallback(
@@ -169,14 +172,11 @@ export default function PhotoUploader({
     [listingId, syncPhotos],
   );
 
-  // Handle file selection
-  const handleFilesSelected = useCallback(
-    async (e: ChangeEvent<HTMLInputElement>) => {
-      const fileList = e.target.files;
-      if (!fileList) return;
-
-      const files = Array.from(fileList);
+  // Core file processing (shared by file input and drag-and-drop)
+  const processFiles = useCallback(
+    async (files: File[]) => {
       const availableSlots = maxPhotos - entries.length;
+      if (availableSlots <= 0) return;
       const filesToProcess = files.slice(0, availableSlots);
 
       const newEntries: UploadingEntry[] = [];
@@ -238,7 +238,6 @@ export default function PhotoUploader({
         return updated;
       });
 
-      // Start uploading valid entries (only if we have a listing ID)
       if (listingId) {
         for (const entry of newEntries) {
           if (!entry.error) {
@@ -246,13 +245,62 @@ export default function PhotoUploader({
           }
         }
       }
+    },
+    [entries.length, maxPhotos, uploadSingleFile, listingId, onPendingCountChange],
+  );
 
-      // Reset the input so the same file can be re-selected
+  // Handle file input selection
+  const handleFilesSelected = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const fileList = e.target.files;
+      if (!fileList) return;
+      await processFiles(Array.from(fileList));
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     },
-    [entries.length, maxPhotos, uploadSingleFile, listingId, onPendingCountChange],
+    [processFiles],
+  );
+
+  // Drag-and-drop handlers
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current = 0;
+      setIsDragging(false);
+
+      const files = Array.from(e.dataTransfer.files).filter((f) =>
+        f.type.startsWith("image/"),
+      );
+      if (files.length > 0) {
+        await processFiles(files);
+      }
+    },
+    [processFiles],
   );
 
   // Remove a photo (with memory cleanup)
@@ -409,7 +457,51 @@ export default function PhotoUploader({
   const canAddMore = entries.length < maxPhotos;
 
   return (
-    <div className="space-y-2">
+    <div
+      className="space-y-2"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Empty-state drop zone */}
+      {entries.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-12 transition-colors",
+            isDragging
+              ? "border-blue-500 bg-blue-50"
+              : "border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+          )}
+        >
+          <Upload className={cn("h-10 w-10", isDragging ? "text-blue-500" : "text-slate-400")} />
+          <div className="text-center">
+            <p className={cn("text-sm font-medium", isDragging ? "text-blue-600" : "text-slate-600")}>
+              {isDragging ? "Drop photos here" : "Drag photos here or click to browse"}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              JPEG, PNG, or WebP — up to 5 MB each
+            </p>
+          </div>
+        </button>
+      ) : (
+      <div className="relative">
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className={cn(
+          "pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed",
+          canAddMore
+            ? "border-blue-500 bg-blue-50/80"
+            : "border-slate-400 bg-slate-100/80",
+        )}>
+          <p className={cn("text-sm font-medium", canAddMore ? "text-blue-600" : "text-slate-500")}>
+            {canAddMore ? "Drop photos here" : `Maximum ${maxPhotos} photos reached`}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
         {/* Uploaded / uploading entries */}
         {entries.map((entry, index) => (
@@ -562,6 +654,8 @@ export default function PhotoUploader({
           </button>
         )}
       </div>
+      </div>
+      )}
 
       {/* Hidden file input */}
       <input
