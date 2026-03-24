@@ -308,7 +308,12 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
         code = errBody.code;
       }
     } catch {
-      // response body was not JSON
+      // Response body was not JSON — likely an HTML error page from proxy
+      const ct = res.headers.get("content-type") || "unknown";
+      console.error(
+        `[apiClient] non-JSON error response: status=${res.status}, url=${url.toString()}, content-type=${ct}`,
+      );
+      detail = `Server returned ${res.status} (non-JSON response, content-type: ${ct})`;
     }
     throw new ApiError(res.status, detail, code);
   }
@@ -316,6 +321,19 @@ async function apiClient<T>(options: RequestOptions): Promise<T> {
   // 204 No Content
   if (res.status === 204) {
     return undefined as T;
+  }
+
+  // Validate content-type before parsing JSON
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    console.error(
+      `[apiClient] unexpected content-type on success: status=${res.status}, url=${url.toString()}, content-type=${contentType}`,
+    );
+    throw new ApiError(
+      res.status,
+      `Expected JSON but got ${contentType || "unknown content type"}`,
+      "invalid_content_type",
+    );
   }
 
   return res.json() as Promise<T>;

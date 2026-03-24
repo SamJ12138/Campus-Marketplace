@@ -33,10 +33,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+  if (!apiUrl) {
+    return {
+      title: "Listing",
+      description: "View this listing on Gimme Dat campus marketplace.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
     const res = await fetch(`${apiUrl}/api/v1/listings/${id}`, {
       next: { revalidate: 60 },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!res.ok) {
       return {
@@ -105,6 +117,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     };
   } catch {
+    clearTimeout(timeout);
     return {
       title: "Listing",
       description: "View this listing on Gimme Dat campus marketplace.",

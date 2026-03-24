@@ -90,7 +90,8 @@ function NotFound() {
   );
 }
 
-function ErrorRetry({ onRetry }: { onRetry: () => void }) {
+function ErrorRetry({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
+  const apiError = error instanceof ApiError ? error : null;
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <AlertTriangle className="h-16 w-16 text-amber-400" />
@@ -107,6 +108,22 @@ function ErrorRetry({ onRetry }: { onRetry: () => void }) {
       >
         Try again
       </button>
+      {error && (
+        <details className="mt-6 max-w-md text-left">
+          <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-600">
+            Error details
+          </summary>
+          <pre className="mt-2 overflow-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
+            {apiError
+              ? JSON.stringify(
+                  { status: apiError.status, code: apiError.code, detail: apiError.detail },
+                  null,
+                  2,
+                )
+              : error.message}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }
@@ -462,10 +479,11 @@ export default function ListingDetailPage() {
 
   // Error handling
   if (isError) {
+    console.error('[ListingDetail] fetch error:', error);
     if (error instanceof ApiError && error.status === 404) {
       return <NotFound />;
     }
-    return <ErrorRetry onRetry={() => refetch()} />;
+    return <ErrorRetry error={error} onRetry={() => refetch()} />;
   }
 
   if (!listing) return <NotFound />;
