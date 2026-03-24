@@ -16,6 +16,9 @@ import {
   AlertCircle,
   Eye,
   ArrowLeft,
+  Save,
+  Trash2,
+  FileText,
 } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,9 +27,12 @@ import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { listingCreateSchema, type ListingCreateInput } from "@/lib/validation/listing";
 import { useCategories, useCreateListing } from "@/lib/hooks/use-listings";
+import { toast } from "sonner";
 import PhotoUploader from "@/components/listings/PhotoUploader";
 import AIAssistPanel from "@/components/listings/AIAssistPanel";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
+import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { getListingDraft, saveListingDraft, clearListingDraft } from "@/lib/utils/listing-draft";
 
 // ----------------------------------------------------------------
 // Preview card (lightweight ListingCard mock)
@@ -153,6 +159,9 @@ export default function CreateListingPage() {
   const createListing = useCreateListing();
 
   const [showPreview, setShowPreview] = useState(false);
+  const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [photoData, setPhotoData] = useState<
     { id: string; url: string; position: number }[]
   >([]);
@@ -167,6 +176,8 @@ export default function CreateListingPage() {
     watch,
     setValue,
     setError,
+    reset,
+    getValues,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<ListingCreateInput>({
     resolver: zodResolver(listingCreateSchema),
@@ -200,17 +211,27 @@ export default function CreateListingPage() {
     [categories, selectedCategoryId],
   );
 
+  // Load saved draft on mount
+  useEffect(() => {
+    const draft = getListingDraft();
+    if (draft) {
+      reset(draft.values as ListingCreateInput);
+      setDraftLoaded(true);
+      toast.info("Draft loaded from your last session");
+    }
+  }, [reset]);
+
   // Warn on leave if form is dirty
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
+      if (isDirty && !draftSaved) {
         e.preventDefault();
         e.returnValue = t.listings.editTitle;
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  }, [isDirty, draftSaved]);
 
   // Check if "Other" category is selected
   const isOtherCategory = selectedCategory?.slug === "other";
@@ -244,6 +265,7 @@ export default function CreateListingPage() {
           setCreatedListingId(newListing.id);
         });
       }
+      clearListingDraft();
       router.push(`/listings/${newListing.id}`);
     },
     [createListing, router, isOtherCategory, setError],
@@ -259,6 +281,36 @@ export default function CreateListingPage() {
     }
     if (window.history.length > 1) { router.back(); } else { router.push("/feed"); }
   }, [isDirty, router]);
+
+  // Save draft handler
+  const handleSaveDraft = useCallback(() => {
+    const values = getValues();
+    saveListingDraft(values as Record<string, unknown>);
+    setDraftSaved(true);
+    setShowSaveDraftConfirm(false);
+    toast.success("Draft saved! It will be loaded next time you create an offer.");
+  }, [getValues]);
+
+  // Discard draft handler
+  const handleDiscardDraft = useCallback(() => {
+    clearListingDraft();
+    setDraftLoaded(false);
+    reset({
+      type: undefined,
+      category_id: "",
+      custom_category_label: "",
+      title: "",
+      description: "",
+      price_hint: "",
+      location_type: "on_campus",
+      location_hint: "",
+      availability: "",
+      contact_preference: "in_app",
+      is_regulated: false,
+      disclaimer_accepted: false,
+    });
+    toast.info("Draft discarded");
+  }, [reset]);
 
   return (
     <ProtectedPage>
@@ -287,6 +339,27 @@ export default function CreateListingPage() {
           Preview
         </button>
       </div>
+
+      {/* Draft loaded banner */}
+      {draftLoaded && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-900">Draft loaded</p>
+            <p className="text-xs text-blue-700">
+              A previously saved draft has been restored. Photos are not included in drafts.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleDiscardDraft}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Discard
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form */}
@@ -670,6 +743,14 @@ export default function CreateListingPage() {
             </button>
             <button
               type="button"
+              onClick={() => setShowSaveDraftConfirm(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Save className="h-4 w-4" />
+              Save Draft
+            </button>
+            <button
+              type="button"
               onClick={handleCancel}
               className="rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
@@ -696,6 +777,15 @@ export default function CreateListingPage() {
         )}
       </div>
     </div>
+
+    <ConfirmModal
+      open={showSaveDraftConfirm}
+      onClose={() => setShowSaveDraftConfirm(false)}
+      onConfirm={handleSaveDraft}
+      title="Save as Draft?"
+      description="Your form data (except photos) will be saved and automatically restored next time you click 'New Offer'. Only one draft can be saved at a time."
+      confirmLabel="Save Draft"
+    />
     </ProtectedPage>
   );
 }

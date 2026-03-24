@@ -975,11 +975,10 @@ function ChatPanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (!hasCompletedOfferPostingTutorial()) {
-                    setShowOfferPostingTutorial(true);
-                  } else {
-                    // TODO: open offer form when backend is ready
+                  if (hasCompletedOfferPostingTutorial()) {
+                    resetOfferPostingTutorial();
                   }
+                  setShowOfferPostingTutorial(true);
                 }}
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 shrink-0",

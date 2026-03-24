@@ -1279,3 +1279,24 @@ The feed page (`search_listings`) worked because it never calls `commit()` — i
 **Status:** COMPLETED
 
 ---
+
+### 2026-03-24 - Save Draft for New Offer Form + Fix Offer Button in Messages
+
+**Summary:** Added localStorage-based draft saving to the new offer form and fixed the green Offer button in messages that stopped working after the first click.
+
+**Files Changed:**
+- `bulletin-board-frontend/src/lib/utils/listing-draft.ts` — NEW: localStorage utility for saving/loading/clearing listing drafts (7-day expiry)
+- `bulletin-board-frontend/src/app/(main)/listings/new/page.tsx` — Added Save Draft button, draft load-on-mount, draft loaded banner with discard option, ConfirmModal for save confirmation, clear draft on successful submission
+- `bulletin-board-frontend/src/app/(main)/messages/page.tsx` — Fixed green Offer button onClick to always show tutorial carousel (was a dead TODO branch after first completion)
+
+**Details:**
+1. **Save Draft:** Users can now click "Save Draft" at the bottom of the new offer form. A confirmation modal explains that form data (except photos) will be saved and auto-restored on next visit. Drafts are stored in localStorage with a 7-day expiry. When a draft exists, a blue banner appears at the top with a "Discard" option. Drafts are auto-cleared on successful listing submission.
+2. **Offer Button Fix:** The green Offer button's onClick had `if (!hasCompleted) { show tutorial } else { // TODO }` — after the tutorial completed once, subsequent clicks did nothing. Changed to always show the tutorial (resetting completion state first), matching the adjacent help button's existing behavior.
+
+**Next Steps:**
+- When backend offer API routes are built, replace the tutorial-only behavior with actual offer form
+- Consider adding auto-save (debounced) for drafts in the future
+
+**Status:** COMPLETED
+
+---
