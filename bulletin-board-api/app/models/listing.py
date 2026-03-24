@@ -66,7 +66,7 @@ class Category(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     # Relationships
-    listings = relationship("Listing", back_populates="category", lazy="selectin")
+    listings = relationship("Listing", back_populates="category", lazy="noload")
 
 
 class Listing(Base, TimestampMixin):
@@ -167,4 +167,4 @@ class ListingPhoto(Base):
     )
 
     # Relationships
-    listing = relationship("Listing", back_populates="photos")
+    listing = relationship("Listing", back_populates="photos", lazy="noload")

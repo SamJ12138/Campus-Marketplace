@@ -110,7 +110,7 @@ class RefreshToken(Base):
     )
 
     # Relationships
-    user = relationship("User", back_populates="refresh_tokens")
+    user = relationship("User", back_populates="refresh_tokens", lazy="noload")
 
 
 class EmailVerification(Base):
@@ -136,4 +136,4 @@ class EmailVerification(Base):
     )
 
     # Relationships
-    user = relationship("User", back_populates="email_verifications")
+    user = relationship("User", back_populates="email_verifications", lazy="noload")

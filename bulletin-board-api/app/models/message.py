@@ -90,6 +90,6 @@ class Message(Base):
     )
 
     # Relationships
-    thread = relationship("MessageThread", back_populates="messages")
+    thread = relationship("MessageThread", back_populates="messages", lazy="noload")
     sender = relationship("User", lazy="selectin")
     listing = relationship("Listing", lazy="selectin")

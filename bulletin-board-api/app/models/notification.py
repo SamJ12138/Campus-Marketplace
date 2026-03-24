@@ -72,4 +72,4 @@ class NotificationPreference(Base, TimestampMixin):
     )
 
     # Relationships
-    user = relationship("User", back_populates="notification_preferences")
+    user = relationship("User", back_populates="notification_preferences", lazy="noload")
