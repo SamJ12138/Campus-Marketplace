@@ -22,11 +22,12 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
+  const emailParam = searchParams.get("email") || "";
 
   const [state, setState] = useState<VerifyState>(token ? "verifying" : "idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [resendEmail, setResendEmail] = useState("");
+  const [resendEmail, setResendEmail] = useState(emailParam);
   const [resendStatus, setResendStatus] = useState<
     "idle" | "sending" | "sent" | "error"
   >("idle");
@@ -142,21 +143,43 @@ function VerifyEmailContent() {
         {/* Idle: no token in URL */}
         {state === "idle" && (
           <div className="flex flex-col items-center gap-4 py-8">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <MailCheck className="h-8 w-8 text-primary" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-lg font-medium">Check your email</p>
-              <p className="text-sm text-muted-foreground">
-                {t.auth.verifyEmailMessage}
-              </p>
-            </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-              <p className="font-medium">Can&apos;t find the email?</p>
-              <p className="mt-1 text-amber-700 dark:text-amber-300">
-                Check your spam or junk folder. University email filters may flag verification emails.
-              </p>
-            </div>
+            {emailParam ? (
+              <>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                  <CheckCircle2 className="h-8 w-8 text-success" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-lg font-medium">Account created!</p>
+                  <p className="text-sm text-muted-foreground">
+                    We sent a verification link to{" "}
+                    <span className="font-medium text-foreground">{emailParam}</span>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <MailCheck className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-lg font-medium">Check your email</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t.auth.verifyEmailMessage}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Spam/junk folder warning — shown on idle and error states */}
+        {(state === "idle" || state === "error") && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+            <p className="font-medium">Can&apos;t find the email?</p>
+            <p className="mt-1 text-amber-700 dark:text-amber-300">
+              Check your spam or junk folder. University email filters
+              may flag verification emails.
+            </p>
           </div>
         )}
 
@@ -169,7 +192,7 @@ function VerifyEmailContent() {
 
             {resendStatus === "sent" ? (
               <div className="rounded-md bg-success/10 px-3 py-2 text-sm text-success">
-                Verification email sent. Check your inbox.
+                Verification email sent! Check your inbox and spam/junk folder.
               </div>
             ) : (
               <div className="flex gap-2">

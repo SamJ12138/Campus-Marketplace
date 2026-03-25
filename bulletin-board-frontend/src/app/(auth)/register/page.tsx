@@ -204,7 +204,10 @@ function RegisterContent() {
         registerPhone,
         registerNotifPrefs,
       );
-      router.push(redirectTo ? `/verify-email?redirect=${encodeURIComponent(redirectTo)}` : "/verify-email");
+      const verifyParams = new URLSearchParams();
+      verifyParams.set("email", registerEmail);
+      if (redirectTo) verifyParams.set("redirect", redirectTo);
+      router.push(`/verify-email?${verifyParams.toString()}`);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === "network_error") {

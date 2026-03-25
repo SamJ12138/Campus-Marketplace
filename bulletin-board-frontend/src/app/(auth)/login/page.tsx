@@ -82,9 +82,26 @@ function LoginContent() {
 
         {/* Server Error */}
         {serverError && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {serverError}
-          </div>
+          serverError.toLowerCase().includes("verify") ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-medium">Email not verified</p>
+              <p className="mt-1 text-amber-700 dark:text-amber-300">
+                Please verify your email before logging in.
+                Didn&apos;t get the email? Check your spam folder or{" "}
+                <Link
+                  href={`/verify-email${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                  className="font-medium underline hover:text-amber-900 dark:hover:text-amber-100"
+                >
+                  resend verification
+                </Link>
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {serverError}
+            </div>
+          )
         )}
 
         {/* Form */}
