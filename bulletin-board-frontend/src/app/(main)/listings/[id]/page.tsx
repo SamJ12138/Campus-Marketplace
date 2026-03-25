@@ -489,7 +489,7 @@ export default function ListingDetailPage() {
   if (!listing) return <NotFound />;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6 pb-36 md:pb-6">
       {/* Structured data for SEO */}
       <ListingSchema listing={listing} />
 
@@ -793,6 +793,43 @@ export default function ListingDetailPage() {
           onConfirm={handleMarkSold}
           onCancel={() => setConfirmSold(false)}
         />
+      )}
+
+      {/* Mobile sticky CTA bar */}
+      {!listing.is_own && listing.status !== "sold" && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/50 glass-strong px-4 py-3 md:hidden"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+        >
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            {listing.price_hint && (
+              <p className="flex-shrink-0 text-lg font-bold text-foreground">
+                {formatPrice(listing.price_hint)}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => requireAuth(() => router.push(`/messages?listing=${listing.id}`))}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:brightness-110"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Message Seller
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              aria-label={listing.is_favorited ? t.listings.removeFavorite : t.listings.saveFavorite}
+              className={cn(
+                "flex-shrink-0 rounded-xl p-3 transition-colors",
+                listing.is_favorited
+                  ? "bg-rose-50 text-rose-500 dark:bg-rose-500/10"
+                  : "bg-background/50 text-muted-foreground",
+              )}
+            >
+              <Heart className={cn("h-5 w-5", listing.is_favorited && "fill-current")} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

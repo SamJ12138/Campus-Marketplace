@@ -75,7 +75,7 @@ export default function FilterBar({
   );
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 border-b border-border/50 glass-strong px-4">
+    <div className="sticky top-16 z-20 -mx-4 border-b border-border/50 glass-strong px-4">
       <div
         ref={scrollRef}
         className={cn(

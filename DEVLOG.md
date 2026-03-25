@@ -1340,3 +1340,42 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 **Status:** COMPLETED
 
 ---
+
+### Session – 2025-03-25: Email System Fix + Signup Conversion + Test User Cleanup
+
+**Problem:**
+1. Email verification emails arriving very late (next day) for new users
+2. No email notifications sent via Resend when users message each other
+3. Signup-to-verified conversion rate suffering from UX gaps
+
+**Root Causes Found:**
+- ARQ worker (responsible for sending message notifications) was never deployed on Render — only the API service was running
+- `send_email()` return value was ignored in worker tasks: failed sends were silently marked as "sent" and permanently discarded
+- 4 places in `tasks.py` used `frontend_url` (raw comma-separated string) instead of `primary_frontend_url`, producing broken email links
+- Worker's `render.yaml` section was missing `FRONTEND_URL` and `APP_URL` env vars entirely
+- Registration page didn't pass email to verify-email page, leaving resend form empty
+
+**Changes:**
+
+*Backend — MODIFIED:*
+- `app/api/v1/messages.py` — Replaced worker-dependent Redis batcher with direct email sending via FastAPI BackgroundTasks. Added Redis rate limiting (1 email per thread per 10 min). Eliminated ARQ worker dependency for message notifications.
+- `app/api/v1/auth.py` — Enhanced `_send_email_background` to log `send_email_sync` return value (previously fire-and-forget)
+- `app/workers/tasks.py` — Fixed silent data loss: check `send_email()` return before marking sent. Fixed 4× `frontend_url` → `primary_frontend_url`
+- `app/workers/main.py` — Added startup config validation logging to surface misconfig in worker logs
+- `app/main.py` — Added `/health/email` diagnostic endpoint showing provider, config, and detected issues
+- `render.yaml` — Added `FRONTEND_URL` and `APP_URL` env vars to worker service
+- `docker-compose.yml` — Added ARQ worker service for local testing
+
+*Frontend — MODIFIED:*
+- `src/app/(auth)/register/page.tsx` — Pass email as URL param when redirecting to verify-email page
+- `src/app/(auth)/verify-email/page.tsx` — Pre-fill resend form from email param, show "Account created!" banner, spam warning on error state too, resend success mentions spam/junk
+- `src/app/(auth)/login/page.tsx` — Show amber resend-verification link instead of generic red error when user hasn't verified email
+
+**Testing:**
+- 28/28 live tests passed on production (registration, verification, login flows)
+- 4 test users created and cleaned up from production DB (testbot9999, alice.smith2026, bob.jones2027, charlie.doe2025 @gettysburg.edu)
+- Resend portal confirmed: all test emails correctly bounced/suppressed (fake addresses, system working as expected)
+
+**Status:** COMPLETED
+
+---

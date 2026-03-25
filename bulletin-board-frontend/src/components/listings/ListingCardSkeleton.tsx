@@ -18,27 +18,30 @@ export default function ListingCardSkeleton() {
     <div className="flex flex-col overflow-hidden rounded-2xl border border-border/50 glass">
       <div className="relative aspect-[4/3] w-full">
         <Skeleton className="h-full w-full rounded-none" />
-        <Skeleton className="absolute bottom-2 left-2 h-7 w-20 rounded-xl" />
+        <Skeleton className="hidden sm:block absolute bottom-2 left-2 h-7 w-20 rounded-xl" />
         <Skeleton className="absolute right-2 top-2 h-6 w-16 rounded-full" />
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <Skeleton className="h-4 w-full rounded-lg" />
-        <Skeleton className="h-4 w-3/4 rounded-lg" />
+      <div className="flex flex-1 flex-col gap-1.5 sm:gap-2.5 p-2.5 sm:p-4">
+        {/* Mobile price skeleton */}
+        <Skeleton className="h-4 w-16 rounded-lg sm:hidden" />
 
-        <div className="flex items-center gap-1.5">
+        <Skeleton className="h-4 w-full rounded-lg" />
+        <Skeleton className="hidden sm:block h-4 w-3/4 rounded-lg" />
+
+        <div className="hidden sm:flex items-center gap-1.5">
           <Skeleton className="h-3 w-3 rounded-full" />
           <Skeleton className="h-3 w-24 rounded-lg" />
         </div>
 
-        <div className="mt-auto flex items-center gap-2 pt-1">
+        <div className="hidden sm:flex mt-auto items-center gap-2 pt-1">
           <Skeleton className="h-6 w-6 rounded-full" />
           <Skeleton className="h-3 w-20 rounded-lg" />
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/50 pt-2.5">
-          <Skeleton className="h-3.5 w-16 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-full" />
+        <div className="flex items-center justify-between border-t border-border/50 pt-1.5 sm:pt-2.5">
+          <Skeleton className="hidden sm:block h-3.5 w-16 rounded-lg" />
+          <Skeleton className="ml-auto sm:ml-0 h-8 w-8 rounded-full" />
         </div>
       </div>
     </div>

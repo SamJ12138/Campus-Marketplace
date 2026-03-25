@@ -565,7 +565,7 @@ function FeedContent() {
       {/* Page header + search + view toggle */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{pageTitle}</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-foreground">{pageTitle}</h1>
           {user?.campus_name && (
             <p className="text-sm text-muted-foreground">{user.campus_name}</p>
           )}
@@ -573,7 +573,7 @@ function FeedContent() {
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
+          <div className="hidden sm:flex items-center rounded-lg border border-border bg-card p-0.5">
             <button
               type="button"
               onClick={() => handleViewModeChange("grid")}

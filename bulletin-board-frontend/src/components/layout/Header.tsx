@@ -38,6 +38,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -202,6 +203,14 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 md:ml-0">
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen((v) => !v)}
+            className="rounded-xl p-2.5 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary md:hidden"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -319,6 +328,21 @@ export function Header() {
           )}
         </div>
       </div>
+      {mobileSearchOpen && (
+        <div className="border-t border-border/50 px-4 pb-3 md:hidden">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={searchValue}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search listings..."
+              autoFocus
+              className="h-10 w-full rounded-xl border-2 border-border/50 bg-background/50 pl-10 pr-4 text-base placeholder:text-muted-foreground/60 transition-all duration-200 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-background"
+            />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -169,7 +169,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
             src={thumbnailUrl}
             alt={listing.title}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             loading="lazy"
             unoptimized={thumbnailUrl.includes('r2.dev') || undefined}
@@ -191,22 +191,22 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
 
         <div className="absolute left-2 top-2 flex flex-col gap-1.5">
           {isJustPosted && (
-            <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md animate-wiggle-slow">
+            <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 py-0.5 text-[9px] sm:px-2.5 sm:py-1 sm:text-[11px] font-semibold text-white shadow-md animate-wiggle-slow">
               <Sparkles className="h-3 w-3" />
-              Just posted
+              <span className="hidden sm:inline">Just posted</span>
             </span>
           )}
           {isPopular && (
-            <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md">
+            <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] sm:px-2.5 sm:py-1 sm:text-[11px] font-semibold text-white shadow-md">
               <TrendingUp className="h-3 w-3" />
-              Popular
+              <span className="hidden sm:inline">Popular</span>
             </span>
           )}
         </div>
 
         <span
           className={cn(
-            "absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-semibold shadow-md",
+            "absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-semibold shadow-md",
             listing.type === "service"
               ? "bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] text-white"
               : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
@@ -216,7 +216,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         </span>
 
         {listing.price_hint && (
-          <span className="absolute bottom-2 left-2 rounded-xl bg-foreground/90 px-3 py-1.5 text-sm font-bold text-background shadow-lg backdrop-blur-sm">
+          <span className="hidden sm:block absolute bottom-2 left-2 rounded-xl bg-foreground/90 px-3 py-1.5 text-sm font-bold text-background shadow-lg backdrop-blur-sm">
             {formatPrice(listing.price_hint)}
           </span>
         )}
@@ -243,7 +243,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               onClick={handlePhotoPrev}
               aria-label="Previous photo"
               className={cn(
-                "absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
+                "hidden sm:block absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
                 "opacity-0 transition-opacity duration-200 group-hover:opacity-100",
                 "hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
               )}
@@ -255,7 +255,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
               onClick={handlePhotoNext}
               aria-label="Next photo"
               className={cn(
-                "absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
+                "hidden sm:block absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white backdrop-blur-sm",
                 "opacity-0 transition-opacity duration-200 group-hover:opacity-100",
                 "hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
               )}
@@ -287,19 +287,24 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-2 text-sm font-semibold font-display leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
+      <div className="flex flex-1 flex-col gap-1.5 sm:gap-2 p-2.5 sm:p-4">
+        {listing.price_hint && (
+          <p className="text-sm font-bold text-foreground sm:hidden">
+            {formatPrice(listing.price_hint)}
+          </p>
+        )}
+        <h3 className="line-clamp-1 sm:line-clamp-2 text-xs sm:text-sm font-semibold font-display leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
           {listing.title}
         </h3>
 
         {listing.location_hint && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3 flex-shrink-0 text-primary/60" />
             <span className="truncate">{listing.location_hint}</span>
           </div>
         )}
 
-        <div className="mt-auto flex items-center gap-2 pt-1">
+        <div className="hidden sm:flex mt-auto items-center gap-2 pt-1">
           {listing.user.avatar_url && !avatarError ? (
             <Image
               src={listing.user.avatar_url}
@@ -320,8 +325,8 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
           </span>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center justify-between border-t border-border/50 pt-1.5 sm:pt-2.5 text-xs text-muted-foreground">
+          <span className="hidden sm:flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {timeAgo}
           </span>
@@ -335,7 +340,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
                 : t.listings.saveFavorite
             }
             className={cn(
-              "rounded-full p-2 transition-all duration-200 ease-spring",
+              "ml-auto sm:ml-0 rounded-full p-2 transition-all duration-200 ease-spring",
               "hover:bg-rose-50 dark:hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400",
               listing.is_favorited ? "text-rose-500" : "text-muted-foreground hover:text-rose-400",
               toggleFavorite.isPending && "opacity-50 cursor-not-allowed",

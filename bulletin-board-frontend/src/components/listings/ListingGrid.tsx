@@ -22,7 +22,7 @@ export default function ListingGrid({
   // Legacy children-only usage (skeletons)
   if (children) {
     return (
-      <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid auto-rows-fr grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {children}
       </div>
     );
@@ -45,8 +45,8 @@ export default function ListingGrid({
   return (
     <div
       className={cn(
-        "grid gap-4",
-        "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+        "grid gap-2.5 sm:gap-4",
+        "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
         // Featured first card spans 2 cols + 2 rows on lg+
         listings.length > 0 &&
           "[&>*:first-child]:lg:col-span-2 [&>*:first-child]:lg:row-span-2",
