@@ -59,6 +59,7 @@ async def shutdown(ctx):
 
 class WorkerSettings:
     functions = [
+        "app.workers.tasks.send_auth_email",
         "app.workers.tasks.send_email",
         "app.workers.tasks.generate_thumbnail",
         "app.workers.tasks.expire_listings",
@@ -101,3 +102,5 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
     max_jobs = 10
     job_timeout = 300
+    max_tries = 3
+    retry_delay = 5

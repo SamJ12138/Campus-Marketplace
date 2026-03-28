@@ -53,13 +53,13 @@ class EmailService:
             self._async_client = httpx.AsyncClient(
                 base_url="https://api.resend.com",
                 headers=resend_headers,
-                timeout=10.0,
+                timeout=settings.email_http_timeout,
             )
             # Sync client with connection pooling for BackgroundTasks threads
             self._sync_client = httpx.Client(
                 base_url="https://api.resend.com",
                 headers=resend_headers,
-                timeout=10.0,
+                timeout=settings.email_http_timeout,
             )
 
     async def send_email(

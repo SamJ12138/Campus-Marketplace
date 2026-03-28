@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
     email_from_address: str = "hello@gimme-dat.com"
     email_from_name: str = "GimmeDat"
+    email_http_timeout: float = 5.0  # seconds; Resend typically responds in <500ms
 
     # Platform Limits
     listing_expiry_days: int = 30

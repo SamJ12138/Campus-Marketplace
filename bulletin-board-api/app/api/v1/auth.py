@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -17,7 +18,7 @@ from app.core.security import (
     hash_token,
     verify_password,
 )
-from app.dependencies import get_db, get_redis
+from app.dependencies import get_arq_pool, get_db, get_redis
 from app.models.campus import Campus
 from app.models.notification import NotificationPreference
 from app.models.user import (
@@ -47,19 +48,22 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 
-def _send_email_background(
+def _send_email_background_sync(
     email_svc,
     to_email: str,
     subject: str,
     html_content: str,
     text_content: str | None,
 ) -> None:
-    """Send email in a background thread. Errors are logged, never raised."""
+    """Sync fallback: send email in a background thread. Errors are logged, never raised."""
     logger = logging.getLogger("app.auth")
     try:
         success = email_svc.send_email_sync(to_email, subject, html_content, text_content)
         if success:
-            logger.info("[AUTH-EMAIL] Sent '%s' to %s", subject, to_email)
+            logger.info(
+                "[AUTH-EMAIL] Sent '%s' to %s (BackgroundTasks fallback)",
+                subject, to_email,
+            )
         else:
             logger.error(
                 "[AUTH-EMAIL] send_email_sync returned False for '%s' to %s "
@@ -73,12 +77,49 @@ def _send_email_background(
         )
 
 
+async def _enqueue_auth_email(
+    arq_pool,
+    background_tasks: BackgroundTasks,
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str | None,
+) -> None:
+    """Enqueue auth email via ARQ worker. Falls back to BackgroundTasks if ARQ/Redis is down."""
+    logger = logging.getLogger("app.auth")
+
+    if arq_pool is not None:
+        try:
+            await arq_pool.enqueue_job(
+                "send_auth_email",
+                to_email,
+                subject,
+                html_content,
+                text_content,
+            )
+            logger.info("[AUTH-EMAIL] Enqueued '%s' to %s via ARQ", subject, to_email)
+            return
+        except Exception as e:
+            logger.warning(
+                "[AUTH-EMAIL] ARQ enqueue failed (%s), falling back to BackgroundTasks", e,
+            )
+
+    # Fallback: use in-process BackgroundTasks (same as previous behavior)
+    email_svc = get_email_service(settings)
+    background_tasks.add_task(
+        _send_email_background_sync,
+        email_svc, to_email, subject, html_content, text_content,
+    )
+    logger.info("[AUTH-EMAIL] Fell back to BackgroundTasks for '%s' to %s", subject, to_email)
+
+
 @router.post("/register", status_code=201)
 async def register(
     data: RegisterRequest,
     request: Request,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    arq_pool=Depends(get_arq_pool),
 ):
     """Register a new user account."""
     # Auto-generate display_name from email if not provided
@@ -108,7 +149,7 @@ async def register(
     user = User(
         campus_id=campus.id,
         email=data.email.lower(),
-        password_hash=hash_password(data.password),
+        password_hash=await asyncio.to_thread(hash_password, data.password),
         display_name=data.display_name,
         class_year=data.class_year,
         phone_number=data.phone_number,
@@ -150,17 +191,14 @@ async def register(
             "user_id": str(user.id),
         }
 
-    # Send verification email in background (non-blocking — user gets instant response)
+    # Send verification email via ARQ worker (fast, async, with retry)
     verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
     html_content, text_content = verification_email(verify_url, user.display_name)
-    email_svc = get_email_service(settings)
-    background_tasks.add_task(
-        _send_email_background,
-        email_svc,
+    await _enqueue_auth_email(
+        arq_pool, background_tasks,
         user.email,
         "Welcome to Gimme Dat - Verify your email",
-        html_content,
-        text_content,
+        html_content, text_content,
     )
 
     return {
@@ -345,6 +383,7 @@ async def resend_verification(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
+    arq_pool=Depends(get_arq_pool),
 ):
     """Resend verification email."""
     # Rate limit
@@ -373,14 +412,11 @@ async def resend_verification(
 
     verify_url = f"{settings.primary_frontend_url}/verify-email?token={raw_token}"
     html_content, text_content = resend_verification_email(verify_url)
-    email_svc = get_email_service(settings)
-    background_tasks.add_task(
-        _send_email_background,
-        email_svc,
+    await _enqueue_auth_email(
+        arq_pool, background_tasks,
         user.email,
         "Verify your Gimme Dat email",
-        html_content,
-        text_content,
+        html_content, text_content,
     )
 
     return {"message": "If an account exists, a verification email has been sent."}
@@ -392,6 +428,7 @@ async def forgot_password(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
+    arq_pool=Depends(get_arq_pool),
 ):
     """Request password reset. Always returns success to not leak email existence."""
     key = f"rate:forgot:{data.email.lower()}"
@@ -416,14 +453,11 @@ async def forgot_password(
 
         reset_url = f"{settings.primary_frontend_url}/reset-password?token={raw_token}"
         html_content, text_content = password_reset_email(reset_url)
-        email_svc = get_email_service(settings)
-        background_tasks.add_task(
-            _send_email_background,
-            email_svc,
+        await _enqueue_auth_email(
+            arq_pool, background_tasks,
             user.email,
             "Reset your Gimme Dat password",
-            html_content,
-            text_content,
+            html_content, text_content,
         )
 
     return {"message": "If an account exists, a password reset email has been sent."}
@@ -454,7 +488,7 @@ async def reset_password(
     if not user:
         raise HTTPException(400, "Invalid token")
 
-    user.password_hash = hash_password(data.new_password)
+    user.password_hash = await asyncio.to_thread(hash_password, data.new_password)
     verification.used_at = datetime.now(timezone.utc)
 
     # Revoke all refresh tokens for security

@@ -26,6 +26,35 @@ async def send_sms(ctx, to: str, message: str):
         )
 
 
+async def send_auth_email(
+    ctx,
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str | None = None,
+):
+    """Send an auth-critical email (verification, password reset) via ARQ.
+
+    Raises on failure so ARQ retries the job (max_tries configured in WorkerSettings).
+    """
+    import logging
+
+    logger = logging.getLogger("app.worker.auth_email")
+
+    from app.services.email_service import get_email_service
+
+    email_svc = get_email_service(ctx["settings"])
+    success = await email_svc.send_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=html_content,
+        text_content=text_content,
+    )
+    if not success:
+        raise RuntimeError(f"Email delivery failed for '{subject}' to {to_email}")
+    logger.info("[AUTH-EMAIL] Sent '%s' to %s via ARQ", subject, to_email)
+
+
 async def send_email(ctx, email_type: str, recipient_email: str, data: dict):
     """Send transactional email via the shared EmailService (supports all providers)."""
     templates = {
