@@ -301,7 +301,7 @@ function RegisterContent() {
                     "disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                 />
-                <span className="flex items-center border-l border-input bg-muted px-3 text-sm text-muted-foreground select-none whitespace-nowrap">
+                <span className="flex items-center border-l border-input bg-muted px-2 text-xs text-muted-foreground select-none whitespace-nowrap sm:px-3 sm:text-sm">
                   @gettysburg.edu
                 </span>
               </div>

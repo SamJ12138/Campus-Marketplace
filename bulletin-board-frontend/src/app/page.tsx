@@ -52,7 +52,7 @@ const VALUE_PILLS = [
 
 function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-5 py-20">
+    <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 py-16 sm:px-5 sm:py-20">
       {/* Gradient background */}
       <div
         className="pointer-events-none absolute inset-0 -z-10"
@@ -66,7 +66,7 @@ function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
 
       <div className="mx-auto max-w-3xl text-center">
         {/* Headline */}
-        <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
+        <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
           Your campus has a black market.{" "}
           <span className="bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
             (A legal one.)
@@ -74,18 +74,18 @@ function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
         </h1>
 
         {/* Subhead */}
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+        <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-xl">
           <strong className="text-foreground">GimmeDat</strong> is where
           Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
           haircuts, you name it. No fees. No randos. Just your campus.
         </p>
 
         {/* Value pills */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 sm:gap-3">
           {VALUE_PILLS.map((pill) => (
             <span
               key={pill.text}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
             >
               <pill.icon className="h-4 w-4 text-primary" />
               {pill.text}
@@ -114,7 +114,10 @@ function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+      <div
+        className="absolute left-1/2 -translate-x-1/2 animate-bounce"
+        style={{ bottom: "max(2rem, env(safe-area-inset-bottom, 0px) + 1rem)" }}
+      >
         <button
           onClick={() =>
             window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
@@ -203,7 +206,7 @@ function SignupNudge() {
     >
       <div
         ref={dialogRef}
-        className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-6 shadow-2xl"
+        className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-5 shadow-2xl sm:p-6 max-h-[90dvh] overflow-y-auto"
       >
         {/* Close */}
         <button
@@ -215,7 +218,7 @@ function SignupNudge() {
         </button>
 
         {/* Slide content */}
-        <div className="relative min-h-[220px] flex items-center justify-center overflow-hidden">
+        <div className="relative min-h-[180px] flex items-center justify-center overflow-hidden sm:min-h-[220px]">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={slide}
