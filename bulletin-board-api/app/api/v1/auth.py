@@ -10,10 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user
 from app.config import get_settings
-from app.core.rate_limit import check_login_rate_limit
+from app.core.rate_limit import (
+    check_code_request_rate_limit,
+    check_code_verify_rate_limit,
+    check_login_rate_limit,
+)
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    generate_verification_code,
     hash_password,
     hash_token,
     verify_password,
@@ -29,16 +34,20 @@ from app.models.user import (
     UserStatus,
 )
 from app.schemas.auth import (
+    CodeResponse,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    RequestCodeRequest,
     ResetPasswordRequest,
     TokenResponse,
+    VerifyCodeRequest,
     VerifyEmailRequest,
 )
 from app.services.email_service import get_email_service
 from app.services.email_templates import (
+    login_code_email,
     password_reset_email,
     resend_verification_email,
     verification_email,
@@ -501,3 +510,242 @@ async def reset_password(
     await db.commit()
 
     return {"message": "Password reset successful. Please log in."}
+
+
+# ---- Passwordless (code-based) auth ----
+
+
+@router.post("/request-code", response_model=CodeResponse)
+async def request_code(
+    data: RequestCodeRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    arq_pool=Depends(get_arq_pool),
+):
+    """Send a 6-digit verification code to the user's Gettysburg email."""
+    email = f"{data.username.lower()}@gettysburg.edu"
+    expire_minutes = settings.auth_code_expire_minutes
+
+    await check_code_request_rate_limit(redis, email)
+
+    # Generate code
+    raw_code, code_hash = generate_verification_code()
+
+    user = await db.scalar(select(User).where(User.email == email))
+
+    if user:
+        # Invalidate any existing unused login codes for this user
+        await db.execute(
+            update(EmailVerification)
+            .where(
+                EmailVerification.user_id == user.id,
+                EmailVerification.purpose == EmailVerificationPurpose.LOGIN_CODE,
+                EmailVerification.used_at.is_(None),
+            )
+            .values(used_at=datetime.now(timezone.utc))
+        )
+
+        # Create new verification record
+        verification = EmailVerification(
+            user_id=user.id,
+            email=email,
+            token_hash=code_hash,
+            purpose=EmailVerificationPurpose.LOGIN_CODE,
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(minutes=expire_minutes),
+        )
+        db.add(verification)
+        await db.commit()
+
+        display_name = user.display_name or data.username
+    else:
+        # Store pending signup code in Redis (no orphan DB rows)
+        await redis.set(
+            f"pending_signup_code:{email}",
+            code_hash,
+            ex=expire_minutes * 60,
+        )
+        await redis.set(
+            f"pending_signup_attempts:{email}",
+            "0",
+            ex=expire_minutes * 60,
+        )
+        display_name = data.username
+
+    # Send code email
+    if settings.email_provider == "console":
+        print(f"[DEV] Login code for {email}: {raw_code}")
+    html_content, text_content = login_code_email(raw_code, display_name)
+    await _enqueue_auth_email(
+        arq_pool,
+        background_tasks,
+        email,
+        "Your GimmeDat sign-in code",
+        html_content,
+        text_content,
+    )
+
+    # Always return same response (prevents email enumeration)
+    return CodeResponse(
+        message="If this is a valid Gettysburg email, a code has been sent.",
+        expires_in=expire_minutes * 60,
+    )
+
+
+@router.post("/verify-code", response_model=TokenResponse)
+async def verify_code(
+    data: VerifyCodeRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """Verify a 6-digit code and issue tokens. Handles both signup and login."""
+    email = f"{data.username.lower()}@gettysburg.edu"
+    client_ip = request.client.host if request.client else "unknown"
+    max_attempts = settings.auth_code_max_attempts
+
+    await check_code_verify_rate_limit(redis, client_ip)
+
+    user = await db.scalar(select(User).where(User.email == email))
+
+    if user:
+        # --- Existing user: verify against DB ---
+        verification = await db.scalar(
+            select(EmailVerification)
+            .where(
+                EmailVerification.user_id == user.id,
+                EmailVerification.purpose
+                == EmailVerificationPurpose.LOGIN_CODE,
+                EmailVerification.used_at.is_(None),
+                EmailVerification.expires_at > datetime.now(timezone.utc),
+            )
+            .order_by(EmailVerification.created_at.desc())
+            .limit(1)
+        )
+
+        if not verification:
+            raise HTTPException(400, "Invalid or expired code")
+
+        if verification.attempt_count >= max_attempts:
+            raise HTTPException(
+                400, "Too many attempts. Please request a new code."
+            )
+
+        verification.attempt_count += 1
+
+        if hash_token(data.code) != verification.token_hash:
+            await db.commit()  # persist incremented attempt_count
+            raise HTTPException(400, "Invalid code")
+
+        # Code matches
+        verification.used_at = datetime.now(timezone.utc)
+        user.email_verified = True
+
+    else:
+        # --- New user: verify against Redis ---
+        stored_hash = await redis.get(f"pending_signup_code:{email}")
+        if not stored_hash:
+            raise HTTPException(400, "Invalid or expired code")
+
+        stored_hash = (
+            stored_hash.decode()
+            if isinstance(stored_hash, bytes)
+            else stored_hash
+        )
+
+        # Check attempts
+        attempts_raw = await redis.get(
+            f"pending_signup_attempts:{email}"
+        )
+        attempts = int(attempts_raw) if attempts_raw else 0
+        if attempts >= max_attempts:
+            raise HTTPException(
+                400, "Too many attempts. Please request a new code."
+            )
+        await redis.incr(f"pending_signup_attempts:{email}")
+
+        if hash_token(data.code) != stored_hash:
+            raise HTTPException(400, "Invalid code")
+
+        # Code matches — create account
+        campus = await db.scalar(
+            select(Campus).where(Campus.slug == "gettysburg-college")
+        )
+        if not campus:
+            raise HTTPException(500, "Campus configuration error")
+
+        user = User(
+            campus_id=campus.id,
+            email=email,
+            password_hash=None,
+            display_name=data.username,
+            email_verified=True,
+        )
+        db.add(user)
+        await db.flush()
+
+        notification_prefs = NotificationPreference(
+            user_id=user.id,
+            email_messages=True,
+            email_listing_replies=True,
+            sms_messages=False,
+            sms_listing_replies=False,
+        )
+        db.add(notification_prefs)
+
+        # Clean up Redis keys
+        await redis.delete(
+            f"pending_signup_code:{email}",
+            f"pending_signup_attempts:{email}",
+        )
+
+    # --- Check user status (ban/suspension) ---
+    if user.status == UserStatus.BANNED:
+        await db.commit()
+        raise HTTPException(403, "Account has been banned")
+
+    if user.status == UserStatus.SUSPENDED:
+        if (
+            user.suspension_until
+            and user.suspension_until > datetime.now(timezone.utc)
+        ):
+            await db.commit()
+            raise HTTPException(
+                403,
+                f"Account suspended until "
+                f"{user.suspension_until.isoformat()}",
+            )
+        else:
+            user.status = UserStatus.ACTIVE
+            user.suspension_reason = None
+            user.suspension_until = None
+
+    # --- Issue tokens ---
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=timedelta(
+            minutes=settings.jwt_access_token_expire_minutes
+        ),
+    )
+    raw_refresh = create_refresh_token()
+
+    refresh = RefreshToken(
+        user_id=user.id,
+        token_hash=hash_token(raw_refresh),
+        device_info=request.headers.get("User-Agent", "")[:500],
+        ip_address=client_ip,
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=settings.jwt_refresh_token_expire_days),
+    )
+    db.add(refresh)
+
+    user.last_active_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=raw_refresh,
+        expires_in=settings.jwt_access_token_expire_minutes * 60,
+    )

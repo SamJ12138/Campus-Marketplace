@@ -86,3 +86,26 @@ export async function resetPassword(
 export async function getCampuses(): Promise<Campus[]> {
   return api.get<Campus[]>("/api/v1/campuses");
 }
+
+// ---- Passwordless (code-based) auth ----
+
+export async function requestCode(
+  username: string,
+): Promise<{ message: string; expires_in: number }> {
+  return api.post<{ message: string; expires_in: number }>(
+    "/api/v1/auth/request-code",
+    { username },
+    true,
+  );
+}
+
+export async function verifyCode(
+  username: string,
+  code: string,
+): Promise<TokenResponse> {
+  return api.post<TokenResponse>(
+    "/api/v1/auth/verify-code",
+    { username, code },
+    true,
+  );
+}

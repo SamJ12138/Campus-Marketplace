@@ -52,7 +52,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push("/register");
       return;
     }
     if (!isLoading && isAuthenticated && user && !isModOrAdmin) {

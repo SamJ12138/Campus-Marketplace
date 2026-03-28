@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import type { User } from "@/lib/types";
-import { login as apiLogin, register as apiRegister, logout as apiLogout } from "@/lib/api/auth";
+import {
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  requestCode as apiRequestCode,
+  verifyCode as apiVerifyCode,
+} from "@/lib/api/auth";
 import { getMe } from "@/lib/api/users";
 import { ApiError, setTokens, clearTokens, getAccessToken, getRefreshToken, restoreTokens } from "@/lib/api/client";
 
@@ -48,6 +54,8 @@ interface AuthActions {
     phone_number?: string,
     notification_preferences?: { notify_email: boolean; notify_sms: boolean },
   ) => Promise<{ message: string; user_id: string }>;
+  requestCode: (username: string) => Promise<{ message: string; expires_in: number }>;
+  verifyCode: (username: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -89,6 +97,19 @@ export const useAuthStore = create<AuthStore>((set, _get) => ({
       notification_preferences,
     );
     return result;
+  },
+
+  requestCode: async (username: string) => {
+    return apiRequestCode(username);
+  },
+
+  verifyCode: async (username: string, code: string) => {
+    const tokens = await apiVerifyCode(username, code);
+    setTokens(tokens.access_token, tokens.refresh_token);
+
+    const user = await getMe();
+    setCachedUser(user);
+    set({ user, isAuthenticated: true, isLoading: false });
   },
 
   logout: async () => {

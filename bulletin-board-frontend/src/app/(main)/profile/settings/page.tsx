@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  KeyRound,
   Loader2,
   Bell,
   ShieldOff,
@@ -16,8 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
-import { changePasswordSchema } from "@/lib/validation/auth";
-import { changePassword, deleteAccount, getNotificationPreferences, updateNotificationPreferences } from "@/lib/api/users";
+import { deleteAccount, getNotificationPreferences, updateNotificationPreferences } from "@/lib/api/users";
 import type { NotificationPreferences, DigestFrequency } from "@/lib/api/users";
 import { getBlockedUsers, unblockUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/client";
@@ -28,179 +26,6 @@ import { useUIStore } from "@/lib/stores/ui";
 import { resetOnboarding } from "@/lib/utils/onboarding";
 import { resetOfferTutorial } from "@/lib/utils/offer-tutorial";
 import { resetOfferPostingTutorial } from "@/lib/utils/offer-posting-tutorial";
-
-function ChangePasswordSection() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setErrors({});
-    setServerError(null);
-    setIsSuccess(false);
-
-    const result = changePasswordSchema.safeParse({
-      current_password: currentPassword,
-      new_password: newPassword,
-      confirm_new_password: confirmNewPassword,
-    });
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const key = String(issue.path[0]);
-        if (!fieldErrors[key]) {
-          fieldErrors[key] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await changePassword(
-        result.data.current_password,
-        result.data.new_password,
-      );
-      setIsSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setServerError(err.detail);
-      } else {
-        setServerError(t.errors.generic);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <KeyRound className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">Change password</h2>
-      </div>
-
-      {serverError && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {serverError}
-        </div>
-      )}
-      {isSuccess && (
-        <div className="rounded-lg border border-success/50 bg-success/10 px-3 py-2 text-sm text-success">
-          Password changed successfully.
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <div className="space-y-2">
-          <label
-            htmlFor="current_password"
-            className="text-sm font-medium"
-          >
-            Current password
-          </label>
-          <input
-            id="current_password"
-            type="password"
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            disabled={isSubmitting}
-            className={cn(
-              "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              errors.current_password ? "border-destructive" : "border-input",
-            )}
-          />
-          {errors.current_password && (
-            <p className="text-xs text-destructive">{errors.current_password}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="new_password" className="text-sm font-medium">
-            New password
-          </label>
-          <input
-            id="new_password"
-            type="password"
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            disabled={isSubmitting}
-            className={cn(
-              "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              errors.new_password ? "border-destructive" : "border-input",
-            )}
-          />
-          {errors.new_password && (
-            <p className="text-xs text-destructive">{errors.new_password}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="confirm_new_password"
-            className="text-sm font-medium"
-          >
-            Confirm new password
-          </label>
-          <input
-            id="confirm_new_password"
-            type="password"
-            autoComplete="new-password"
-            value={confirmNewPassword}
-            onChange={(e) => setConfirmNewPassword(e.target.value)}
-            disabled={isSubmitting}
-            className={cn(
-              "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-              errors.confirm_new_password
-                ? "border-destructive"
-                : "border-input",
-            )}
-          />
-          {errors.confirm_new_password && (
-            <p className="text-xs text-destructive">
-              {errors.confirm_new_password}
-            </p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={cn(
-            "inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2",
-            "text-sm font-medium text-primary-foreground",
-            "hover:bg-primary/90 transition-colors",
-            "disabled:pointer-events-none disabled:opacity-50",
-          )}
-        >
-          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Update password
-        </button>
-      </form>
-    </section>
-  );
-}
 
 function NotificationPreferencesSection() {
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
@@ -794,8 +619,6 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-10">
       <h1 className="text-2xl font-bold">{t.profile.settings}</h1>
 
-      <ChangePasswordSection />
-      <hr className="border-border" />
       <NotificationPreferencesSection />
       <hr className="border-border" />
       <BlockedUsersSection />

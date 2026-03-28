@@ -95,3 +95,29 @@ async def check_login_rate_limit(redis: Redis, email: str):
         settings.rate_limit_login_attempts,
         settings.rate_limit_login_window_seconds,
     )
+
+
+async def check_code_request_rate_limit(redis: Redis, email: str):
+    """Limit verification code requests to 3 per 5 minutes per email."""
+    if not settings.rate_limit_enabled:
+        return
+
+    await check_rate_limit(
+        redis,
+        f"rate:code_request:{email.lower()}",
+        3,
+        300,
+    )
+
+
+async def check_code_verify_rate_limit(redis: Redis, ip: str):
+    """Limit code verification attempts to 20 per 15 minutes per IP."""
+    if not settings.rate_limit_enabled:
+        return
+
+    await check_rate_limit(
+        redis,
+        f"rate:code_verify:{ip}",
+        20,
+        900,
+    )

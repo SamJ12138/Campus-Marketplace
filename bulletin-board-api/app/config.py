@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(..., min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
-    jwt_refresh_token_expire_days: int = 7
+    jwt_refresh_token_expire_days: int = 30
 
     # S3 Storage
     s3_endpoint_url: str | None = None  # For MinIO; None for real AWS
@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     rate_limit_login_window_seconds: int = 900  # 15 min
     rate_limit_listings_per_day: int = 5
     rate_limit_messages_per_hour: int = 50
+
+    # Passwordless auth
+    auth_code_expire_minutes: int = 10
+    auth_code_max_attempts: int = 5
 
     # New account restrictions (first N days)
     new_account_restriction_days: int = 7

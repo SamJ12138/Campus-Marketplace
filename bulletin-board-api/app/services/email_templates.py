@@ -166,6 +166,50 @@ GimmeDat - The student marketplace for services, items, and campus connections.
     return _base_template(content), plain_text
 
 
+def login_code_email(
+    code: str, display_name: str = "there"
+) -> tuple[str, str]:
+    """Generate a sign-in verification code email. Returns (html, plain_text)."""
+    safe_name = escape(display_name)
+    safe_code = escape(code)
+    content = f'''
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            Your sign-in code
+        </h1>
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            Hey {safe_name}, use this code to sign in to GimmeDat:
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 4px 0 24px 0;">
+                    <span style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1a1a2e; background-color: #f4f4f7; padding: 16px 32px; border-radius: 8px; font-family: monospace;">
+                        {safe_code}
+                    </span>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            This code expires in 10 minutes. If you did not request this, you can safely ignore this email.
+        </p>
+    '''
+
+    plain_text = f"""Your GimmeDat sign-in code
+
+Hey {display_name}, use this code to sign in to GimmeDat:
+
+{code}
+
+This code expires in 10 minutes. If you did not request this, you can safely ignore this email.
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
+
+
 def new_message_email(
     sender_name: str,
     listing_title: str,

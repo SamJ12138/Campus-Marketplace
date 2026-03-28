@@ -82,3 +82,24 @@ class ResetPasswordRequest(BaseModel):
         if not re.search(r"\d", v):
             raise ValueError("Password must contain digit")
         return v
+
+
+# ---- Passwordless (code-based) auth ----
+
+
+class RequestCodeRequest(BaseModel):
+    username: str = Field(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9._-]+$"
+    )
+
+
+class VerifyCodeRequest(BaseModel):
+    username: str = Field(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9._-]+$"
+    )
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class CodeResponse(BaseModel):
+    message: str
+    expires_in: int

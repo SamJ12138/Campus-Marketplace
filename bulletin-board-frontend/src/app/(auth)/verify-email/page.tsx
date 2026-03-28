@@ -42,7 +42,7 @@ function VerifyEmailContent() {
         await verifyEmail(verifyToken);
         setState("success");
         setTimeout(() => {
-          router.push("/login");
+          router.push("/register");
         }, 5000);
       } catch (err) {
         setState("error");
@@ -115,7 +115,7 @@ function VerifyEmailContent() {
                 Redirecting to login...
               </p>
               <a
-                href="/login"
+                href="/register"
                 className="text-sm font-medium text-primary hover:underline"
               >
                 Click here if not redirected
@@ -239,7 +239,7 @@ function VerifyEmailContent() {
         {/* Back to login */}
         <p className="text-center text-sm text-muted-foreground">
           <Link
-            href="/login"
+            href="/register"
             className="font-medium text-primary hover:underline"
           >
             Back to login

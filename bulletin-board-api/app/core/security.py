@@ -43,6 +43,12 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def generate_verification_code() -> tuple[str, str]:
+    """Generate a 6-digit verification code and its SHA256 hash."""
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    return code, hash_token(code)
+
+
 def decode_access_token(token: str) -> dict | None:
     settings = get_settings()
     try:

@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-03-28
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -1403,5 +1403,76 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 - Live testing: register (201), resend-verification (200), forgot-password (200) all working on production
 
 **Status:** COMPLETED
+
+---
+
+### Session — 2026-03-28: Passwordless Authentication (Email Code-Based)
+
+**Summary:** Replaced password-based signup/login with a passwordless 6-digit email code flow. Students enter their Gettysburg username, receive a code at their .edu email, enter the code, and are authenticated. One unified flow for both new signups and returning users. Devices remembered via 30-day refresh tokens.
+
+**Motivation:** Students already authenticate via @gettysburg.edu email with university-enforced strong passwords and periodic rotation. Requiring another password on GimmeDat was redundant friction hurting signups. The .edu email IS the identity — if you can access it, you're you.
+
+**Files Changed:**
+
+*Backend — NEW:*
+- `bulletin-board-api/alembic/versions/passwordless_auth.py` — Non-destructive migration: makes `users.password_hash` nullable, adds `LOGIN_CODE` to `email_verification_purpose` PostgreSQL enum, adds `attempt_count` column to `email_verifications` table
+
+*Backend — MODIFIED:*
+- `app/models/user.py` — Added `LOGIN_CODE = "login_code"` to `EmailVerificationPurpose` enum; changed `User.password_hash` to `Mapped[str | None]` (nullable); added `attempt_count: Mapped[int]` to `EmailVerification`
+- `app/schemas/auth.py` — Added `RequestCodeRequest`, `VerifyCodeRequest`, `CodeResponse` Pydantic schemas
+- `app/core/security.py` — Added `generate_verification_code()` returning (raw 6-digit code, SHA256 hash)
+- `app/core/rate_limit.py` — Added `check_code_request_rate_limit()` (3 per 5 min per email) and `check_code_verify_rate_limit()` (20 per 15 min per IP)
+- `app/services/email_templates.py` — Added `login_code_email(code, display_name)` template with large centered 6-digit code display
+- `app/api/v1/auth.py` — Added `POST /auth/request-code` (derives email from username, rate limits, generates code, stores in DB for existing users or Redis for new users, sends via ARQ with BackgroundTasks fallback) and `POST /auth/verify-code` (verifies code, tracks brute-force attempts, creates new users if needed, checks ban/suspension, issues JWT tokens). Old endpoints kept for backward compatibility
+- `app/config.py` — Added `auth_code_expire_minutes: int = 10`, `auth_code_max_attempts: int = 5`; changed `jwt_refresh_token_expire_days` from 7 to 30
+
+*Frontend — REWRITTEN:*
+- `src/app/(auth)/register/page.tsx` — Complete rewrite: unified two-step auth page (Step 1: username with fixed @gettysburg.edu suffix → Step 2: 6-digit code input with auto-submit, countdown timer, resend with 30s cooldown, back button). No password field, no terms checkbox. Handles both signup and login transparently
+- `src/app/(auth)/login/page.tsx` — Now redirects to `/register` (preserving `?redirect=` param)
+- `src/app/(auth)/forgot-password/page.tsx` — Now redirects to `/register`
+- `src/app/(auth)/reset-password/page.tsx` — Now redirects to `/register`
+
+*Frontend — MODIFIED:*
+- `src/app/(auth)/verify-email/page.tsx` — Updated all `/login` links to point to `/register`
+- `src/components/auth/ProtectedPage.tsx` — Redirects unauthenticated users to `/register` instead of `/login`
+- `src/app/(admin)/layout.tsx` — Redirects unauthenticated admin to `/register`
+- `src/app/(main)/profile/settings/page.tsx` — Removed `ChangePasswordSection` entirely (no more password UI), removed unused imports
+- `src/lib/validation/auth.ts` — Added `requestCodeSchema` and `verifyCodeSchema` (Zod)
+- `src/lib/api/auth.ts` — Added `requestCode(username)` and `verifyCode(username, code)` API functions
+- `src/lib/hooks/use-auth.ts` — Added `requestCode` and `verifyCode` actions to Zustand auth store
+- `src/lib/i18n/en.ts` — Updated auth section strings for passwordless flow
+
+**Security Measures:**
+| Measure | Detail |
+|---------|--------|
+| Brute-force | 5 attempts per code (DB `attempt_count`), then burned. 3 code requests per 5 min per email. 20 verify attempts per 15 min per IP |
+| Guessing odds | 5/1,000,000 = 0.0005% per code |
+| Email enumeration | Same response whether user exists or not |
+| Code expiry | 10 minutes |
+| One-time use | `used_at` timestamp checked before verification |
+| Device memory | 30-day refresh tokens (extended from 7 days) |
+| Trust anchor | University .edu email (institution-enforced security) |
+| Pending signups | Stored in Redis (not DB) to avoid orphan user rows |
+
+**Key Design Decisions:**
+- Unified flow: one page handles both signup and login — if user exists, code verifies and logs in; if not, code verifies, creates account, and logs in
+- Redis for pending signups: avoids creating DB user rows until code is verified (no orphans)
+- `password_hash` made nullable (not removed) so existing password-based users still work during transition
+- Old endpoints (`/login`, `/register`, `/forgot-password`, `/reset-password`) kept temporarily — no breaking API changes
+- Frontend `/login` route redirects to `/register` so all existing links continue to work
+
+**Testing:**
+- Frontend build passes (Next.js 15.5 production build clean)
+- Backend ruff lint passes on all modified files
+- Frontend eslint passes on all modified files
+
+**Next Steps:**
+- Run Alembic migration on production (`alembic upgrade head`)
+- Deploy backend to Render, frontend to Vercel
+- End-to-end testing on live site (new signup + returning login + rate limiting)
+- Follow-up: remove deprecated password endpoints and old auth page code once stable
+- Follow-up: remove `passwordRules` and password-dependent Zod schemas from validation
+
+**Status:** COMPLETED (pending deployment)
 
 ---

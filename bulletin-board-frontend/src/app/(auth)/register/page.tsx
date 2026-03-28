@@ -1,234 +1,148 @@
 "use client";
 
-import { Suspense, useState, useMemo, useEffect, type FormEvent } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Loader2, UserPlus, Check, X, Phone } from "lucide-react";
+import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { safeRedirect } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { registerSchema, registerSchemaSimple } from "@/lib/validation/auth";
+import { requestCodeSchema } from "@/lib/validation/auth";
 import { ApiError } from "@/lib/api/client";
-import { getCampuses } from "@/lib/api/auth";
-import type { Campus } from "@/lib/types";
 
-const MULTI_CAMPUS_MODE = false;
+type Step = "username" | "code";
 
-const FALLBACK_CAMPUSES: Campus[] = [
-  { id: "gettysburg-college", name: "Gettysburg College", domain: "gettysburg.edu", slug: "gettysburg-college", allow_non_edu: false },
-];
-
-const CLASS_YEARS = Array.from({ length: 12 }, (_, i) => 2024 + i);
-
-interface PasswordRule {
-  label: string;
-  test: (pw: string) => boolean;
-}
-
-const PASSWORD_RULES: PasswordRule[] = [
-  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { label: "One uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "One lowercase letter", test: (pw) => /[a-z]/.test(pw) },
-  { label: "One digit", test: (pw) => /[0-9]/.test(pw) },
-];
-
-function RegisterContent() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = safeRedirect(searchParams.get("redirect"), "");
-  const { register } = useAuth();
+  const { requestCode, verifyCode } = useAuth();
 
-  const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [campusesLoading, setCampusesLoading] = useState(MULTI_CAMPUS_MODE);
-
-  useEffect(() => {
-    if (!MULTI_CAMPUS_MODE) return;
-    getCampuses()
-      .then((data) => {
-        setCampuses(data.length > 0 ? data : FALLBACK_CAMPUSES);
-      })
-      .catch(() => setCampuses(FALLBACK_CAMPUSES))
-      .finally(() => setCampusesLoading(false));
-  }, []);
-
-  const [form, setForm] = useState({
-    username: "",       // Just the part before @gettysburg.edu (single-campus mode)
-    email: "",          // Full email (multi-campus mode only)
-    password: "",
-    display_name: "",
-    campus_slug: MULTI_CAMPUS_MODE ? "" : "gettysburg-college",
-    class_year: "" as string,
-    phone_number: "",
-    notify_email: true,
-    notify_sms: true,
-    accept_terms: MULTI_CAMPUS_MODE ? false : true,
-  });
+  const [step, setStep] = useState<Step>("username");
+  const [username, setUsername] = useState("");
+  const [code, setCode] = useState("");
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(0);
 
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const emailDomain = useMemo(() => {
-    if (!MULTI_CAMPUS_MODE) return "gettysburg.edu";
-    const parts = form.email.split("@");
-    return parts.length === 2 && parts[1] ? parts[1].toLowerCase() : null;
-  }, [form.email]);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredCampuses = useMemo(() => {
-    if (!emailDomain) return campuses;
-    return campuses.filter(
-      (c) => c.allow_non_edu === true || c.domain === emailDomain,
-    );
-  }, [campuses, emailDomain]);
-
-  const selectedCampus = useMemo(
-    () => campuses.find((c) => c.slug === form.campus_slug) ?? null,
-    [campuses, form.campus_slug],
-  );
-
-  // Reset campus selection if it's no longer in filtered list
+  // Countdown timer
   useEffect(() => {
-    if (
-      form.campus_slug &&
-      filteredCampuses.length > 0 &&
-      !filteredCampuses.some((c) => c.slug === form.campus_slug)
-    ) {
-      updateField("campus_slug", "");
-    }
-  }, [filteredCampuses, form.campus_slug]);
+    if (!expiresAt) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setCountdown(remaining);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
 
-  // Auto-select when exactly one campus matches
+  // Resend cooldown
   useEffect(() => {
-    if (filteredCampuses.length === 1 && form.campus_slug !== filteredCampuses[0].slug) {
-      updateField("campus_slug", filteredCampuses[0].slug);
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  // Auto-submit when 6 digits entered
+  useEffect(() => {
+    if (code.length === 6 && step === "code" && !isSubmitting) {
+      handleVerifyCode();
     }
-  }, [filteredCampuses, form.campus_slug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
-  const passwordChecks = useMemo(
-    () => PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(form.password) })),
-    [form.password],
-  );
-
-  const passwordStrength = useMemo(() => {
-    const metCount = passwordChecks.filter((c) => c.met).length;
-    if (metCount === 0) return 0;
-    return Math.round((metCount / PASSWORD_RULES.length) * 100);
-  }, [passwordChecks]);
-
-  function updateField(field: string, value: string | boolean) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  const handleRequestCode = useCallback(async (e?: FormEvent) => {
+    e?.preventDefault();
     setErrors({});
     setServerError(null);
 
-    const payload = {
-      ...form,
-      class_year: form.class_year ? Number(form.class_year) : null,
-      phone_number: form.phone_number || undefined,
-    };
-
-    // Validate and build register args based on mode
-    let registerEmail: string;
-    let registerPassword: string;
-    let registerDisplayName: string;
-    let registerCampusSlug: string;
-    let registerClassYear: number | undefined;
-    let registerPhone: string | undefined;
-    let registerNotifPrefs: { notify_email: boolean; notify_sms: boolean } | undefined;
-
-    if (MULTI_CAMPUS_MODE) {
-      const result = registerSchema.safeParse(payload);
-      if (!result.success) {
-        const fieldErrors: Record<string, string> = {};
-        for (const issue of result.error.issues) {
-          const key = String(issue.path[0]);
-          if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-        }
-        setErrors(fieldErrors);
-        return;
+    const result = requestCodeSchema.safeParse({ username: username.trim() });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const key = String(issue.path[0]);
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
-
-      // Client-side .edu domain check
-      if (selectedCampus && selectedCampus.allow_non_edu === false) {
-        const domain = result.data.email.split("@")[1]?.toLowerCase();
-        if (domain !== selectedCampus.domain) {
-          setErrors({ email: `You must use an @${selectedCampus.domain} email address for ${selectedCampus.name}` });
-          return;
-        }
-      }
-
-      registerEmail = result.data.email;
-      registerPassword = result.data.password;
-      registerDisplayName = result.data.display_name;
-      registerCampusSlug = result.data.campus_slug;
-      registerClassYear = result.data.class_year ?? undefined;
-      registerPhone = result.data.phone_number && result.data.phone_number !== "" ? result.data.phone_number : undefined;
-      registerNotifPrefs = { notify_email: result.data.notify_email, notify_sms: result.data.notify_sms };
-    } else {
-      const simplePayload = {
-        username: form.username.trim(),
-        password: form.password,
-        display_name: form.display_name,
-      };
-      const result = registerSchemaSimple.safeParse(simplePayload);
-      if (!result.success) {
-        const fieldErrors: Record<string, string> = {};
-        for (const issue of result.error.issues) {
-          const key = String(issue.path[0]);
-          if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-        }
-        setErrors(fieldErrors);
-        return;
-      }
-
-      registerEmail = `${result.data.username.toLowerCase()}@gettysburg.edu`;
-      registerPassword = result.data.password;
-      registerDisplayName = result.data.display_name || "";
-      registerCampusSlug = "gettysburg-college";
-      registerClassYear = undefined;
-      registerPhone = undefined;
-      registerNotifPrefs = undefined;
+      setErrors(fieldErrors);
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      await register(
-        registerEmail,
-        registerPassword,
-        registerDisplayName,
-        registerCampusSlug,
-        registerClassYear,
-        registerPhone,
-        registerNotifPrefs,
-      );
-      const verifyParams = new URLSearchParams();
-      verifyParams.set("email", registerEmail);
-      if (redirectTo) verifyParams.set("redirect", redirectTo);
-      router.push(`/verify-email?${verifyParams.toString()}`);
+      const resp = await requestCode(result.data.username);
+      setExpiresAt(Date.now() + resp.expires_in * 1000);
+      setCode("");
+      setStep("code");
+      setResendCooldown(30);
+      setTimeout(() => codeInputRef.current?.focus(), 100);
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.code === "network_error") {
-          setServerError("Unable to reach the server. Please check your internet connection and try again.");
-        } else {
-          setServerError(err.detail);
-        }
+        setServerError(err.detail);
       } else {
         setServerError(t.errors.generic);
       }
     } finally {
       setIsSubmitting(false);
     }
+  }, [username, requestCode]);
+
+  async function handleVerifyCode(e?: FormEvent) {
+    e?.preventDefault();
+    if (code.length !== 6) return;
+
+    setErrors({});
+    setServerError(null);
+    setIsSubmitting(true);
+
+    try {
+      await verifyCode(username.trim().toLowerCase(), code);
+      router.push(redirectTo || "/feed");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setServerError(err.detail);
+      } else {
+        setServerError(t.errors.generic);
+      }
+      setCode("");
+      codeInputRef.current?.focus();
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  async function handleResend() {
+    if (resendCooldown > 0) return;
+    setServerError(null);
+    setIsSubmitting(true);
+    try {
+      const resp = await requestCode(username.trim());
+      setExpiresAt(Date.now() + resp.expires_in * 1000);
+      setCode("");
+      setResendCooldown(30);
+      codeInputRef.current?.focus();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setServerError(err.detail);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -240,10 +154,19 @@ function RegisterContent() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              {t.auth.registerTitle}
+              {step === "username" ? "Welcome to GimmeDat" : "Check your email"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t.auth.registerSubtitle}
+              {step === "username"
+                ? "Enter your Gettysburg username to sign in or create an account"
+                : (
+                  <>
+                    We sent a 6-digit code to{" "}
+                    <span className="font-medium text-foreground">
+                      {username.trim().toLowerCase()}@gettysburg.edu
+                    </span>
+                  </>
+                )}
             </p>
           </div>
         </div>
@@ -255,31 +178,13 @@ function RegisterContent() {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email */}
-          <div className="space-y-2">
-            <label htmlFor={MULTI_CAMPUS_MODE ? "email" : "username"} className="text-sm font-medium leading-none">
-              {t.auth.emailLabel}
-            </label>
-            {MULTI_CAMPUS_MODE ? (
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={form.email}
-                onChange={(e) => updateField("email", e.target.value)}
-                placeholder="you@university.edu"
-                disabled={isSubmitting}
-                className={cn(
-                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                  "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                  errors.email ? "border-destructive" : "border-input",
-                )}
-              />
-            ) : (
+        {step === "username" ? (
+          /* ── Step 1: Username ── */
+          <form onSubmit={handleRequestCode} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-medium leading-none">
+                Gettysburg username
+              </label>
               <div
                 className={cn(
                   "flex h-10 w-full rounded-md border bg-background text-sm overflow-hidden",
@@ -291,8 +196,12 @@ function RegisterContent() {
                   id="username"
                   type="text"
                   autoComplete="username"
-                  value={form.username}
-                  onChange={(e) => updateField("username", e.target.value)}
+                  autoFocus
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setErrors({});
+                  }}
                   placeholder="you"
                   disabled={isSubmitting}
                   className={cn(
@@ -305,275 +214,35 @@ function RegisterContent() {
                   @gettysburg.edu
                 </span>
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {MULTI_CAMPUS_MODE
-                ? (selectedCampus && selectedCampus.allow_non_edu === false
-                    ? `Use your @${selectedCampus.domain} email address`
-                    : emailDomain && !form.campus_slug
-                      ? `Matching campuses for @${emailDomain}`
-                      : "Any email works")
-                : "Type just your Gettysburg username"}
-            </p>
-            {(errors.email || errors.username) && (
-              <p className="text-xs text-destructive">{errors.email || errors.username}</p>
-            )}
-          </div>
+              <p className="text-xs text-muted-foreground">
+                Type just your Gettysburg username
+              </p>
+              {errors.username && (
+                <p className="text-xs text-destructive">{errors.username}</p>
+              )}
+            </div>
 
-          {/* Password */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium leading-none">
-              {t.auth.passwordLabel}
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              value={form.password}
-              onChange={(e) => updateField("password", e.target.value)}
-              placeholder="Create a strong password"
+            <button
+              type="submit"
               disabled={isSubmitting}
               className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "placeholder:text-muted-foreground",
+                "inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2",
+                "text-sm font-medium text-primary-foreground",
+                "hover:bg-primary/90 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                errors.password ? "border-destructive" : "border-input",
+                "disabled:pointer-events-none disabled:opacity-50",
               )}
-            />
-            {errors.password && (
-              <p className="text-xs text-destructive">{errors.password}</p>
-            )}
-
-            {/* Strength Bar */}
-            {form.password.length > 0 && (
-              <div className="space-y-2">
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-300",
-                      passwordStrength <= 25 && "bg-destructive",
-                      passwordStrength > 25 && passwordStrength <= 50 && "bg-warning",
-                      passwordStrength > 50 && passwordStrength <= 75 && "bg-warning",
-                      passwordStrength > 75 && "bg-success",
-                    )}
-                    style={{ width: `${passwordStrength}%` }}
-                  />
-                </div>
-
-                {/* Password Rules Checklist */}
-                <ul className="space-y-1">
-                  {passwordChecks.map((rule) => (
-                    <li
-                      key={rule.label}
-                      className={cn(
-                        "flex items-center gap-1.5 text-xs",
-                        rule.met ? "text-success" : "text-muted-foreground",
-                      )}
-                    >
-                      {rule.met ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
-                      {rule.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* Display Name */}
-          <div className="space-y-2">
-            <label htmlFor="display_name" className="text-sm font-medium leading-none">
-              {t.auth.displayNameLabel}
-            </label>
-            <input
-              id="display_name"
-              type="text"
-              autoComplete="name"
-              value={form.display_name}
-              onChange={(e) => updateField("display_name", e.target.value)}
-              placeholder={MULTI_CAMPUS_MODE ? "How others will see you" : "How others will see you (optional)"}
-              disabled={isSubmitting}
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                errors.display_name ? "border-destructive" : "border-input",
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
               )}
-            />
-            {errors.display_name && (
-              <p className="text-xs text-destructive">{errors.display_name}</p>
-            )}
-          </div>
+              {isSubmitting ? "Sending code..." : "Continue"}
+            </button>
 
-          {/* Campus (multi-campus only) */}
-          {MULTI_CAMPUS_MODE && (
-            <div className="space-y-2">
-              <label htmlFor="campus_slug" className="text-sm font-medium leading-none">
-                {t.auth.campusLabel}
-              </label>
-              <select
-                id="campus_slug"
-                value={form.campus_slug}
-                onChange={(e) => updateField("campus_slug", e.target.value)}
-                disabled={isSubmitting || campusesLoading}
-                className={cn(
-                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                  !form.campus_slug && "text-muted-foreground",
-                  errors.campus_slug ? "border-destructive" : "border-input",
-                )}
-              >
-                <option value="" disabled>
-                  {campusesLoading ? "Loading campuses..." : "Select your campus"}
-                </option>
-                {filteredCampuses.map((campus) => (
-                  <option key={campus.slug} value={campus.slug}>
-                    {campus.name}
-                  </option>
-                ))}
-              </select>
-              {errors.campus_slug && (
-                <p className="text-xs text-destructive">{errors.campus_slug}</p>
-              )}
-            </div>
-          )}
-
-          {/* Class Year (multi-campus only) */}
-          {MULTI_CAMPUS_MODE && (
-            <div className="space-y-2">
-              <label htmlFor="class_year" className="text-sm font-medium leading-none">
-                Class year{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </label>
-              <select
-                id="class_year"
-                value={form.class_year}
-                onChange={(e) => updateField("class_year", e.target.value)}
-                disabled={isSubmitting}
-                className={cn(
-                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "disabled:cursor-not-allowed disabled:opacity-50",
-                  !form.class_year && "text-muted-foreground",
-                  "border-input",
-                )}
-              >
-                <option value="">Select class year</option>
-                {CLASS_YEARS.map((year) => (
-                  <option key={year} value={String(year)}>
-                    Class of {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Phone Number (multi-campus only) */}
-          {MULTI_CAMPUS_MODE && (
-            <div className="space-y-2">
-              <label htmlFor="phone_number" className="text-sm font-medium leading-none">
-                {t.auth.phoneNumberLabel}{" "}
-                <span className="font-normal text-muted-foreground">
-                  {form.notify_sms ? "(required)" : "(optional)"}
-                </span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="phone_number"
-                  type="tel"
-                  autoComplete="tel"
-                  value={form.phone_number}
-                  onChange={(e) => updateField("phone_number", e.target.value)}
-                  placeholder="(555) 123-4567"
-                  disabled={isSubmitting}
-                  className={cn(
-                    "flex h-10 w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm",
-                    "placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                    errors.phone_number ? "border-destructive" : "border-input",
-                  )}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Enter your 10-digit US phone number
-              </p>
-              {errors.phone_number && (
-                <p className="text-xs text-destructive">{errors.phone_number}</p>
-              )}
-            </div>
-          )}
-
-          {/* Notification Preferences (multi-campus only) */}
-          {MULTI_CAMPUS_MODE && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">
-                {t.auth.notificationPreferencesLabel}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t.auth.notificationPreferencesHelp}
-              </p>
-              <div className="space-y-2 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.notify_email}
-                    onChange={(e) => updateField("notify_email", e.target.checked)}
-                    disabled={isSubmitting}
-                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm">Email notifications</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.notify_sms}
-                    onChange={(e) => updateField("notify_sms", e.target.checked)}
-                    disabled={isSubmitting}
-                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm">SMS notifications</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Terms */}
-          {MULTI_CAMPUS_MODE ? (
-            <div className="space-y-2">
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.accept_terms}
-                  onChange={(e) => updateField("accept_terms", e.target.checked)}
-                  disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-muted-foreground">
-                  I agree to the{" "}
-                  <Link href="/terms" target="_blank" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" target="_blank" className="text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
-                </span>
-              </label>
-              {errors.accept_terms && (
-                <p className="text-xs text-destructive">{errors.accept_terms}</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              By creating an account, you agree to our{" "}
+            <p className="text-xs text-center text-muted-foreground">
+              By continuing, you agree to our{" "}
               <Link href="/terms" target="_blank" className="text-primary hover:underline">
                 Terms of Service
               </Link>{" "}
@@ -583,39 +252,96 @@ function RegisterContent() {
               </Link>
               .
             </p>
-          )}
+          </form>
+        ) : (
+          /* ── Step 2: Code ── */
+          <form onSubmit={handleVerifyCode} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="code" className="text-sm font-medium leading-none">
+                Verification code
+              </label>
+              <input
+                ref={codeInputRef}
+                id="code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setCode(val);
+                  setErrors({});
+                  setServerError(null);
+                }}
+                placeholder="000000"
+                disabled={isSubmitting}
+                className={cn(
+                  "flex h-14 w-full rounded-md border bg-background px-4 py-2",
+                  "text-center text-2xl font-bold tracking-[0.3em] font-mono",
+                  "placeholder:text-muted-foreground/40 placeholder:tracking-[0.3em]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                  errors.code ? "border-destructive" : "border-input",
+                )}
+              />
+              {errors.code && (
+                <p className="text-xs text-destructive">{errors.code}</p>
+              )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={cn(
-              "inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2",
-              "text-sm font-medium text-primary-foreground",
-              "hover:bg-primary/90 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none disabled:opacity-50",
-            )}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserPlus className="h-4 w-4" />
-            )}
-            {isSubmitting ? t.common.loading : t.auth.registerAction}
-          </button>
-        </form>
+              {/* Countdown */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {countdown > 0 ? (
+                  <span>Code expires in {formatTime(countdown)}</span>
+                ) : (
+                  <span className="text-destructive">Code expired</span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendCooldown > 0 || isSubmitting}
+                  className={cn(
+                    "text-primary hover:underline disabled:text-muted-foreground disabled:no-underline",
+                  )}
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                </button>
+              </div>
+            </div>
 
-        {/* Login link */}
-        <p className="text-center text-sm text-muted-foreground">
-          {t.auth.hasAccount}{" "}
-          <Link
-            href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
-            className="font-medium text-primary hover:underline"
-          >
-            Log in
-          </Link>
-        </p>
+            <button
+              type="submit"
+              disabled={isSubmitting || code.length !== 6}
+              className={cn(
+                "inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2",
+                "text-sm font-medium text-primary-foreground",
+                "hover:bg-primary/90 transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+              {isSubmitting ? "Verifying..." : "Verify & Sign In"}
+            </button>
+
+            {/* Back to username */}
+            <button
+              type="button"
+              onClick={() => {
+                setStep("username");
+                setCode("");
+                setServerError(null);
+                setErrors({});
+              }}
+              className="flex w-full items-center justify-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Use a different username
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -624,7 +350,7 @@ function RegisterContent() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={null}>
-      <RegisterContent />
+      <AuthContent />
     </Suspense>
   );
 }

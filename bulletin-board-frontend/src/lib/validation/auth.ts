@@ -149,3 +149,28 @@ export const changePasswordSchema = z
   });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+// ---- Passwordless (code-based) auth ----
+
+export const requestCodeSchema = z.object({
+  username: z
+    .string()
+    .min(1, "Username is required")
+    .max(64, "Username is too long")
+    .regex(
+      /^[a-zA-Z0-9._-]+$/,
+      "Only letters, numbers, dots, hyphens, and underscores",
+    ),
+});
+
+export type RequestCodeInput = z.infer<typeof requestCodeSchema>;
+
+export const verifyCodeSchema = z.object({
+  username: z.string().min(1),
+  code: z
+    .string()
+    .length(6, "Code must be 6 digits")
+    .regex(/^\d{6}$/, "Code must be 6 digits"),
+});
+
+export type VerifyCodeInput = z.infer<typeof verifyCodeSchema>;

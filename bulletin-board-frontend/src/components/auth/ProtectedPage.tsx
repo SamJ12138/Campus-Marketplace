@@ -7,7 +7,7 @@ import { useAuthStore } from "@/lib/hooks/use-auth";
 
 /**
  * Wrapper for pages that require authentication (create listing, messages,
- * profile, etc.). Redirects guests to `/login?redirect=<current_path>`.
+ * profile, etc.). Redirects guests to `/register?redirect=<current_path>`.
  */
 export function ProtectedPage({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -16,7 +16,7 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      router.push(`/register?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [isLoading, isAuthenticated, router, pathname]);
 
