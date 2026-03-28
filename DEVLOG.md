@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-03-24
+**Last Updated:** 2026-03-27
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -1375,6 +1375,32 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 - 28/28 live tests passed on production (registration, verification, login flows)
 - 4 test users created and cleaned up from production DB (testbot9999, alice.smith2026, bob.jones2027, charlie.doe2025 @gettysburg.edu)
 - Resend portal confirmed: all test emails correctly bounced/suppressed (fake addresses, system working as expected)
+
+**Status:** COMPLETED
+
+---
+
+### Session — 2026-03-27: Speed Up Email Verification Delivery
+
+**Problem:** Users reported slow verification email delivery after registration, harming retention. Auth emails (verification, resend, password reset) used FastAPI BackgroundTasks (in-process sync thread, no retry, lost on restart) while all other emails already used the ARQ worker.
+
+**Changes (5 files):**
+- `app/config.py` — Added `email_http_timeout` setting (5s default, down from hardcoded 10s)
+- `app/services/email_service.py` — Both httpx clients now use configurable timeout
+- `app/workers/tasks.py` — New `send_auth_email` ARQ task: async client, raises on failure for ARQ retry
+- `app/workers/main.py` — Registered `send_auth_email`, added `max_tries=3`, `retry_delay=5`
+- `app/api/v1/auth.py` — New `_enqueue_auth_email` helper routes emails through ARQ with BackgroundTasks fallback; `register`, `resend_verification`, `forgot_password` all updated; bcrypt offloaded to `asyncio.to_thread` in `register` and `reset_password`
+
+**Key design decisions:**
+- ARQ-first with graceful fallback to BackgroundTasks if Redis is down (strictly no worse than before)
+- Separate `send_auth_email` task (not reusing generic `send_email`) because auth emails pass pre-rendered HTML and need raise-on-failure for retry
+- `max_tries=3` is safe for existing tasks: they catch exceptions internally and never raise
+- Dev mode (`console` provider) auto-verify unchanged — short-circuits before email logic
+
+**Testing:**
+- 370/370 existing tests pass (6 pre-existing failures in moderation/listing unrelated)
+- All 5 modified files pass ruff lint
+- Live testing: register (201), resend-verification (200), forgot-password (200) all working on production
 
 **Status:** COMPLETED
 
