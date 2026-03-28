@@ -88,12 +88,17 @@ export const registerSchema = z
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 // ---- Register (simplified single-campus mode) ----
+// User types just their Gettysburg username; frontend appends @gettysburg.edu
 
 export const registerSchemaSimple = z.object({
-  email: z
+  username: z
     .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
+    .min(1, "Username is required")
+    .max(64, "Username is too long")
+    .regex(
+      /^[a-zA-Z0-9._-]+$/,
+      "Only letters, numbers, dots, hyphens, and underscores",
+    ),
   password: passwordRules,
   display_name: z
     .string()

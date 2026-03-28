@@ -19,6 +19,7 @@ import {
   Handshake,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   DollarSign,
   Truck,
   BadgeCheck,
@@ -28,11 +29,285 @@ import {
   Check,
   Heart,
   Mail,
+  X,
+  Zap,
+  GraduationCap,
+  Lock,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/hooks/use-auth";
 import { en as t } from "@/lib/i18n/en";
+
+// ----------------------------------------------------------------
+// SplashHero — full-screen intro visible on first load
+// ----------------------------------------------------------------
+
+const VALUE_PILLS = [
+  { icon: Zap, text: "100% free, no cap" },
+  { icon: GraduationCap, text: "Only .edu emails allowed" },
+  { icon: Lock, text: "Message, meet, done" },
+] as const;
+
+function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
+  return (
+    <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-5 py-20">
+      {/* Gradient background */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.15), transparent 70%), " +
+            "radial-gradient(ellipse 60% 50% at 80% 20%, hsl(var(--chart-1) / 0.1), transparent 60%), " +
+            "radial-gradient(ellipse 50% 40% at 20% 80%, hsl(var(--chart-4) / 0.1), transparent 60%)",
+        }}
+      />
+
+      <div className="mx-auto max-w-3xl text-center">
+        {/* Headline */}
+        <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
+          Your campus has a black market.{" "}
+          <span className="bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
+            (A legal one.)
+          </span>
+        </h1>
+
+        {/* Subhead */}
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+          <strong className="text-foreground">GimmeDat</strong> is where
+          Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
+          haircuts, you name it. No fees. No randos. Just your campus.
+        </p>
+
+        {/* Value pills */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {VALUE_PILLS.map((pill) => (
+            <span
+              key={pill.text}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm backdrop-blur-sm"
+            >
+              <pill.icon className="h-4 w-4 text-primary" />
+              {pill.text}
+            </span>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link
+            href={isAuthenticated ? "/feed" : "/register"}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
+          >
+            {isAuthenticated ? "Go to Marketplace" : "Get Started"}
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Already have an account? Log in
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <button
+          onClick={() =>
+            window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
+          }
+          className="flex flex-col items-center gap-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+          aria-label="Scroll down"
+        >
+          <span className="text-xs">or scroll to explore</span>
+          <ChevronDown className="h-5 w-5" />
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ----------------------------------------------------------------
+// SignupNudge — popup that appears after 4s for first-time visitors
+// ----------------------------------------------------------------
+
+const NUDGE_SLIDES = [
+  {
+    headline: "Takes 30 seconds. Seriously.",
+    body: "We\u2019re not exaggerating. Three steps and you\u2019re in:",
+    steps: [
+      "Type your Gettysburg username",
+      "Check your email",
+      "Done. That\u2019s it.",
+    ],
+  },
+  {
+    headline: "Ready?",
+    body: "No credit card. No app download. No BS.",
+    steps: null,
+  },
+] as const;
+
+function SignupNudge() {
+  const { isAuthenticated } = useAuthStore();
+  const [show, setShow] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+
+    const timer = setTimeout(() => setShow(true), 4000);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
+
+  // Body scroll lock + keyboard
+  useEffect(() => {
+    if (!show) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  });
+
+  function handleClose() {
+    setShow(false);
+  }
+
+  if (!show) return null;
+
+  const isLast = slide === NUDGE_SLIDES.length - 1;
+  const current = NUDGE_SLIDES[slide];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sign up reminder"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-6 shadow-2xl"
+      >
+        {/* Close */}
+        <button
+          onClick={handleClose}
+          className="absolute right-4 top-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {/* Slide content */}
+        <div className="relative min-h-[220px] flex items-center justify-center overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={slide}
+              custom={direction}
+              initial={{ x: direction > 0 ? 200 : -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: direction > 0 ? -200 : 200, opacity: 0 }}
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 },
+              }}
+              className="w-full text-center"
+            >
+              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
+                {current.headline}
+              </h2>
+              <p className="mt-3 text-muted-foreground">{current.body}</p>
+
+              {current.steps && (
+                <ol className="mx-auto mt-5 max-w-xs space-y-2 text-left">
+                  {current.steps.map((step, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 text-sm text-foreground"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        {i + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* CTA + navigation */}
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <Link
+            href="/register"
+            onClick={handleClose}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98]"
+          >
+            Sign Up Now
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+
+          <Link
+            href="/login"
+            onClick={handleClose}
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Already have an account? <span className="underline">Sign in</span>
+          </Link>
+
+          {/* Dots + next */}
+          <div className="flex items-center gap-3">
+            {NUDGE_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setDirection(i > slide ? 1 : -1);
+                  setSlide(i);
+                }}
+                className={cn(
+                  "h-2 w-2 rounded-full transition-all",
+                  i === slide
+                    ? "w-6 bg-primary"
+                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
+                )}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          {!isLast && (
+            <button
+              onClick={() => {
+                setDirection(1);
+                setSlide((s) => s + 1);
+              }}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Next &rarr;
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ----------------------------------------------------------------
 // Example listings — showcase what students post on GimmeDat
@@ -490,6 +765,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <LandingNav />
+
+      {/* ── Splash intro (first thing visitors see) ── */}
+      <SplashHero isAuthenticated={isAuthenticated} />
+
+      {/* ── Signup nudge popup (4s timer, first-visit only) ── */}
+      <SignupNudge />
 
       {/* ── Hero ── */}
       <HeroCarousel isAuthenticated={isAuthenticated} />

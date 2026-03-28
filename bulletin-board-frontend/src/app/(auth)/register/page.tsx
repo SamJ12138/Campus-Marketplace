@@ -54,7 +54,8 @@ function RegisterContent() {
   }, []);
 
   const [form, setForm] = useState({
-    email: "",
+    username: "",       // Just the part before @gettysburg.edu (single-campus mode)
+    email: "",          // Full email (multi-campus mode only)
     password: "",
     display_name: "",
     campus_slug: MULTI_CAMPUS_MODE ? "" : "gettysburg-college",
@@ -70,6 +71,7 @@ function RegisterContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const emailDomain = useMemo(() => {
+    if (!MULTI_CAMPUS_MODE) return "gettysburg.edu";
     const parts = form.email.split("@");
     return parts.length === 2 && parts[1] ? parts[1].toLowerCase() : null;
   }, [form.email]);
@@ -173,7 +175,12 @@ function RegisterContent() {
       registerPhone = result.data.phone_number && result.data.phone_number !== "" ? result.data.phone_number : undefined;
       registerNotifPrefs = { notify_email: result.data.notify_email, notify_sms: result.data.notify_sms };
     } else {
-      const result = registerSchemaSimple.safeParse(payload);
+      const simplePayload = {
+        username: form.username.trim(),
+        password: form.password,
+        display_name: form.display_name,
+      };
+      const result = registerSchemaSimple.safeParse(simplePayload);
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
         for (const issue of result.error.issues) {
@@ -184,7 +191,7 @@ function RegisterContent() {
         return;
       }
 
-      registerEmail = result.data.email;
+      registerEmail = `${result.data.username.toLowerCase()}@gettysburg.edu`;
       registerPassword = result.data.password;
       registerDisplayName = result.data.display_name || "";
       registerCampusSlug = "gettysburg-college";
@@ -252,25 +259,53 @@ function RegisterContent() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium leading-none">
+            <label htmlFor={MULTI_CAMPUS_MODE ? "email" : "username"} className="text-sm font-medium leading-none">
               {t.auth.emailLabel}
             </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              placeholder={MULTI_CAMPUS_MODE ? "you@university.edu" : "you@gettysburg.edu"}
-              disabled={isSubmitting}
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
-                "placeholder:text-muted-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                errors.email ? "border-destructive" : "border-input",
-              )}
-            />
+            {MULTI_CAMPUS_MODE ? (
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                placeholder="you@university.edu"
+                disabled={isSubmitting}
+                className={cn(
+                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
+                  "placeholder:text-muted-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                  errors.email ? "border-destructive" : "border-input",
+                )}
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-10 w-full rounded-md border bg-background text-sm overflow-hidden",
+                  "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                  errors.username ? "border-destructive" : "border-input",
+                )}
+              >
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={form.username}
+                  onChange={(e) => updateField("username", e.target.value)}
+                  placeholder="you"
+                  disabled={isSubmitting}
+                  className={cn(
+                    "flex-1 bg-transparent px-3 py-2 outline-none",
+                    "placeholder:text-muted-foreground",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                />
+                <span className="flex items-center border-l border-input bg-muted px-3 text-sm text-muted-foreground select-none whitespace-nowrap">
+                  @gettysburg.edu
+                </span>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               {MULTI_CAMPUS_MODE
                 ? (selectedCampus && selectedCampus.allow_non_edu === false
@@ -278,10 +313,10 @@ function RegisterContent() {
                     : emailDomain && !form.campus_slug
                       ? `Matching campuses for @${emailDomain}`
                       : "Any email works")
-                : "Use your @gettysburg.edu email address"}
+                : "Type just your Gettysburg username"}
             </p>
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email}</p>
+            {(errors.email || errors.username) && (
+              <p className="text-xs text-destructive">{errors.email || errors.username}</p>
             )}
           </div>
 
