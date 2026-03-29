@@ -333,7 +333,7 @@ const HERO_SLIDES = [
     title: "Your Stuff Has Value",
     subtitle: "Campus Marketplace",
     body: "That textbook collecting dust, those dorm supplies you\u2019ll never use \u2014 turn them into cash.",
-    image: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1920&h=1080&fit=crop&q=80",
+    image: "/images/campus-moveday.png",
     ctaText: "Start Selling",
     ctaHref: "/register",
   },
