@@ -325,6 +325,7 @@ const HERO_SLIDES = [
   {
     type: "splash" as const,
     id: "slide-splash",
+    image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1920&h=1080&fit=crop&q=80",
   },
   {
     type: "image" as const,
@@ -570,125 +571,121 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
             i === current ? "opacity-100" : "opacity-0",
           )}
         >
-          {s.type === "splash" ? (
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.15), transparent 70%), " +
-                  "radial-gradient(ellipse 60% 50% at 80% 20%, hsl(var(--chart-1) / 0.1), transparent 60%), " +
-                  "radial-gradient(ellipse 50% 40% at 20% 80%, hsl(var(--chart-4) / 0.1), transparent 60%)",
-              }}
-            />
-          ) : (
-            <>
-              <Image
-                src={s.image}
-                alt={s.title}
-                fill
-                sizes="100vw"
-                className="object-cover"
-                {...(i === 1 ? { priority: true } : {})}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-            </>
-          )}
+          <Image
+            src={s.image}
+            alt={s.type === "splash" ? "College campus" : s.title}
+            fill
+            sizes="100vw"
+            className="object-cover"
+            {...(i === 0 ? { priority: true } : {})}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
         </div>
       ))}
 
       {/* Content overlay */}
-      {slide.type === "splash" ? (
-        <div className="relative z-10 mx-auto w-full max-w-3xl px-5 text-center">
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            Your campus has a black market.{" "}
-            <span className="bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
-              (A legal one.)
-            </span>
-          </h1>
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
+        <div className="max-w-2xl">
+          <NextImage
+            src="/images/logo-v2.png"
+            alt=""
+            width={64}
+            height={64}
+            className="mb-5 h-16 w-16 object-contain drop-shadow-lg"
+          />
+          {slide.type === "splash" ? (
+            <>
+              <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
+                Campus Marketplace
+              </p>
+              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+                Your campus has a black market.{" "}
+                <span className="text-white/60">(A legal one.)</span>
+              </h1>
+              <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
+                <strong className="text-white">GimmeDat</strong> is where
+                Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
+                haircuts, you name it. No fees. No randos. Just your campus.
+              </p>
 
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-xl">
-            <strong className="text-foreground">GimmeDat</strong> is where
-            Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
-            haircuts, you name it. No fees. No randos. Just your campus.
-          </p>
+              <div className="mt-6 flex flex-wrap items-start gap-2 sm:gap-3">
+                {VALUE_PILLS.map((pill) => (
+                  <span
+                    key={pill.text}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                  >
+                    <pill.icon className="h-4 w-4 text-white" />
+                    {pill.text}
+                  </span>
+                ))}
+              </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 sm:gap-3">
-            {VALUE_PILLS.map((pill) => (
-              <span
-                key={pill.text}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
-              >
-                <pill.icon className="h-4 w-4 text-primary" />
-                {pill.text}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href={isAuthenticated ? "/feed" : "/register"}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
-            >
-              {isAuthenticated ? "Go to Marketplace" : "Get Started"}
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-            {!isAuthenticated && (
-              <Link
-                href="/login"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Already have an account? Log in
-              </Link>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
-          <div className="max-w-2xl">
-            <NextImage
-              src="/images/logo-v2.png"
-              alt=""
-              width={64}
-              height={64}
-              className="mb-5 h-16 w-16 object-contain drop-shadow-lg"
-            />
-            <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
-              {slide.subtitle}
-            </p>
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
-              {slide.title}
-            </h1>
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
-              {slide.body}
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link
-                href={isAuthenticated ? "/listings/new" : slide.ctaHref}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
-              >
-                {slide.ctaText}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              {isAuthenticated ? (
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
-                  href="/feed"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  href={isAuthenticated ? "/feed" : "/register"}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
                 >
-                  <Search className="h-4 w-4" />
-                  Browse Marketplace
+                  {isAuthenticated ? "Go to Marketplace" : "Get Started"}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-              ) : (
+                {isAuthenticated ? (
+                  <Link
+                    href="/feed"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  >
+                    <Search className="h-4 w-4" />
+                    Browse Marketplace
+                  </Link>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  >
+                    Already have an account? Log in
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
+                {slide.subtitle}
+              </p>
+              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+                {slide.title}
+              </h1>
+              <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
+                {slide.body}
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  href={isAuthenticated ? "/listings/new" : slide.ctaHref}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
                 >
-                  Get Started Free
+                  {slide.ctaText}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-              )}
-            </div>
-          </div>
+                {isAuthenticated ? (
+                  <Link
+                    href="/feed"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  >
+                    <Search className="h-4 w-4" />
+                    Browse Marketplace
+                  </Link>
+                ) : (
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                  >
+                    Get Started Free
+                  </Link>
+                )}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Navigation arrows */}
       {count > 1 && (
