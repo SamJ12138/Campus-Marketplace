@@ -1476,3 +1476,33 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 **Status:** COMPLETED (pending deployment)
 
 ---
+
+### Session — 2026-03-29: Merge SplashHero into HeroCarousel
+
+**Summary:** Merged the standalone SplashHero intro section ("Your campus has a black market. A legal one.") into the HeroCarousel as its first rotating slide, instead of being a separate full-screen section above the carousel. The SignupNudge popup timer was increased from 4 seconds to 2 minutes so users can watch the carousel cycle before being prompted.
+
+**Motivation:** The separate SplashHero section required scrolling past it to reach the carousel. Integrating it as a carousel slide creates a single, seamless rotating hero experience where users immediately see the intro content cycling alongside the branded image slides.
+
+**Files Changed:**
+
+*Frontend — MODIFIED:*
+- `bulletin-board-frontend/src/app/page.tsx`:
+  - Deleted `SplashHero` component (was a standalone full-screen section)
+  - Added `{ type: "splash", id: "slide-splash" }` as first entry in `HERO_SLIDES` array
+  - Added `type: "image"` discriminator to existing 4 image slides
+  - Updated `HeroCarousel` background rendering: splash slide uses CSS radial gradient, image slides use Unsplash `<Image>` (unchanged)
+  - Updated `HeroCarousel` content overlay: splash slide renders centered headline, subhead, value pills, and CTAs; image slides render existing left-aligned layout (unchanged)
+  - Shifted `priority` image preload from index 0 to index 1 (first image slide)
+  - Changed `SignupNudge` timer from `4000ms` to `120_000ms` (2 minutes)
+  - Removed `<SplashHero>` from `LandingPage` render, reordered to `HeroCarousel` first then `SignupNudge`
+  - Removed unused `ChevronDown` import
+  - Kept `VALUE_PILLS` constant (used by carousel splash slide branch)
+
+**Key Design Decisions:**
+- Splash slide keeps CSS gradient background (no Unsplash image) — creates intentional visual contrast with photo-backed slides
+- Value pills retained in splash slide for trust signals
+- 5s auto-rotation unchanged — 5 slides x 5s = 25s per cycle, ~4-5 full rotations before nudge popup at 2 min
+
+**Status:** COMPLETED
+
+---

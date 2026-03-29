@@ -19,7 +19,6 @@ import {
   Handshake,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   DollarSign,
   Truck,
   BadgeCheck,
@@ -41,7 +40,7 @@ import { useAuthStore } from "@/lib/hooks/use-auth";
 import { en as t } from "@/lib/i18n/en";
 
 // ----------------------------------------------------------------
-// SplashHero — full-screen intro visible on first load
+// Value pills — used in the splash slide of the hero carousel
 // ----------------------------------------------------------------
 
 const VALUE_PILLS = [
@@ -49,89 +48,6 @@ const VALUE_PILLS = [
   { icon: GraduationCap, text: "Only .edu emails allowed" },
   { icon: Lock, text: "Message, meet, done" },
 ] as const;
-
-function SplashHero({ isAuthenticated }: { isAuthenticated: boolean }) {
-  return (
-    <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 py-16 sm:px-5 sm:py-20">
-      {/* Gradient background */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.15), transparent 70%), " +
-            "radial-gradient(ellipse 60% 50% at 80% 20%, hsl(var(--chart-1) / 0.1), transparent 60%), " +
-            "radial-gradient(ellipse 50% 40% at 20% 80%, hsl(var(--chart-4) / 0.1), transparent 60%)",
-        }}
-      />
-
-      <div className="mx-auto max-w-3xl text-center">
-        {/* Headline */}
-        <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          Your campus has a black market.{" "}
-          <span className="bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
-            (A legal one.)
-          </span>
-        </h1>
-
-        {/* Subhead */}
-        <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-xl">
-          <strong className="text-foreground">GimmeDat</strong> is where
-          Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
-          haircuts, you name it. No fees. No randos. Just your campus.
-        </p>
-
-        {/* Value pills */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 sm:gap-3">
-          {VALUE_PILLS.map((pill) => (
-            <span
-              key={pill.text}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
-            >
-              <pill.icon className="h-4 w-4 text-primary" />
-              {pill.text}
-            </span>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href={isAuthenticated ? "/feed" : "/register"}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
-          >
-            {isAuthenticated ? "Go to Marketplace" : "Get Started"}
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-          {!isAuthenticated && (
-            <Link
-              href="/login"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Already have an account? Log in
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Scroll indicator */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 animate-bounce"
-        style={{ bottom: "max(2rem, env(safe-area-inset-bottom, 0px) + 1rem)" }}
-      >
-        <button
-          onClick={() =>
-            window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
-          }
-          className="flex flex-col items-center gap-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-          aria-label="Scroll down"
-        >
-          <span className="text-xs">or scroll to explore</span>
-          <ChevronDown className="h-5 w-5" />
-        </button>
-      </div>
-    </section>
-  );
-}
 
 // ----------------------------------------------------------------
 // SignupNudge — popup that appears after 4s for first-time visitors
@@ -164,7 +80,7 @@ function SignupNudge() {
   useEffect(() => {
     if (isAuthenticated) return;
 
-    const timer = setTimeout(() => setShow(true), 4000);
+    const timer = setTimeout(() => setShow(true), 120_000);
     return () => clearTimeout(timer);
   }, [isAuthenticated]);
 
@@ -407,6 +323,11 @@ const EXAMPLE_LISTINGS = [
 // ----------------------------------------------------------------
 const HERO_SLIDES = [
   {
+    type: "splash" as const,
+    id: "slide-splash",
+  },
+  {
+    type: "image" as const,
     id: "slide-1",
     title: "Your Stuff Has Value",
     subtitle: "Campus Marketplace",
@@ -416,6 +337,7 @@ const HERO_SLIDES = [
     ctaHref: "/register",
   },
   {
+    type: "image" as const,
     id: "slide-2",
     title: "Got a Skill? Get Paid",
     subtitle: "Student Services",
@@ -425,6 +347,7 @@ const HERO_SLIDES = [
     ctaHref: "/register",
   },
   {
+    type: "image" as const,
     id: "slide-3",
     title: "Why Let It Go to Waste?",
     subtitle: "End-of-Semester Deals",
@@ -434,6 +357,7 @@ const HERO_SLIDES = [
     ctaHref: "/register",
   },
   {
+    type: "image" as const,
     id: "slide-4",
     title: "Students Helping Students",
     subtitle: "Your Campus Community",
@@ -442,7 +366,7 @@ const HERO_SLIDES = [
     ctaText: "Join Free",
     ctaHref: "/register",
   },
-] as const;
+];
 
 // ----------------------------------------------------------------
 // Landing nav — lightweight top bar for the landing page only
@@ -637,7 +561,7 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Background images with Next.js <Image> for instant preloading */}
+      {/* Slide backgrounds */}
       {HERO_SLIDES.map((s, i) => (
         <div
           key={s.id}
@@ -646,64 +570,125 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
             i === current ? "opacity-100" : "opacity-0",
           )}
         >
-          <Image
-            src={s.image}
-            alt={s.title}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            {...(i === 0 ? { priority: true } : {})}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          {s.type === "splash" ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.15), transparent 70%), " +
+                  "radial-gradient(ellipse 60% 50% at 80% 20%, hsl(var(--chart-1) / 0.1), transparent 60%), " +
+                  "radial-gradient(ellipse 50% 40% at 20% 80%, hsl(var(--chart-4) / 0.1), transparent 60%)",
+              }}
+            />
+          ) : (
+            <>
+              <Image
+                src={s.image}
+                alt={s.title}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                {...(i === 1 ? { priority: true } : {})}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+            </>
+          )}
         </div>
       ))}
 
       {/* Content overlay */}
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
-        <div className="max-w-2xl">
-          <NextImage
-            src="/images/logo-v2.png"
-            alt=""
-            width={64}
-            height={64}
-            className="mb-5 h-16 w-16 object-contain drop-shadow-lg"
-          />
-          <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
-            {slide.subtitle}
-          </p>
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
-            {slide.title}
+      {slide.type === "splash" ? (
+        <div className="relative z-10 mx-auto w-full max-w-3xl px-5 text-center">
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
+            Your campus has a black market.{" "}
+            <span className="bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
+              (A legal one.)
+            </span>
           </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
-            {slide.body}
+
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-xl">
+            <strong className="text-foreground">GimmeDat</strong> is where
+            Gettysburg students buy, sell, and hustle&mdash;textbooks, tutoring,
+            haircuts, you name it. No fees. No randos. Just your campus.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 sm:gap-3">
+            {VALUE_PILLS.map((pill) => (
+              <span
+                key={pill.text}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                <pill.icon className="h-4 w-4 text-primary" />
+                {pill.text}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href={isAuthenticated ? "/listings/new" : slide.ctaHref}
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
+              href={isAuthenticated ? "/feed" : "/register"}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.98]"
             >
-              {slide.ctaText}
-              <ArrowRight className="h-4 w-4" />
+              {isAuthenticated ? "Go to Marketplace" : "Get Started"}
+              <ArrowRight className="h-5 w-5" />
             </Link>
-            {isAuthenticated ? (
+            {!isAuthenticated && (
               <Link
-                href="/feed"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                href="/login"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Search className="h-4 w-4" />
-                Browse Marketplace
-              </Link>
-            ) : (
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
-              >
-                Get Started Free
+                Already have an account? Log in
               </Link>
             )}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
+          <div className="max-w-2xl">
+            <NextImage
+              src="/images/logo-v2.png"
+              alt=""
+              width={64}
+              height={64}
+              className="mb-5 h-16 w-16 object-contain drop-shadow-lg"
+            />
+            <p className="mb-3 text-sm font-medium uppercase tracking-widest text-white/70">
+              {slide.subtitle}
+            </p>
+            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+              {slide.title}
+            </h1>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
+              {slide.body}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link
+                href={isAuthenticated ? "/listings/new" : slide.ctaHref}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-white/90 hover:shadow-xl"
+              >
+                {slide.ctaText}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/feed"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                >
+                  <Search className="h-4 w-4" />
+                  Browse Marketplace
+                </Link>
+              ) : (
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+                >
+                  Get Started Free
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation arrows */}
       {count > 1 && (
@@ -769,14 +754,11 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <LandingNav />
 
-      {/* ── Splash intro (first thing visitors see) ── */}
-      <SplashHero isAuthenticated={isAuthenticated} />
-
-      {/* ── Signup nudge popup (4s timer, first-visit only) ── */}
-      <SignupNudge />
-
-      {/* ── Hero ── */}
+      {/* ── Hero carousel (splash intro is the first slide) ── */}
       <HeroCarousel isAuthenticated={isAuthenticated} />
+
+      {/* ── Signup nudge popup (2min timer, first-visit only) ── */}
+      <SignupNudge />
 
       {/* ── Direction cards ── */}
       <section className="relative border-t border-border bg-muted/30 px-5 py-20">
