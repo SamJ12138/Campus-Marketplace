@@ -325,7 +325,7 @@ const HERO_SLIDES = [
   {
     type: "splash" as const,
     id: "slide-splash",
-    image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1920&h=1080&fit=crop&q=80",
+    image: "/images/campus-hero.png",
   },
   {
     type: "image" as const,
