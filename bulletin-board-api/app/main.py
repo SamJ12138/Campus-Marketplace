@@ -92,6 +92,25 @@ async def lifespan(app: FastAPI):
             ))
             await conn.commit()
 
+            # Drop unique constraint on email_verifications.token_hash
+            # 6-digit login codes have only 1M possible hashes, causing
+            # collisions with the unique constraint across different users
+            result = await conn.execute(text(
+                "SELECT constraint_name FROM information_schema.table_constraints "
+                "WHERE table_name = 'email_verifications' "
+                "AND constraint_type = 'UNIQUE'"
+            ))
+            for row in result.fetchall():
+                await conn.execute(text(
+                    f"ALTER TABLE email_verifications "
+                    f"DROP CONSTRAINT IF EXISTS {row[0]}"
+                ))
+            # Also drop any unique index on token_hash
+            await conn.execute(text(
+                "DROP INDEX IF EXISTS ix_email_verifications_token_hash"
+            ))
+            await conn.commit()
+
         print("[STARTUP] Passwordless auth schema verified")
     except Exception as e:
         print(f"[STARTUP] Schema check note: {e}")

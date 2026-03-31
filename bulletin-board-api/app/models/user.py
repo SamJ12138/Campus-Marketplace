@@ -124,7 +124,7 @@ class EmailVerification(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
-    token_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     purpose: Mapped[EmailVerificationPurpose] = mapped_column(
         Enum(EmailVerificationPurpose, name="email_verification_purpose"), nullable=False
     )
