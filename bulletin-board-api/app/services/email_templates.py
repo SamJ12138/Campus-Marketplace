@@ -1031,3 +1031,290 @@ GimmeDat - The student marketplace for services, items, and campus connections.
 """
 
     return _base_template(content), plain_text
+
+
+def passwordless_announcement_email(
+    display_name: str = "there",
+) -> tuple[str, str]:
+    """One-time announcement: passwordless auth replaces passwords."""
+    safe_name = escape(display_name)
+
+    content = f'''
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #1a1a2e;">
+            Signing in just got easier
+        </h2>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Hi {safe_name},
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            We have made a change to how you sign in to GimmeDat, and we think
+            you will appreciate it.
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>Passwords are no longer required.</strong> Starting today,
+            signing in works like this:
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                1. Go to <a href="https://gimme-dat.com/register" style="color: #8b5cf6; text-decoration: underline;">gimme-dat.com</a>
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                2. Enter your Gettysburg username (the part before @gettysburg.edu)
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                3. We will send a 6-digit code to your school email
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                4. Enter the code and you are in
+            </td></tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            That is the whole process.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            Why we made this change
+        </h3>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            You already manage a strong password for your Gettysburg email, one
+            the university requires you to update regularly. Adding another
+            password on top of that was not making your experience better, just
+            more tedious. Since your .edu email is already secure, we are using
+            it as your single point of verification.
+        </p>
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            Your account is unchanged
+        </h3>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            All of your listings, messages, favorites, and profile information
+            are exactly as you left them. The only difference is how you sign in.
+        </p>
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            A few things to know
+        </h3>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                <strong>Your device stays logged in for 30 days</strong>, so you
+                will not need to enter a code very often.
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                <strong>Your old password is no longer used</strong> — no need to
+                remember it.
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                <strong>If you do not see the code email</strong>, check your spam
+                or junk folder. Gettysburg email filters can sometimes be
+                overzealous.
+            </td></tr>
+        </table>
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            Common questions
+        </h3>
+
+        <p style="margin: 0 0 6px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>Does this apply to both signing up and signing in?</strong><br>
+            Yes. Whether you are a new user or a returning one, the process is
+            the same — enter your username, get a code, and you are in. There is
+            no separate signup or login page anymore.
+        </p>
+
+        <p style="margin: 0 0 6px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>Will I need to enter a code every time?</strong><br>
+            No. Once you verify on a device, you stay logged in for 30 days. You
+            will only need a new code if you sign in from a different device or
+            browser, if your session expires after 30 days, or if you clear your
+            browser data or log out manually.
+        </p>
+
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>What happened to my old password?</strong><br>
+            You no longer need it. Your Gettysburg email is now the only thing
+            required to access your account. Everything else about your account
+            remains the same.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+        <p style="margin: 0 0 8px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            If you have any other questions or run into any issues, feel free to
+            reach out to us by replying to this email.
+        </p>
+
+        <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Thank you for being part of the GimmeDat community.
+        </p>
+
+        <p style="margin: 16px 0 0 0; font-size: 15px; color: #333; line-height: 1.6;">
+            — The GimmeDat Team
+        </p>
+    '''
+
+    plain_text = f"""Signing in just got easier
+
+Hi {display_name},
+
+We have made a change to how you sign in to GimmeDat, and we think you will appreciate it.
+
+Passwords are no longer required. Starting today, signing in works like this:
+
+1. Go to https://gimme-dat.com/register
+2. Enter your Gettysburg username (the part before @gettysburg.edu)
+3. We will send a 6-digit code to your school email
+4. Enter the code and you are in
+
+That is the whole process.
+
+Why we made this change:
+You already manage a strong password for your Gettysburg email, one the university requires you to update regularly. Adding another password on top of that was not making your experience better, just more tedious. Since your .edu email is already secure, we are using it as your single point of verification.
+
+Your account is unchanged:
+All of your listings, messages, favorites, and profile information are exactly as you left them. The only difference is how you sign in.
+
+A few things to know:
+- Your device stays logged in for 30 days, so you will not need to enter a code very often.
+- Your old password is no longer used — no need to remember it.
+- If you do not see the code email, check your spam or junk folder.
+
+Common questions:
+
+Does this apply to both signing up and signing in?
+Yes. Whether you are a new user or a returning one, the process is the same — enter your username, get a code, and you are in. There is no separate signup or login page anymore.
+
+Will I need to enter a code every time?
+No. Once you verify on a device, you stay logged in for 30 days. You will only need a new code if you sign in from a different device or browser, if your session expires after 30 days, or if you clear your browser data or log out manually.
+
+What happened to my old password?
+You no longer need it. Your Gettysburg email is now the only thing required to access your account. Everything else about your account remains the same.
+
+If you have any other questions or run into any issues, feel free to reach out to us by replying to this email.
+
+Thank you for being part of the GimmeDat community.
+
+— The GimmeDat Team
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
+
+
+def post_something_nudge_email(
+    display_name: str = "there",
+    frontend_url: str = "https://gimme-dat.com",
+) -> tuple[str, str]:
+    """Friendly nudge encouraging users to post items they no longer need."""
+    safe_name = escape(display_name)
+    post_url = f"{frontend_url}/listings/new"
+    meme_url = f"{frontend_url}/images/please-meme.png"
+
+    content = f'''
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{meme_url}" alt="Please?" width="160" style="border-radius: 12px;" />
+        </div>
+
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            Hey {safe_name}, got a sec?
+        </h2>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.7;">
+            We are not saying your dorm room needs a makeover or anything...
+            but we have a tiny favor to ask.
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.7;">
+            Grab your phone and take a quick look around. That textbook you
+            swore you would re-read? The extra phone charger hiding in your
+            drawer? The shirt at the bottom of your closet that has not seen
+            daylight since move-in day?
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.7; font-weight: 600; color: #8b5cf6;">
+            Someone on campus is probably looking for exactly that right now.
+        </p>
+
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: #333; line-height: 1.7;">
+            It takes about 30 seconds to post something on GimmeDat. Snap a
+            photo, add a quick description, and let a fellow student give it
+            a second life. You might even make a few bucks while you are at it.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 4px 0 24px 0;">
+                    <a href="{post_url}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6, #f97316); color: #ffffff; font-size: 16px; font-weight: 700; padding: 14px 36px; border-radius: 10px; text-decoration: none; letter-spacing: 0.3px;">
+                        Post something
+                    </a>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; font-size: 14px; color: #666; line-height: 1.6; text-align: center;">
+            Need some inspo? Here are things students post all the time:
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px auto;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Textbooks and course materials
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Dorm essentials (lamps, storage bins, hangers)
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Clothes, shoes, and accessories
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Electronics and chargers
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Sticky notes, notebooks, school supplies
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+                Snacks, drinks, random extras
+            </td></tr>
+        </table>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+        <p style="margin: 0; font-size: 14px; color: #888; line-height: 1.6; text-align: center;">
+            Your stuff deserves a second adventure. And honestly, your desk
+            could use the breathing room.
+        </p>
+    '''
+
+    plain_text = f"""Hey {display_name}, got a sec?
+
+We are not saying your dorm room needs a makeover or anything... but we have a tiny favor to ask.
+
+Grab your phone and take a quick look around. That textbook you swore you would re-read? The extra phone charger hiding in your drawer? The shirt at the bottom of your closet that has not seen daylight since move-in day?
+
+Someone on campus is probably looking for exactly that right now.
+
+It takes about 30 seconds to post something on GimmeDat. Snap a photo, add a quick description, and let a fellow student give it a second life. You might even make a few bucks while you are at it.
+
+Post something now: {post_url}
+
+Need some inspo? Here are things students post all the time:
+- Textbooks and course materials
+- Dorm essentials (lamps, storage bins, hangers)
+- Clothes, shoes, and accessories
+- Electronics and chargers
+- Sticky notes, notebooks, school supplies
+- Snacks, drinks, random extras
+
+Your stuff deserves a second adventure. And honestly, your desk could use the breathing room.
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
