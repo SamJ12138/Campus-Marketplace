@@ -32,7 +32,7 @@ def _base_template(content: str, footer_extra: str = "") -> str:
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f7;">
         <tr>
             <td style="padding: 40px 16px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 540px; margin: 0 auto;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 640px; margin: 0 auto;">
 
                     <!-- Header -->
                     <tr>
@@ -43,7 +43,7 @@ def _base_template(content: str, footer_extra: str = "") -> str:
 
                     <!-- Content card -->
                     <tr>
-                        <td style="background-color: #ffffff; border-radius: 8px; padding: 32px 28px;">
+                        <td style="background-color: #ffffff; border-radius: 8px; padding: 36px 40px;">
                             {content}
                         </td>
                     </tr>
