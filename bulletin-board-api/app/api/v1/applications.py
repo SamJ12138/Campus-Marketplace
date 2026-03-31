@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import require_moderator
 from app.dependencies import get_db
-from app.models.application import Application, ApplicationStatus
+from app.models.application import Application, ApplicationRole, ApplicationStatus
 from app.models.user import User
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -18,9 +18,13 @@ router = APIRouter(prefix="/applications", tags=["applications"])
 # ── Schemas ──
 
 
+VALID_ROLES = {r.value for r in ApplicationRole}
+
+
 class ApplicationCreate(BaseModel):
     email: EmailStr
     name: str | None = None
+    role: str | None = None
     marketing_pitch: str
     platform_ideas: str | None = None
 
@@ -29,6 +33,7 @@ class ApplicationResponse(BaseModel):
     id: UUID
     email: str
     name: str | None
+    role: str | None
     marketing_pitch: str
     platform_ideas: str | None
     status: str
@@ -64,6 +69,7 @@ def _application_to_response(app: Application) -> ApplicationResponse:
         id=app.id,
         email=app.email,
         name=app.name,
+        role=app.role,
         marketing_pitch=app.marketing_pitch,
         platform_ideas=app.platform_ideas,
         status=app.status.value,
@@ -83,6 +89,9 @@ async def submit_application(
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a team application. No auth required."""
+    if data.role and data.role not in VALID_ROLES:
+        raise HTTPException(400, f"Invalid role. Must be one of: {', '.join(VALID_ROLES)}")
+
     if not data.marketing_pitch or not data.marketing_pitch.strip():
         raise HTTPException(400, "Marketing pitch is required")
 
@@ -95,6 +104,7 @@ async def submit_application(
     application = Application(
         email=data.email.strip(),
         name=data.name.strip() if data.name else None,
+        role=data.role if data.role else None,
         marketing_pitch=data.marketing_pitch.strip(),
         platform_ideas=data.platform_ideas.strip() if data.platform_ideas else None,
         status=ApplicationStatus.NEW,
@@ -114,6 +124,7 @@ async def submit_application(
 @router.get("/admin", response_model=ApplicationListResponse)
 async def list_applications(
     status: str | None = Query(None, pattern="^(new|reviewed|accepted|rejected)$"),
+    role: str | None = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -124,6 +135,9 @@ async def list_applications(
 
     if status:
         base_query = base_query.where(Application.status == status)
+
+    if role:
+        base_query = base_query.where(Application.role == role)
 
     total = await db.scalar(
         select(func.count()).select_from(base_query.subquery())

@@ -31,6 +31,7 @@ interface ApplicationItem {
   id: string;
   email: string;
   name: string | null;
+  role: string | null;
   marketing_pitch: string;
   platform_ideas: string | null;
   status: string;
@@ -84,11 +85,43 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
 };
 
+const ROLE_CONFIG: Record<string, { label: string; className: string }> = {
+  biz_dev: {
+    label: "Biz Dev",
+    className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  },
+  social_media: {
+    label: "Social Media",
+    className: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
+  },
+  general_marketing: {
+    label: "Marketing",
+    className: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+  },
+};
+
 // ── Sub-components ──
 
 function StatusBadge({ status }: { status: string }) {
   const config = STATUS_CONFIG[status] ?? {
     label: status,
+    className: "bg-muted text-muted-foreground",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        config.className,
+      )}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const config = ROLE_CONFIG[role] ?? {
+    label: role,
     className: "bg-muted text-muted-foreground",
   };
   return (
@@ -176,6 +209,7 @@ function ApplicationRow({
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={item.status} />
+            {item.role && <RoleBadge role={item.role} />}
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Mail className="h-3 w-3" />
               {item.email}
@@ -218,16 +252,26 @@ function ApplicationRow({
             </div>
           )}
 
-          {/* Marketing pitch */}
+          {/* Applied role */}
+          {item.role && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Applied role</p>
+              <p className="text-sm text-foreground">
+                <RoleBadge role={item.role} />
+              </p>
+            </div>
+          )}
+
+          {/* Why they're a good fit */}
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Marketing pitch</p>
+            <p className="text-xs font-medium text-muted-foreground">Why they&apos;re a good fit</p>
             <p className="text-sm text-foreground whitespace-pre-wrap">{item.marketing_pitch}</p>
           </div>
 
-          {/* Platform ideas */}
+          {/* Relevant experience */}
           {item.platform_ideas && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Platform ideas</p>
+              <p className="text-xs font-medium text-muted-foreground">Relevant experience</p>
               <p className="text-sm text-foreground whitespace-pre-wrap">{item.platform_ideas}</p>
             </div>
           )}
@@ -435,7 +479,7 @@ export default function AdminApplicationsPage() {
         <div>
           <h1 className="text-2xl font-bold">Applications</h1>
           <p className="text-sm text-muted-foreground">
-            Team ambassador applications
+            Team job applications
           </p>
         </div>
       </div>

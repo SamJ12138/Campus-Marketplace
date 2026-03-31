@@ -1,7 +1,7 @@
 from app.models.ad import Ad, AdType
 from app.models.ad_event import AdEvent
 from app.models.admin import AdminAction, BannedKeyword
-from app.models.application import Application, ApplicationStatus
+from app.models.application import Application, ApplicationRole, ApplicationStatus
 from app.models.base import Base, TimestampMixin
 from app.models.block import Block
 from app.models.campus import Campus
@@ -44,6 +44,7 @@ __all__ = [
     "Feedback",
     "FeedbackStatus",
     "Application",
+    "ApplicationRole",
     "ApplicationStatus",
     "Offer",
     "Deal",

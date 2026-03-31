@@ -198,7 +198,7 @@ const QUICK_LINKS = [
   {
     href: "/admin/applications",
     title: "Applications",
-    description: "Review team ambassador applications",
+    description: "Review team job applications",
     icon: UserPlus,
   },
   {

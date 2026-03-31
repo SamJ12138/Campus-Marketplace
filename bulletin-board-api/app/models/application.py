@@ -9,6 +9,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 
+class ApplicationRole(str, enum.Enum):
+    BIZ_DEV = "biz_dev"
+    SOCIAL_MEDIA = "social_media"
+    GENERAL_MARKETING = "general_marketing"
+
+
 class ApplicationStatus(str, enum.Enum):
     NEW = "new"
     REVIEWED = "reviewed"
@@ -22,6 +28,7 @@ class Application(Base):
         Index("idx_applications_status", "status"),
         Index("idx_applications_created", "created_at"),
         Index("idx_applications_email", "email"),
+        Index("idx_applications_role", "role"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -29,6 +36,7 @@ class Application(Base):
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role: Mapped[str | None] = mapped_column(String(100), nullable=True)
     marketing_pitch: Mapped[str] = mapped_column(Text, nullable=False)
     platform_ideas: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[ApplicationStatus] = mapped_column(
