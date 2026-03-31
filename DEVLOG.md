@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-03-28
+**Last Updated:** 2026-03-31
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -385,6 +385,7 @@ Condensed from `ai-automation/claude-progress.md`:
 | 6 | Feb 2026 | Admin intelligence | `admin_intelligence_service.py` - Trend analysis, anomaly detection, risk scoring, 50+ tests |
 | 7 | Feb 2026 | Smart notifications | `smart_notification_service.py` - Digests, re-engagement, engagement scoring, 45+ tests |
 | 8 | Feb 2026 | Campus onboarding | `campus_onboarding_service.py` - Self-service provisioning, auto categories, SEO metadata, 40+ tests |
+| — | 2026-03-31 | Fix auth flow + nudge email | Fixed passwordless sign-in (enum mismatch, ARQ worker, Redis null), added resend button, created post-something nudge email, sent to 14 users |
 
 **All 8 AI agent tasks completed.** 370+ total tests passing, ruff linting clean.
 
@@ -1562,6 +1563,58 @@ Offers are now fully functional in the messaging system. Creating an offer creat
   - Simplified auto-advance useEffect to depend only on `[count]`
   - Changed `min-h-[100vh]` → `min-h-dvh` for proper mobile viewport sizing (accounts for browser chrome)
   - Fixed SignupNudge useEffect missing `[show]` dependency — was running on every render, causing unnecessary re-binds of scroll lock and keydown listener
+
+**Status:** COMPLETED
+
+---
+
+### Session — 2026-03-31: Fix Passwordless Auth Flow + Post Nudge Email Campaign
+
+**Summary:** Fixed two critical auth bugs (sign-in URL confusion + 500 error on code request), added resend verification button, fixed email delivery, created and sent a post-something nudge email to all 14 real users.
+
+**Auth Bugs Fixed (3 layered root causes):**
+
+1. **Sign-in URL confusion:** Header/MobileNav linked to `/login` which redirected to `/register` with title "Create Account". Users clicking "Sign In" thought they landed on a signup page. Fixed by pointing links directly to `/register` and changing the page title to "Sign In".
+
+2. **500 Internal Server Error — enum case mismatch (actual root cause):** The initial Alembic migration created DB enum values as uppercase (`VERIFY_EMAIL`, `PASSWORD_RESET`), but the passwordless_auth migration added `login_code` in lowercase. SQLAlchemy sends enum NAMES (uppercase `LOGIN_CODE`) at runtime, causing a mismatch. Fixed by adding uppercase `LOGIN_CODE` to the DB enum via startup schema verification in `main.py`.
+
+3. **Emails not being received:** ARQ pool connected to Redis successfully, so `enqueue_job` succeeded silently, but no ARQ worker service was running on Render to process the queue. Fixed by bypassing ARQ entirely and using FastAPI's `BackgroundTasks` for in-process email sending (auth emails are time-sensitive).
+
+**Additional fixes during debugging:**
+- Removed `unique=True` from `EmailVerification.token_hash` (6-digit codes only have 1M possible hashes, causing collisions across users)
+- Added Redis null checks (503 response) in `request_code` and `verify_code` for new user paths
+- Added startup schema verification in `main.py` lifespan (enum values, columns, constraints)
+
+**New Features:**
+- Back button on auth page (navigates to previous page or `/feed`)
+- Prominent "Resend verification code" button with 30s cooldown on code entry page
+
+**Nudge Email Campaign:**
+- Created `post_something_nudge_email()` template in `email_templates.py` with SpongeBob "PLEASE" meme, friendly copy, and "Post something" CTA button
+- Created `scripts/send_post_nudge.py` send script (`--dry-run`, `--to`, `--skip-test` flags)
+- Redesigned `_base_template()` to follow industry standards (600px container, proper type hierarchy, muted colors)
+- Sent nudge email to all 14 real users (2 test accounts skipped), 0 failures
+
+**Files Changed:**
+- `bulletin-board-frontend/src/components/layout/Header.tsx` — Sign in link `/login` → `/register`
+- `bulletin-board-frontend/src/components/layout/MobileNav.tsx` — Same
+- `bulletin-board-frontend/src/app/(auth)/register/layout.tsx` — Page title "Create Account" → "Sign In"
+- `bulletin-board-frontend/src/app/(auth)/register/page.tsx` — Back button, resend button with cooldown
+- `bulletin-board-frontend/public/images/please-meme-v2.png` — SpongeBob meme for nudge email
+- `bulletin-board-api/app/api/v1/auth.py` — Redis null checks, BackgroundTasks for email, enum fix
+- `bulletin-board-api/app/main.py` — Startup schema verification (enum, columns, constraints)
+- `bulletin-board-api/app/models/user.py` — Removed `unique=True` from `token_hash`
+- `bulletin-board-api/app/services/email_templates.py` — Redesigned base template, added nudge email template
+- `bulletin-board-api/scripts/send_post_nudge.py` — New send script for nudge campaign
+- `bulletin-board-api/scripts/send_passwordless_announcement.py` — New send script for auth announcement
+- `bulletin-board-api/alembic/versions/passwordless_auth.py` — Fixed enum value to uppercase
+
+**Commits:** b09b123, c9ada60, 17e20a7, c6e9126, c4d2405, fe555c9, 6559ad6, f35e3ad, 53629de, ac0de89, 9c919cd, f9432cb, 624a305, e6665fb
+
+**Next Steps:**
+- Monitor nudge email engagement (did users post items?)
+- Consider adding unsubscribe link to marketing emails
+- Deploy ARQ worker service on Render if background jobs are needed beyond auth
 
 **Status:** COMPLETED
 
