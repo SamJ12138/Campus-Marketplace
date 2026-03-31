@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef, useCallback, type FormEvent } fr
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { safeRedirect } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
@@ -308,22 +308,12 @@ function AuthContent() {
               )}
 
               {/* Countdown */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
                 {countdown > 0 ? (
                   <span>Code expires in {formatTime(countdown)}</span>
                 ) : (
                   <span className="text-destructive">Code expired</span>
                 )}
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={resendCooldown > 0 || isSubmitting}
-                  className={cn(
-                    "text-primary hover:underline disabled:text-muted-foreground disabled:no-underline",
-                  )}
-                >
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
-                </button>
               </div>
             </div>
 
@@ -342,6 +332,23 @@ function AuthContent() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
               {isSubmitting ? "Verifying..." : "Verify & Sign In"}
+            </button>
+
+            {/* Resend code */}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || isSubmitting}
+              className={cn(
+                "inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2",
+                "text-sm font-medium",
+                "hover:bg-accent hover:text-accent-foreground transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend verification code"}
             </button>
 
             {/* Back to username */}
