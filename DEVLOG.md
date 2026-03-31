@@ -1548,3 +1548,21 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 **Status:** COMPLETED
 
 ---
+
+### Session — 2026-03-31: Fix Hero Carousel Not Auto-Rotating
+
+**Summary:** Fixed the hero carousel being permanently paused due to a full-viewport pause-on-hover bug. Also fixed a missing useEffect dependency in SignupNudge and improved mobile viewport sizing.
+
+**Root Cause:** The hero `<section>` covers `min-h-[100vh]` (entire viewport) and had `onMouseEnter={() => setPaused(true)}`. The moment a user moves their mouse anywhere on the page, `mouseenter` fires (since the hero IS the viewport), setting `paused=true` and clearing the auto-advance interval. `mouseleave` can never fire because there's no space outside the element within the visible area.
+
+**Files Changed:**
+
+- `bulletin-board-frontend/src/app/page.tsx`:
+  - Removed `paused` state, `onMouseEnter`, `onMouseLeave` from HeroCarousel (pause-on-hover broken by design for full-viewport elements)
+  - Simplified auto-advance useEffect to depend only on `[count]`
+  - Changed `min-h-[100vh]` → `min-h-dvh` for proper mobile viewport sizing (accounts for browser chrome)
+  - Fixed SignupNudge useEffect missing `[show]` dependency — was running on every render, causing unnecessary re-binds of scroll lock and keydown listener
+
+**Status:** COMPLETED
+
+---
