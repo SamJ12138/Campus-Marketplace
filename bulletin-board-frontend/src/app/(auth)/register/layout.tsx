@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Create Account",
+  title: "Sign In",
   description:
-    "Sign up for Gimme Dat to join your campus marketplace. Create listings, find items and services, and connect with fellow students.",
+    "Sign in to Gimme Dat to access your campus marketplace. Create listings, find items and services, and connect with fellow students.",
   openGraph: {
-    title: "Join Gimme Dat | Campus Marketplace",
+    title: "Sign In | GimmeDat Campus Marketplace",
     description:
-      "Sign up to buy, sell, and trade with students at your campus.",
+      "Sign in to buy, sell, and trade with students at your campus.",
   },
 };
 
