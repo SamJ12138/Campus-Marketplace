@@ -99,7 +99,7 @@ function SignupNudge() {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  });
+  }, [show]);
 
   function handleClose() {
     setShow(false);
@@ -532,7 +532,6 @@ function Stat({ label, value }: { label: string; value: string }) {
 // ----------------------------------------------------------------
 function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [current, setCurrent] = useState(0);
-  const [paused, setPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const count = HERO_SLIDES.length;
 
@@ -545,22 +544,20 @@ function HeroCarousel({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   // Auto-advance every 5 seconds
   useEffect(() => {
-    if (paused || count <= 1) return;
+    if (count <= 1) return;
     intervalRef.current = setInterval(() => {
       setCurrent((c) => (c + 1) % count);
     }, 5000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [paused, count]);
+  }, [count]);
 
   const slide = HERO_SLIDES[current];
 
   return (
     <section
-      className="relative flex min-h-[100vh] items-center overflow-hidden pt-16"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      className="relative flex min-h-dvh items-center overflow-hidden pt-16"
     >
       {/* Slide backgrounds */}
       {HERO_SLIDES.map((s, i) => (
