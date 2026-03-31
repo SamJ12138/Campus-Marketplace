@@ -63,6 +63,39 @@ async def lifespan(app: FastAPI):
     print(f"[STARTUP] EmailService initialized (provider: {settings.email_provider})")
     print(f"[STARTUP] Email from: {settings.email_from_name} <{settings.email_from_address}>")
 
+    # Ensure passwordless auth schema is ready (enum value + column)
+    # This covers the case where the Alembic migration failed silently on deploy
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text(
+                "ALTER TYPE email_verification_purpose "
+                "ADD VALUE IF NOT EXISTS 'login_code'"
+            ))
+            await conn.commit()
+
+            # Also ensure attempt_count column exists
+            result = await conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'email_verifications' "
+                "AND column_name = 'attempt_count'"
+            ))
+            if not result.fetchone():
+                await conn.execute(text(
+                    "ALTER TABLE email_verifications "
+                    "ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0"
+                ))
+                await conn.commit()
+
+            # Ensure password_hash is nullable
+            await conn.execute(text(
+                "ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"
+            ))
+            await conn.commit()
+
+        print("[STARTUP] Passwordless auth schema verified")
+    except Exception as e:
+        print(f"[STARTUP] Schema check note: {e}")
+
     # Auto-seed example listings if needed
     try:
         from app.services.auto_seed import auto_seed_examples

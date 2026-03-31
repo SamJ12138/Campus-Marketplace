@@ -147,6 +147,24 @@ function AuthContent() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8">
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (redirectTo) {
+              router.push(redirectTo);
+            } else if (window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/feed");
+            }
+          }}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
