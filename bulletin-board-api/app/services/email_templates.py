@@ -1215,7 +1215,7 @@ def post_something_nudge_email(
     """Friendly nudge encouraging users to post items they no longer need."""
     safe_name = escape(display_name)
     post_url = f"{frontend_url}/listings/new"
-    meme_url = f"{frontend_url}/images/please-meme.png"
+    meme_url = f"{frontend_url}/images/please-meme-v2.png"
 
     content = f'''
         <div style="text-align: center; margin-bottom: 20px;">
