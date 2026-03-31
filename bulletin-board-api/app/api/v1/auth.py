@@ -94,32 +94,20 @@ async def _enqueue_auth_email(
     html_content: str,
     text_content: str | None,
 ) -> None:
-    """Enqueue auth email via ARQ worker. Falls back to BackgroundTasks if ARQ/Redis is down."""
+    """Send auth email via in-process BackgroundTasks.
+
+    Always uses BackgroundTasks instead of ARQ because auth emails are
+    time-sensitive (codes expire in 10 min) and the ARQ worker service
+    may not be deployed/running.
+    """
     logger = logging.getLogger("app.auth")
 
-    if arq_pool is not None:
-        try:
-            await arq_pool.enqueue_job(
-                "send_auth_email",
-                to_email,
-                subject,
-                html_content,
-                text_content,
-            )
-            logger.info("[AUTH-EMAIL] Enqueued '%s' to %s via ARQ", subject, to_email)
-            return
-        except Exception as e:
-            logger.warning(
-                "[AUTH-EMAIL] ARQ enqueue failed (%s), falling back to BackgroundTasks", e,
-            )
-
-    # Fallback: use in-process BackgroundTasks (same as previous behavior)
     email_svc = get_email_service(settings)
     background_tasks.add_task(
         _send_email_background_sync,
         email_svc, to_email, subject, html_content, text_content,
     )
-    logger.info("[AUTH-EMAIL] Fell back to BackgroundTasks for '%s' to %s", subject, to_email)
+    logger.info("[AUTH-EMAIL] Sending '%s' to %s via BackgroundTasks", subject, to_email)
 
 
 @router.post("/register", status_code=201)
