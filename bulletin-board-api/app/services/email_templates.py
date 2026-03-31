@@ -28,35 +28,41 @@ def _base_template(content: str, footer_extra: str = "") -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GimmeDat</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f7;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
         <tr>
-            <td style="padding: 40px 16px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 640px; margin: 0 auto;">
+            <td align="center" style="padding: 32px 16px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px;">
 
                     <!-- Header -->
                     <tr>
-                        <td style="padding-bottom: 24px; text-align: center;">
-                            <span style="font-size: 22px; font-weight: 800; color: #8b5cf6; letter-spacing: -0.5px;">GimmeDat</span>
+                        <td style="padding: 0 40px 24px 40px;">
+                            <span style="font-size: 24px; font-weight: 800; color: #8b5cf6; letter-spacing: -0.5px;">GimmeDat</span>
                         </td>
                     </tr>
 
                     <!-- Content card -->
                     <tr>
-                        <td style="background-color: #ffffff; border-radius: 8px; padding: 36px 40px;">
-                            {content}
+                        <td>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff; border-radius: 8px;">
+                                <tr>
+                                    <td style="padding: 40px;">
+                                        {content}
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td style="padding-top: 24px; text-align: center;">
-                            <p style="margin: 0 0 6px 0; font-size: 13px; color: #666;">
+                        <td style="padding: 24px 40px 0 40px;">
+                            <p style="margin: 0 0 6px 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
                                 GimmeDat - The student marketplace for services,
                                 items, and campus connections.
                             </p>
                             {footer_extra}
-                            <p style="margin: 0; font-size: 12px; color: #999;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
                                 You received this because you have a GimmeDat account.
                             </p>
                         </td>
@@ -1218,31 +1224,31 @@ def post_something_nudge_email(
     meme_url = f"{frontend_url}/images/please-meme-v2.png"
 
     content = f'''
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="{meme_url}" alt="Please?" width="160" style="border-radius: 12px;" />
+        <div style="text-align: center; margin-bottom: 24px;">
+            <img src="{meme_url}" alt="Please?" width="280" style="border-radius: 8px; display: inline-block;" />
         </div>
 
-        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #1a1a2e; text-align: center;">
+        <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #1a1a1a; line-height: 1.3;">
             Hey {safe_name}, got a sec?
-        </h2>
+        </h1>
 
-        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.7;">
+        <p style="margin: 0 0 16px 0; font-size: 16px; color: #374151; line-height: 1.6;">
             We are not saying your dorm room needs a makeover or anything...
             but we have a tiny favor to ask.
         </p>
 
-        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.7;">
+        <p style="margin: 0 0 16px 0; font-size: 16px; color: #374151; line-height: 1.6;">
             Grab your phone and take a quick look around. That textbook you
             swore you would re-read? The extra phone charger hiding in your
             drawer? The shirt at the bottom of your closet that has not seen
             daylight since move-in day?
         </p>
 
-        <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.7; font-weight: 600; color: #8b5cf6;">
+        <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; font-weight: 600; color: #8b5cf6;">
             Someone on campus is probably looking for exactly that right now.
         </p>
 
-        <p style="margin: 0 0 24px 0; font-size: 15px; color: #333; line-height: 1.7;">
+        <p style="margin: 0 0 32px 0; font-size: 16px; color: #374151; line-height: 1.6;">
             It takes about 30 seconds to post something on GimmeDat. Snap a
             photo, add a quick description, and let a fellow student give it
             a second life. You might even make a few bucks while you are at it.
@@ -1250,45 +1256,47 @@ def post_something_nudge_email(
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
             <tr>
-                <td style="text-align: center; padding: 4px 0 24px 0;">
-                    <a href="{post_url}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6, #f97316); color: #ffffff; font-size: 16px; font-weight: 700; padding: 14px 36px; border-radius: 10px; text-decoration: none; letter-spacing: 0.3px;">
+                <td style="padding: 0 0 32px 0;">
+                    <a href="{post_url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; font-size: 16px; font-weight: 600; padding: 14px 28px; border-radius: 8px; text-decoration: none;">
                         Post something
                     </a>
                 </td>
             </tr>
         </table>
 
-        <p style="margin: 0 0 8px 0; font-size: 14px; color: #666; line-height: 1.6; text-align: center;">
+        <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 1.5; font-weight: 600;">
             Need some inspo? Here are things students post all the time:
         </p>
 
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px auto;">
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Textbooks and course materials
             </td></tr>
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Dorm essentials (lamps, storage bins, hangers)
             </td></tr>
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Clothes, shoes, and accessories
             </td></tr>
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Electronics and chargers
             </td></tr>
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Sticky notes, notebooks, school supplies
             </td></tr>
-            <tr><td style="padding: 3px 0; font-size: 14px; color: #555;">
+            <tr><td style="padding: 3px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
                 Snacks, drinks, random extras
             </td></tr>
         </table>
 
-        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
-
-        <p style="margin: 0; font-size: 14px; color: #888; line-height: 1.6; text-align: center;">
-            Your stuff deserves a second adventure. And honestly, your desk
-            could use the breathing room.
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr><td style="border-top: 1px solid #e5e7eb; padding-top: 24px;">
+                <p style="margin: 0; font-size: 14px; color: #9ca3af; line-height: 1.5;">
+                    Your stuff deserves a second adventure. And honestly, your desk
+                    could use the breathing room.
+                </p>
+            </td></tr>
+        </table>
     '''
 
     plain_text = f"""Hey {display_name}, got a sec?
