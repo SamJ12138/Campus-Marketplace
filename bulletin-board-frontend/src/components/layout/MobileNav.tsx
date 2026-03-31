@@ -31,7 +31,7 @@ export function MobileNav() {
   const guestItems = [
     { href: "/feed", label: "Home", icon: LayoutGrid },
     { href: "/how-it-works", label: "How It Works", icon: HelpCircle },
-    { href: `/login?redirect=${encodeURIComponent(pathname)}`, label: "Sign in", icon: LogIn, highlight: true },
+    { href: `/register?redirect=${encodeURIComponent(pathname)}`, label: "Sign in", icon: LogIn, highlight: true },
   ];
 
   const navItems = isAuthenticated ? authedItems : guestItems;

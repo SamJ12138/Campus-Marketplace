@@ -312,7 +312,7 @@ export function Header() {
           ) : (
             <div className="flex items-center gap-2">
               <Link
-                href={`/login?redirect=${encodeURIComponent(pathname)}`}
+                href={`/register?redirect=${encodeURIComponent(pathname)}`}
                 className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               >
                 <LogIn className="h-4 w-4" />

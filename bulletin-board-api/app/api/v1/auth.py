@@ -562,6 +562,11 @@ async def request_code(
         display_name = user.display_name or data.username
     else:
         # Store pending signup code in Redis (no orphan DB rows)
+        if not redis:
+            raise HTTPException(
+                503,
+                "Service temporarily unavailable. Please try again shortly.",
+            )
         await redis.set(
             f"pending_signup_code:{email}",
             code_hash,
@@ -645,6 +650,11 @@ async def verify_code(
 
     else:
         # --- New user: verify against Redis ---
+        if not redis:
+            raise HTTPException(
+                503,
+                "Service temporarily unavailable. Please try again shortly.",
+            )
         stored_hash = await redis.get(f"pending_signup_code:{email}")
         if not stored_hash:
             raise HTTPException(400, "Invalid or expired code")
