@@ -1506,3 +1506,45 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 **Status:** COMPLETED
 
 ---
+
+### Session — 2026-03-31: Update Join the Team Page with Job Listings & Application Funnel
+
+**Summary:** Replaced the generic "Campus Marketing Ambassador" application page with a proper careers page featuring 3 specific intern positions, each with expandable job cards, descriptions, responsibilities, and ideal candidate traits. Updated the application form with a role selector dropdown and relabeled fields. Added `role` column to the backend with an Alembic migration. Updated admin applications panel with role badges and relabeled fields.
+
+**Motivation:** The team needed to recruit for 3 specific intern roles rather than a single generic ambassador position. The new page provides clear job descriptions and a role-aware application funnel so applicants know exactly what they're applying for and admins can filter/view by position.
+
+**Files Changed:**
+
+*Backend — MODIFIED:*
+- `bulletin-board-api/app/models/application.py`: Added `ApplicationRole` enum (`biz_dev`, `social_media`, `general_marketing`), nullable `role` column (`String(100)`), and `idx_applications_role` index
+- `bulletin-board-api/app/models/__init__.py`: Exported `ApplicationRole`
+- `bulletin-board-api/app/api/v1/applications.py`: Added `role` to `ApplicationCreate`/`ApplicationResponse` schemas, role validation in `submit_application`, optional `role` query param in `list_applications` for admin filtering
+
+*Backend — NEW:*
+- `bulletin-board-api/alembic/versions/add_application_role.py`: Non-destructive migration adding `role` VARCHAR(100) column + index (down_revision=`passwordless_auth`)
+
+*Frontend — MODIFIED:*
+- `bulletin-board-frontend/src/app/(main)/join-team/page.tsx`: Complete rewrite — hero section updated, 3 expandable `JobCard` components (Business Development – Sales/Outreach Intern, Social Media Specialist – Instagram/LinkedIn Intern, General Marketing/Communication) with descriptions, responsibilities, and ideal candidate traits. "Apply for this role" buttons scroll to form and pre-select the role. Form updated with required role dropdown, required name field, relabeled "Why are you a good fit?" (was "Marketing pitch") and "Relevant experience" (was "Platform ideas"). Success state shows applied role name.
+- `bulletin-board-frontend/src/app/(admin)/admin/applications/page.tsx`: Added `role` to `ApplicationItem` type, `ROLE_CONFIG` with color-coded badges (purple=Biz Dev, pink=Social Media, indigo=Marketing), `RoleBadge` component in row headers and expanded detail view, relabeled "Marketing pitch" → "Why they're a good fit", "Platform ideas" → "Relevant experience"
+- `bulletin-board-frontend/src/app/(admin)/admin/page.tsx`: Updated admin dashboard description from "Review team ambassador applications" to "Review team job applications"
+
+**Key Design Decisions:**
+- DB columns `marketing_pitch` and `platform_ideas` kept unchanged to preserve existing data — only frontend labels changed
+- `role` column is nullable so existing applications (role=NULL) display gracefully with no badge
+- Job cards are expandable (collapsed by default) to keep page scannable; each has "View details" toggle
+- Role validated server-side against `ApplicationRole` enum values
+- `scrollToApply()` with `setTimeout` ensures smooth scroll after React state update
+
+**Deployment Verification:**
+- Backend API: `POST /api/v1/applications` with `role: "biz_dev"` returned `{"ok": true}` — confirmed role field accepted
+- Frontend: `/join-team` shows 3 job cards, role dropdown, and updated form labels — confirmed live on Vercel
+- Health check: API healthy (API ok, DB ok, Redis ok)
+
+**Next Steps:**
+- Run Alembic migration on production if not auto-run (`alembic upgrade head`)
+- Clean up the test application submitted during deployment verification
+- Consider adding role filter dropdown to admin applications page
+
+**Status:** COMPLETED
+
+---
