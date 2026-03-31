@@ -25,7 +25,7 @@ def upgrade() -> None:
     # 1. Add LOGIN_CODE to the email_verification_purpose enum
     # Raw SQL required — Alembic autogenerate cannot add enum values
     op.execute(
-        "ALTER TYPE email_verification_purpose ADD VALUE IF NOT EXISTS 'login_code'"
+        "ALTER TYPE email_verification_purpose ADD VALUE IF NOT EXISTS 'LOGIN_CODE'"
     )
 
     # 2. Make password_hash nullable (existing rows keep their values)

@@ -67,9 +67,11 @@ async def lifespan(app: FastAPI):
     # This covers the case where the Alembic migration failed silently on deploy
     try:
         async with engine.connect() as conn:
+            # DB enum uses uppercase names (VERIFY_EMAIL, PASSWORD_RESET)
+            # so LOGIN_CODE must also be uppercase to match
             await conn.execute(text(
                 "ALTER TYPE email_verification_purpose "
-                "ADD VALUE IF NOT EXISTS 'login_code'"
+                "ADD VALUE IF NOT EXISTS 'LOGIN_CODE'"
             ))
             await conn.commit()
 
