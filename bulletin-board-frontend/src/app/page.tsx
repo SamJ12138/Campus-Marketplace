@@ -33,11 +33,11 @@ import {
   GraduationCap,
   Lock,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/hooks/use-auth";
 import { en as t } from "@/lib/i18n/en";
+import { hasSeenSignupNudge, dismissSignupNudge } from "@/lib/utils/onboarding";
 
 // ----------------------------------------------------------------
 // Value pills — used in the splash slide of the hero carousel
@@ -50,37 +50,23 @@ const VALUE_PILLS = [
 ] as const;
 
 // ----------------------------------------------------------------
-// SignupNudge — popup that appears after 4s for first-time visitors
+// SignupNudge — popup that appears after 5s for first-time visitors
 // ----------------------------------------------------------------
 
-const NUDGE_SLIDES = [
-  {
-    headline: "Takes 30 seconds. Seriously.",
-    body: "We\u2019re not exaggerating. Three steps and you\u2019re in:",
-    steps: [
-      "Type your Gettysburg username",
-      "Check your email",
-      "Done. That\u2019s it.",
-    ],
-  },
-  {
-    headline: "Ready?",
-    body: "No credit card. No app download. No BS.",
-    steps: null,
-  },
+const SIGNUP_STEPS = [
+  "Type your Gettysburg username",
+  "Enter the code from your email",
+  "You\u2019re in. That\u2019s it.",
 ] as const;
 
 function SignupNudge() {
   const { isAuthenticated } = useAuthStore();
   const [show, setShow] = useState(false);
-  const [slide, setSlide] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isAuthenticated) return;
+    if (isAuthenticated || hasSeenSignupNudge()) return;
 
-    const timer = setTimeout(() => setShow(true), 120_000);
+    const timer = setTimeout(() => setShow(true), 5_000);
     return () => clearTimeout(timer);
   }, [isAuthenticated]);
 
@@ -103,12 +89,10 @@ function SignupNudge() {
 
   function handleClose() {
     setShow(false);
+    dismissSignupNudge();
   }
 
   if (!show) return null;
-
-  const isLast = slide === NUDGE_SLIDES.length - 1;
-  const current = NUDGE_SLIDES[slide];
 
   return (
     <div
@@ -120,10 +104,7 @@ function SignupNudge() {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div
-        ref={dialogRef}
-        className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-5 shadow-2xl sm:p-6 max-h-[90dvh] overflow-y-auto"
-      >
+      <div className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-5 shadow-2xl sm:p-6 max-h-[90dvh] overflow-y-auto">
         {/* Close */}
         <button
           onClick={handleClose}
@@ -133,95 +114,48 @@ function SignupNudge() {
           <X className="h-4 w-4" />
         </button>
 
-        {/* Slide content */}
-        <div className="relative min-h-[180px] flex items-center justify-center overflow-hidden sm:min-h-[220px]">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={slide}
-              custom={direction}
-              initial={{ x: direction > 0 ? 200 : -200, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: direction > 0 ? -200 : 200, opacity: 0 }}
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-              }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
-                {current.headline}
-              </h2>
-              <p className="mt-3 text-muted-foreground">{current.body}</p>
+        {/* Content */}
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
+            Sign up in 30 seconds
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            No app download. No credit card. Just your Gettysburg email.
+          </p>
 
-              {current.steps && (
-                <ol className="mx-auto mt-5 max-w-xs space-y-2 text-left">
-                  {current.steps.map((step, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-3 text-sm text-foreground"
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {i + 1}
-                      </span>
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </motion.div>
-          </AnimatePresence>
+          <ol className="mx-auto mt-5 max-w-xs space-y-2 text-left">
+            {SIGNUP_STEPS.map((step, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-3 text-sm text-foreground"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
         </div>
 
-        {/* CTA + navigation */}
+        {/* CTA */}
         <div className="mt-6 flex flex-col items-center gap-4">
           <Link
             href="/register"
             onClick={handleClose}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98]"
           >
-            Sign Up Now
+            Sign Up
             <ArrowRight className="h-5 w-5" />
           </Link>
 
           <Link
-            href="/login"
+            href="/register"
             onClick={handleClose}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Already have an account? <span className="underline">Sign in</span>
           </Link>
-
-          {/* Dots + next */}
-          <div className="flex items-center gap-3">
-            {NUDGE_SLIDES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setDirection(i > slide ? 1 : -1);
-                  setSlide(i);
-                }}
-                className={cn(
-                  "h-2 w-2 rounded-full transition-all",
-                  i === slide
-                    ? "w-6 bg-primary"
-                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
-                )}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
-
-          {!isLast && (
-            <button
-              onClick={() => {
-                setDirection(1);
-                setSlide((s) => s + 1);
-              }}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Next &rarr;
-            </button>
-          )}
         </div>
       </div>
     </div>
