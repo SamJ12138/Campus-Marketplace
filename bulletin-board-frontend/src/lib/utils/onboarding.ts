@@ -15,7 +15,7 @@ export function resetOnboarding(): void {
 
 // --- Signup nudge popup (landing page, cooldown-based) ---
 const SIGNUP_NUDGE_KEY = "cb_signup_nudge_dismissed";
-const NUDGE_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const NUDGE_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 export function hasSeenSignupNudge(): boolean {
   if (typeof window === "undefined") return true;
