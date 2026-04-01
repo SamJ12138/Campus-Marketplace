@@ -502,9 +502,9 @@ async def reset_password(
 
 # ---- Passwordless (code-based) auth ----
 
-# One-off alias: non-.edu substitute account
-_USERNAME_EMAIL_OVERRIDES = {
-    "samj01": "samloveemmaforever@gmail.com",
+# One-off override: deliver verification code to an alternate email
+_CODE_DELIVERY_OVERRIDES = {
+    "samj01@gettysburg.edu": "samloveemmaforever@gmail.com",
 }
 
 
@@ -518,10 +518,7 @@ async def request_code(
     arq_pool=Depends(get_arq_pool),
 ):
     """Send a 6-digit verification code to the user's Gettysburg email."""
-    username_lower = data.username.lower()
-    email = _USERNAME_EMAIL_OVERRIDES.get(
-        username_lower, f"{username_lower}@gettysburg.edu"
-    )
+    email = f"{data.username.lower()}@gettysburg.edu"
     expire_minutes = settings.auth_code_expire_minutes
 
     await check_code_request_rate_limit(redis, email)
@@ -581,14 +578,15 @@ async def request_code(
         )
         display_name = data.username
 
-    # Send code email
+    # Send code email (deliver to alternate address if overridden)
+    deliver_to = _CODE_DELIVERY_OVERRIDES.get(email, email)
     if settings.email_provider == "console":
         print(f"[DEV] Login code for {email}: {raw_code}")
     html_content, text_content = login_code_email(raw_code, display_name)
     await _enqueue_auth_email(
         arq_pool,
         background_tasks,
-        email,
+        deliver_to,
         "Your GimmeDat sign-in code",
         html_content,
         text_content,
@@ -609,10 +607,7 @@ async def verify_code(
     redis: Redis = Depends(get_redis),
 ):
     """Verify a 6-digit code and issue tokens. Handles both signup and login."""
-    username_lower = data.username.lower()
-    email = _USERNAME_EMAIL_OVERRIDES.get(
-        username_lower, f"{username_lower}@gettysburg.edu"
-    )
+    email = f"{data.username.lower()}@gettysburg.edu"
     client_ip = request.client.host if request.client else "unknown"
     max_attempts = settings.auth_code_max_attempts
 
