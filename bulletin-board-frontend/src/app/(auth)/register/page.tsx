@@ -315,6 +315,13 @@ function AuthContent() {
                   <span className="text-destructive">Code expired</span>
                 )}
               </div>
+
+              {/* School email patience notice */}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  School email servers can be slow — your code may take up to a minute to arrive. Hang tight!
+                </p>
+              </div>
             </div>
 
             <button

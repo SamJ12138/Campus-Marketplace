@@ -1,5 +1,5 @@
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from PIL import Image
@@ -762,7 +762,7 @@ async def send_abandoned_signup_emails(ctx):
     email_service = ctx["email_service"]
     db_session = ctx["db_session"]
     expire_seconds = settings.auth_code_expire_minutes * 60
-    now = int(datetime.now().timestamp())
+    now = int(datetime.now(timezone.utc).timestamp())
     sent = 0
 
     cursor = 0

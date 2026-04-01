@@ -66,7 +66,7 @@ function SignupNudge() {
   useEffect(() => {
     if (isAuthenticated || hasSeenSignupNudge()) return;
 
-    const timer = setTimeout(() => setShow(true), 5_000);
+    const timer = setTimeout(() => setShow(true), 3_000);
     return () => clearTimeout(timer);
   }, [isAuthenticated]);
 
