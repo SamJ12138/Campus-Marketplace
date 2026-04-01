@@ -197,7 +197,7 @@ def login_code_email(
         </table>
 
         <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
-            This code expires in 10 minutes. If you did not request this, you can safely ignore this email.
+            This code expires in 30 minutes. If you did not request this, you can safely ignore this email.
         </p>
     '''
 
@@ -207,7 +207,7 @@ Hey {display_name}, use this code to sign in to GimmeDat:
 
 {code}
 
-This code expires in 10 minutes. If you did not request this, you can safely ignore this email.
+This code expires in 30 minutes. If you did not request this, you can safely ignore this email.
 
 --
 GimmeDat - The student marketplace for services, items, and campus connections.
@@ -249,7 +249,7 @@ def abandoned_signup_email(
 
         <p style="margin: 0 0 24px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
             The good news: you can try again right now and it should only take
-            a minute. Codes are valid for 10 minutes.
+            a minute. Codes are valid for 30 minutes.
         </p>
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -271,7 +271,7 @@ Hey {username}, we noticed you tried to sign in to GimmeDat but never got the ch
 
 School email servers can be slow to deliver messages, especially during peak hours. Your verification code likely arrived after it had already expired.
 
-The good news: you can try again right now and it should only take a minute. Codes are valid for 10 minutes.
+The good news: you can try again right now and it should only take a minute. Codes are valid for 30 minutes.
 
 Try again: {signup_url}
 

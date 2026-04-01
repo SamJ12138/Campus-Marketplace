@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     rate_limit_messages_per_hour: int = 50
 
     # Passwordless auth
-    auth_code_expire_minutes: int = 10
+    auth_code_expire_minutes: int = 30
     auth_code_max_attempts: int = 5
 
     # New account restrictions (first N days)
