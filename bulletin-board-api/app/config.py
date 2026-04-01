@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_login_attempts: int = 5
     rate_limit_login_window_seconds: int = 900  # 15 min
-    rate_limit_listings_per_day: int = 5
+    rate_limit_listings_per_day: int = 20
     rate_limit_messages_per_hour: int = 50
 
     # Passwordless auth
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # New account restrictions (first N days)
     new_account_restriction_days: int = 7
-    new_account_listings_per_day: int = 2
+    new_account_listings_per_day: int = 10
     new_account_messages_per_hour: int = 10
 
     # AI / LLM
