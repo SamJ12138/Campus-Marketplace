@@ -75,7 +75,7 @@ function SignupNudge() {
     if (!show) return;
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape") handleDismissTemporary();
     }
 
     document.addEventListener("keydown", handleKeyDown);
@@ -87,7 +87,13 @@ function SignupNudge() {
     };
   }, [show]);
 
-  function handleClose() {
+  // Soft dismiss — hides for this session only (accidental clicks)
+  function handleDismissTemporary() {
+    setShow(false);
+  }
+
+  // Permanent dismiss — persists to localStorage (intentional close)
+  function handleDismissPermanent() {
     setShow(false);
     dismissSignupNudge();
   }
@@ -101,14 +107,14 @@ function SignupNudge() {
       aria-modal="true"
       aria-label="Sign up reminder"
       onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
+        if (e.target === e.currentTarget) handleDismissTemporary();
       }}
     >
       <div className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-popover p-5 shadow-2xl sm:p-6 max-h-[90dvh] overflow-y-auto">
-        {/* Close */}
+        {/* Close — desktop only */}
         <button
-          onClick={handleClose}
-          className="absolute right-4 top-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={handleDismissPermanent}
+          className="absolute right-4 top-4 z-10 hidden rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:block"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -142,7 +148,7 @@ function SignupNudge() {
         <div className="mt-6 flex flex-col items-center gap-4">
           <Link
             href="/register"
-            onClick={handleClose}
+            onClick={handleDismissPermanent}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98]"
           >
             Sign Up
@@ -151,11 +157,19 @@ function SignupNudge() {
 
           <Link
             href="/register"
-            onClick={handleClose}
+            onClick={handleDismissPermanent}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Already have an account? <span className="underline">Sign in</span>
           </Link>
+
+          {/* Maybe later — mobile only */}
+          <button
+            onClick={handleDismissPermanent}
+            className="mt-1 text-sm text-muted-foreground transition-colors hover:text-foreground sm:hidden"
+          >
+            Maybe later
+          </button>
         </div>
       </div>
     </div>
