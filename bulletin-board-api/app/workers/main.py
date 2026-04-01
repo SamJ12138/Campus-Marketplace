@@ -78,6 +78,7 @@ class WorkerSettings:
         "app.workers.tasks.send_expiry_nudges",
         "app.workers.tasks.send_price_drop_alerts",
         "app.workers.tasks.process_pending_message_notifications",
+        "app.workers.tasks.send_abandoned_signup_emails",
     ]
 
     cron_jobs = [
@@ -95,6 +96,8 @@ class WorkerSettings:
         cron("app.workers.tasks.send_price_drop_alerts", hour={10, 18}),
         # Message notification batcher - runs every 30s
         cron("app.workers.tasks.process_pending_message_notifications", second={0, 30}),
+        # Abandoned signup apology emails - check every 5 min
+        cron("app.workers.tasks.send_abandoned_signup_emails", minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
     ]
 
     on_startup = startup

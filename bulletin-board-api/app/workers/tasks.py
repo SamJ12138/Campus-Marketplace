@@ -740,3 +740,80 @@ async def process_pending_message_notifications(ctx):
             "[NOTIFY-BATCH] Cycle complete: sent=%d, skipped_online=%d, skipped_rate=%d",
             sent, skipped_online, skipped_rate,
         )
+
+
+async def send_abandoned_signup_emails(ctx):
+    """Send apology emails to users who requested a signup code but never completed registration.
+
+    Scans Redis for abandoned_signup:{email} keys set during request_code().
+    Only sends after the verification code has expired (10 min) and the user
+    still hasn't registered. Dedup key prevents sending more than once per day.
+    """
+    import logging
+
+    from sqlalchemy import select
+
+    from app.models.user import User
+    from app.services.email_templates import abandoned_signup_email
+
+    logger = logging.getLogger("app.worker")
+    redis = ctx["redis"]
+    settings = ctx["settings"]
+    email_service = ctx["email_service"]
+    db_session = ctx["db_session"]
+    expire_seconds = settings.auth_code_expire_minutes * 60
+    now = int(datetime.now().timestamp())
+    sent = 0
+
+    cursor = 0
+    while True:
+        cursor, keys = await redis.scan(cursor, match="abandoned_signup:*", count=100)
+
+        for key in keys:
+            email = key.replace("abandoned_signup:", "")
+
+            # Check if code has expired
+            timestamp_str = await redis.get(key)
+            if not timestamp_str:
+                continue
+            request_time = int(timestamp_str)
+            if now < request_time + expire_seconds:
+                continue  # Code still valid, user might still verify
+
+            # Check if user completed signup in the meantime
+            async with db_session() as db:
+                user = await db.scalar(select(User).where(User.email == email))
+                if user:
+                    await redis.delete(key)
+                    continue
+
+            # Check dedup — already sent apology for this email today?
+            if await redis.exists(f"abandoned_signup_sent:{email}"):
+                await redis.delete(key)
+                continue
+
+            # Send apology email
+            signup_url = f"{settings.primary_frontend_url}/login"
+            username = email.split("@")[0]
+            html, text = abandoned_signup_email(username, signup_url)
+
+            success = await email_service.send_email(
+                to_email=email,
+                subject="Sorry about that -- try signing in again",
+                html_content=html,
+                text_content=text,
+            )
+
+            if success:
+                await redis.set(
+                    f"abandoned_signup_sent:{email}", "1", ex=86400
+                )  # 24h dedup
+                sent += 1
+
+            await redis.delete(key)
+
+        if cursor == 0:
+            break
+
+    if sent:
+        logger.info("[ABANDONED] Sent %d abandoned signup apology emails", sent)

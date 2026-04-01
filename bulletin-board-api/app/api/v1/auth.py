@@ -502,6 +502,11 @@ async def reset_password(
 
 # ---- Passwordless (code-based) auth ----
 
+# One-off alias: non-.edu substitute account
+_USERNAME_EMAIL_OVERRIDES = {
+    "samj01": "samloveemmaforever@gmail.com",
+}
+
 
 @router.post("/request-code", response_model=CodeResponse)
 async def request_code(
@@ -513,7 +518,10 @@ async def request_code(
     arq_pool=Depends(get_arq_pool),
 ):
     """Send a 6-digit verification code to the user's Gettysburg email."""
-    email = f"{data.username.lower()}@gettysburg.edu"
+    username_lower = data.username.lower()
+    email = _USERNAME_EMAIL_OVERRIDES.get(
+        username_lower, f"{username_lower}@gettysburg.edu"
+    )
     expire_minutes = settings.auth_code_expire_minutes
 
     await check_code_request_rate_limit(redis, email)
@@ -565,6 +573,12 @@ async def request_code(
             "0",
             ex=expire_minutes * 60,
         )
+        # Track for abandoned signup follow-up email
+        await redis.set(
+            f"abandoned_signup:{email}",
+            str(int(datetime.now(timezone.utc).timestamp())),
+            ex=30 * 60,  # 30 min TTL (outlives the 10-min code)
+        )
         display_name = data.username
 
     # Send code email
@@ -595,7 +609,10 @@ async def verify_code(
     redis: Redis = Depends(get_redis),
 ):
     """Verify a 6-digit code and issue tokens. Handles both signup and login."""
-    email = f"{data.username.lower()}@gettysburg.edu"
+    username_lower = data.username.lower()
+    email = _USERNAME_EMAIL_OVERRIDES.get(
+        username_lower, f"{username_lower}@gettysburg.edu"
+    )
     client_ip = request.client.host if request.client else "unknown"
     max_attempts = settings.auth_code_max_attempts
 
@@ -697,6 +714,7 @@ async def verify_code(
         await redis.delete(
             f"pending_signup_code:{email}",
             f"pending_signup_attempts:{email}",
+            f"abandoned_signup:{email}",
         )
 
     # --- Check user status (ban/suspension) ---

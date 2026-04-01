@@ -216,6 +216,74 @@ GimmeDat - The student marketplace for services, items, and campus connections.
     return _base_template(content), plain_text
 
 
+def abandoned_signup_email(
+    username: str, signup_url: str
+) -> tuple[str, str]:
+    """Generate an apology email for abandoned signups. Returns (html, plain_text).
+
+    Sent when a user requests a signup verification code but never completes
+    registration, likely due to slow .edu email delivery.
+    """
+    safe_name = escape(username)
+
+    content = f'''
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            Sorry About That
+        </h1>
+        <p style="margin: 0 0 20px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            Hey {safe_name}, we noticed you tried to sign in to GimmeDat but
+            never got the chance to enter your code.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+            <tr>
+                <td style="background-color: #f8f8fa; border-radius: 6px; padding: 14px 18px; text-align: center;">
+                    <p style="margin: 0; font-size: 14px; color: #444; line-height: 1.5;">
+                        School email servers can be slow to deliver messages,
+                        especially during peak hours. Your verification code
+                        likely arrived after it had already expired.
+                    </p>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            The good news: you can try again right now and it should only take
+            a minute. Codes are valid for 10 minutes.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 4px 0 20px 0;">
+                    <a href="{signup_url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 6px;">Try Again</a>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            If you did not try to sign in, you can safely ignore this email.
+        </p>
+    '''
+
+    plain_text = f"""Sorry About That
+
+Hey {username}, we noticed you tried to sign in to GimmeDat but never got the chance to enter your code.
+
+School email servers can be slow to deliver messages, especially during peak hours. Your verification code likely arrived after it had already expired.
+
+The good news: you can try again right now and it should only take a minute. Codes are valid for 10 minutes.
+
+Try again: {signup_url}
+
+If you did not try to sign in, you can safely ignore this email.
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
+
+
 def new_message_email(
     sender_name: str,
     listing_title: str,
