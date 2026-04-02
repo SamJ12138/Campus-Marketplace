@@ -132,14 +132,14 @@ class Listing(Base, TimestampMixin):
     is_regulated: Mapped[bool] = mapped_column(Boolean, default=False)
     disclaimer_accepted: Mapped[bool] = mapped_column(Boolean, default=False)
     listing_mode: Mapped[ListingMode] = mapped_column(
-        Enum(ListingMode, name="listing_mode_enum"),
+        Enum(ListingMode, name="listing_mode_enum", values_callable=lambda e: [x.value for x in e]),
         default=ListingMode.OFFERING,
         nullable=False,
     )
     budget_min: Mapped[float | None] = mapped_column(Float, nullable=True)
     budget_max: Mapped[float | None] = mapped_column(Float, nullable=True)
     urgency: Mapped[Urgency | None] = mapped_column(
-        Enum(Urgency, name="urgency_enum"), nullable=True
+        Enum(Urgency, name="urgency_enum", values_callable=lambda e: [x.value for x in e]), nullable=True
     )
     response_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[ListingStatus] = mapped_column(
