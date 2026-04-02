@@ -447,6 +447,17 @@ function MarketplaceDropdown() {
               ))}
             </div>
           )}
+
+          <div className="my-1 h-px bg-border/50" />
+
+          {/* Requests section */}
+          <Link
+            href="/feed?mode=seeking"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-popover-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+          >
+            Requests
+          </Link>
         </div>
       )}
     </div>
