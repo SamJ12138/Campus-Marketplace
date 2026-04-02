@@ -117,13 +117,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[STARTUP] Schema check note: {e}")
 
-    # Auto-seed example listings if needed
-    try:
-        from app.services.auto_seed import auto_seed_examples
-
-        await auto_seed_examples(app.state.db_session)
-    except Exception as e:
-        print(f"[STARTUP] Auto-seed failed (non-fatal): {e}")
+    # Auto-seed disabled — real users exist, examples backdated to stay at bottom
+    # from app.services.auto_seed import auto_seed_examples
+    # await auto_seed_examples(app.state.db_session)
 
     yield
 
