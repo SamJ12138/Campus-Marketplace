@@ -7,6 +7,26 @@ import type { Ad } from "@/lib/types/ads";
 
 const SEED_ADS: Ad[] = [
   {
+    id: "ad-006",
+    campusId: "global",
+    type: "INTERNAL_DETAIL",
+    title: "NEW: Post What You Need",
+    subtitle:
+      "Looking for a textbook, tutor, or ride? Post a request and let other students come to you.",
+    ctaText: "Post a Request",
+    ctaUrl: "/listings/new",
+    image: {
+      src: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=500&fit=crop",
+      alt: "Students studying together on campus",
+    },
+    theme: { accent: "#06b6d4" },
+    body: "GimmeDat now works both ways. Instead of just browsing what others are selling, you can post exactly what you are looking for and have other students come to you.\n\nHow it works:\n1. Tap New Offer and choose \"Looking For\"\n2. Describe what you need, set an optional budget, and pick how urgent it is\n3. Your request appears in the main feed with a teal accent\n4. Students who can help tap \"I Can Help\" to message you directly\n\nIt works for everything: textbooks, tutoring, furniture, rides, tech help, haircuts, you name it. If someone on campus can provide it, they will find your request.",
+    priority: 110,
+    startsAt: "2026-04-02T00:00:00Z",
+    endsAt: "2027-12-31T23:59:59Z",
+    createdAt: "2026-04-02T00:00:00Z",
+  },
+  {
     id: "ad-001",
     campusId: "global",
     type: "INTERNAL_DETAIL",
