@@ -6,11 +6,15 @@ export type UserRole = "user" | "moderator" | "admin";
 
 export type ListingType = "service" | "item";
 
+export type ListingMode = "offering" | "seeking";
+
+export type Urgency = "low" | "medium" | "high" | "asap";
+
 export type LocationType = "on_campus" | "off_campus" | "remote";
 
 export type ContactPreference = "in_app" | "email" | "phone";
 
-export type ListingStatus = "draft" | "active" | "expired" | "removed" | "sold";
+export type ListingStatus = "draft" | "active" | "expired" | "removed" | "sold" | "fulfilled";
 
 export type ReportReason =
   | "spam"
@@ -96,9 +100,14 @@ export interface ListingPhoto {
 export interface Listing {
   id: string;
   type: ListingType;
+  listing_mode: ListingMode;
   title: string;
   description: string;
   price_hint: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  urgency: Urgency | null;
+  response_count: number;
   category: CategoryBrief | null;
   location_type: LocationType;
   location_hint: string | null;
@@ -257,9 +266,13 @@ export interface RegisterRequest {
 
 export interface CreateListingRequest {
   type: ListingType;
+  listing_mode?: ListingMode;
   title: string;
   description: string;
   price_hint?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  urgency?: Urgency | null;
   category_id: string;
   location_type: LocationType;
   location_hint?: string | null;
@@ -272,6 +285,9 @@ export interface UpdateListingRequest {
   title?: string;
   description?: string;
   price_hint?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  urgency?: Urgency | null;
   category_id?: string;
   location_type?: LocationType;
   location_hint?: string | null;
@@ -310,6 +326,7 @@ export interface CreateThreadRequest {
 
 export interface ListingFilters {
   type?: ListingType;
+  listing_mode?: ListingMode;
   category_slug?: string;
   location_type?: LocationType;
   search?: string;

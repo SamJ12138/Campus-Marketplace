@@ -5,6 +5,7 @@ export const listingCreateSchema = z
     type: z.enum(["service", "item"], {
       required_error: "Listing type is required",
     }),
+    listing_mode: z.enum(["offering", "seeking"]).default("offering"),
     category_id: z
       .string({ required_error: "Category is required" })
       .min(1, "Category is required"),
@@ -26,6 +27,19 @@ export const listingCreateSchema = z
       .max(100, "Price hint must be at most 100 characters")
       .optional()
       .or(z.literal("")),
+    budget_min: z.coerce
+      .number()
+      .min(0, "Budget cannot be negative")
+      .nullish()
+      .or(z.literal("")),
+    budget_max: z.coerce
+      .number()
+      .min(0, "Budget cannot be negative")
+      .nullish()
+      .or(z.literal("")),
+    urgency: z
+      .enum(["low", "medium", "high", "asap"])
+      .nullish(),
     location_type: z.enum(["on_campus", "off_campus", "remote"], {
       required_error: "Location type is required",
     }),
@@ -48,7 +62,19 @@ export const listingCreateSchema = z
   .refine((data) => data.disclaimer_accepted === true, {
     message: "You must accept the terms to post a listing",
     path: ["disclaimer_accepted"],
-  });
+  })
+  .refine(
+    (data) => {
+      const min = typeof data.budget_min === "number" ? data.budget_min : null;
+      const max = typeof data.budget_max === "number" ? data.budget_max : null;
+      if (min != null && max != null) return min <= max;
+      return true;
+    },
+    {
+      message: "Minimum budget cannot exceed maximum budget",
+      path: ["budget_max"],
+    },
+  );
 
 export const listingUpdateSchema = z.object({
   title: z

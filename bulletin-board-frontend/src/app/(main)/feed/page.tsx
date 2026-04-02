@@ -15,7 +15,7 @@ import {
   LayoutGrid,
   List,
 } from "lucide-react";
-import type { ListingType, Listing } from "@/lib/types";
+import type { ListingType, ListingMode, Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useAuthStore } from "@/lib/hooks/use-auth";
@@ -416,7 +416,12 @@ function FeedContent() {
   const initialSort = searchParams.get("sort") ?? "newest";
   const initialSearch = searchParams.get("q") ?? "";
 
+  const initialMode = searchParams.get("mode");
+  const initialListingMode: ListingMode | null =
+    initialMode === "seeking" ? "seeking" : null;
+
   const [type, setType] = useState<ListingType | null>(initialType);
+  const [listingMode, setListingMode] = useState<ListingMode | null>(initialListingMode);
   const [category, setCategory] = useState<string | null>(initialCategory);
   const [sort, setSort] = useState(initialSort);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -479,6 +484,7 @@ function FeedContent() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (type) params.set("type", type);
+    if (listingMode) params.set("mode", listingMode);
     if (category) params.set("category", category);
     if (sort && sort !== "newest") params.set("sort", sort);
     if (debouncedSearch) params.set("q", debouncedSearch);
@@ -486,20 +492,21 @@ function FeedContent() {
     const queryString = params.toString();
     const newPath = queryString ? `/feed?${queryString}` : "/feed";
     router.replace(newPath, { scroll: false });
-  }, [type, category, sort, debouncedSearch, router]);
+  }, [type, listingMode, category, sort, debouncedSearch, router]);
 
   // Build query filters — only include defined values so TanStack Query
   // sees a structurally different key when filters actually change.
   const filters = useMemo(() => {
     const f: Record<string, string | number> = {};
     if (type) f.type = type;
+    if (listingMode) f.listing_mode = listingMode;
     if (category) f.category_slug = category;
     if (sort) f.sort = sort;
     if (debouncedSearch) f.q = debouncedSearch;
     if (debouncedMinPrice) f.min_price = Number(debouncedMinPrice);
     if (debouncedMaxPrice) f.max_price = Number(debouncedMaxPrice);
     return f;
-  }, [type, category, sort, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
+  }, [type, listingMode, category, sort, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
 
   const {
     data,
@@ -540,14 +547,17 @@ function FeedContent() {
 
   // Determine page title
   const pageTitle =
-    type === "service"
-      ? t.listings.servicesTab
-      : type === "item"
-        ? t.listings.itemsTab
-        : "All Offers";
+    listingMode === "seeking"
+      ? t.listings.requestsTab
+      : type === "service"
+        ? t.listings.servicesTab
+        : type === "item"
+          ? t.listings.itemsTab
+          : "All Offers";
 
   const hasFilters =
     type !== null ||
+    listingMode !== null ||
     category !== null ||
     sort !== "newest" ||
     debouncedSearch !== "" ||
@@ -647,12 +657,14 @@ function FeedContent() {
       {/* Sticky filter bar */}
       <FilterBar
         currentType={type}
+        currentMode={listingMode}
         currentCategory={category}
         currentSort={sort}
         lockedType={initialType}
         minPrice={minPrice}
         maxPrice={maxPrice}
         onTypeChange={setType}
+        onModeChange={setListingMode}
         onCategoryChange={setCategory}
         onSortChange={setSort}
         onMinPriceChange={setMinPrice}

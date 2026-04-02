@@ -4,6 +4,7 @@ import {
   Eye,
   Search,
   PlusCircle,
+  Megaphone,
   MessageCircle,
   Rocket,
 } from "lucide-react";
@@ -48,6 +49,14 @@ export const slides: SlideData[] = [
       "List an item or service with photos. Our AI can help write your description.",
     icon: PlusCircle,
     accentColor: "bg-green-500/15 text-green-500",
+  },
+  {
+    id: "requests",
+    title: "Post What You Need",
+    description:
+      "Can\u2019t find what you\u2019re looking for? Post a request and let other students come to you. Browse requests to help classmates out.",
+    icon: Megaphone,
+    accentColor: "bg-cyan-500/15 text-cyan-500",
   },
   {
     id: "messages",

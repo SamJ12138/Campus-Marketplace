@@ -11,6 +11,7 @@ from app.models.favorite import Favorite
 from app.models.listing import (
     Category,
     Listing,
+    ListingMode,
     ListingStatus,
     ListingType,
 )
@@ -48,6 +49,7 @@ class ListingService:
         self,
         campus_id: UUID | None = None,
         type: ListingType | None = None,
+        listing_mode: ListingMode | None = None,
         category_slug: str | None = None,
         query: str | None = None,
         min_price: float | None = None,
@@ -75,6 +77,8 @@ class ListingService:
             base_query = base_query.where(Listing.campus_id == campus_id)
         if type:
             base_query = base_query.where(Listing.type == type)
+        if listing_mode:
+            base_query = base_query.where(Listing.listing_mode == listing_mode)
         if category_slug:
             base_query = base_query.join(Category).where(Category.slug == category_slug)
             category_joined = True
@@ -228,10 +232,14 @@ class ListingService:
             user_id=user_id,
             campus_id=campus_id,
             type=data.type,
+            listing_mode=data.listing_mode,
             category_id=data.category_id,
             title=data.title,
             description=data.description,
             price_hint=data.price_hint,
+            budget_min=data.budget_min,
+            budget_max=data.budget_max,
+            urgency=data.urgency,
             location_type=data.location_type,
             location_hint=data.location_hint,
             availability=data.availability,
@@ -396,6 +404,33 @@ class ListingService:
 
         return self._to_response(listing, user_id, set())
 
+    async def mark_fulfilled(self, listing_id: UUID, user_id: UUID) -> ListingResponse | None:
+        """Mark a request listing as fulfilled."""
+        result = await self.db.execute(
+            select(Listing)
+            .options(
+                selectinload(Listing.user),
+                selectinload(Listing.category),
+                selectinload(Listing.photos),
+            )
+            .where(
+                Listing.id == listing_id,
+                Listing.user_id == user_id,
+                Listing.status == ListingStatus.ACTIVE,
+                Listing.listing_mode == ListingMode.SEEKING,
+            )
+        )
+        listing = result.scalar_one_or_none()
+
+        if not listing:
+            return None
+
+        listing.status = ListingStatus.FULFILLED
+        await self.db.commit()
+        await self.db.refresh(listing)
+
+        return self._to_response(listing, user_id, set())
+
     async def get_user_listings(
         self,
         user_id: UUID,
@@ -457,9 +492,14 @@ class ListingService:
         return ListingResponse(
             id=listing.id,
             type=listing.type,
+            listing_mode=listing.listing_mode,
             title=listing.title,
             description=listing.description,
             price_hint=listing.price_hint,
+            budget_min=listing.budget_min,
+            budget_max=listing.budget_max,
+            urgency=listing.urgency,
+            response_count=listing.response_count,
             category=CategoryBrief(
                 id=listing.category.id,
                 name=listing.category.name,

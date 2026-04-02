@@ -7,6 +7,7 @@ import Image from "next/image";
 import {
   Briefcase,
   ShoppingBag,
+  Search,
   MapPin,
   Wifi,
   Building,
@@ -183,11 +184,15 @@ export default function CreateListingPage() {
     resolver: zodResolver(listingCreateSchema),
     defaultValues: {
       type: undefined,
+      listing_mode: "offering" as const,
       category_id: "",
       custom_category_label: "",
       title: "",
       description: "",
       price_hint: "",
+      budget_min: "" as unknown as undefined,
+      budget_max: "" as unknown as undefined,
+      urgency: undefined,
       location_type: "on_campus",
       location_hint: "",
       availability: "",
@@ -198,6 +203,8 @@ export default function CreateListingPage() {
   });
 
   const selectedType = watch("type");
+  const selectedMode = watch("listing_mode");
+  const isSeeking = selectedMode === "seeking";
   const description = watch("description") ?? "";
   const watchedValues = watch();
 
@@ -249,10 +256,14 @@ export default function CreateListingPage() {
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { disclaimer_accepted, ...payload } = data;
+      const isRequestMode = payload.listing_mode === "seeking";
       const cleanPayload = {
         ...payload,
         custom_category_label: isOtherCategory ? payload.custom_category_label?.trim() : undefined,
-        price_hint: payload.price_hint || null,
+        price_hint: isRequestMode ? null : (payload.price_hint || null),
+        budget_min: isRequestMode && typeof payload.budget_min === "number" ? payload.budget_min : null,
+        budget_max: isRequestMode && typeof payload.budget_max === "number" ? payload.budget_max : null,
+        urgency: isRequestMode ? (payload.urgency || null) : null,
         location_hint: payload.location_hint || null,
         availability: payload.availability || null,
       };
@@ -297,11 +308,15 @@ export default function CreateListingPage() {
     setDraftLoaded(false);
     reset({
       type: undefined,
+      listing_mode: "offering",
       category_id: "",
       custom_category_label: "",
       title: "",
       description: "",
       price_hint: "",
+      budget_min: "" as unknown as undefined,
+      budget_max: "" as unknown as undefined,
+      urgency: undefined,
       location_type: "on_campus",
       location_hint: "",
       availability: "",
@@ -327,7 +342,7 @@ export default function CreateListingPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-2xl font-bold text-slate-900">
-            {t.listings.createTitle}
+            {isSeeking ? t.listings.createRequestTitle : t.listings.createTitle}
           </h1>
         </div>
         <button
@@ -367,9 +382,41 @@ export default function CreateListingPage() {
           onSubmit={handleSubmit(onSubmit)}
           className={cn("space-y-6", showPreview ? "lg:col-span-2" : "lg:col-span-3")}
         >
+          {/* Listing mode selector */}
+          <FormField
+            label="What do you want to do?"
+            htmlFor="listing_mode"
+            required
+          >
+            <Controller
+              name="listing_mode"
+              control={control}
+              render={({ field }) => (
+                <div className="flex gap-3">
+                  <RadioCard
+                    selected={field.value === "offering"}
+                    onClick={() => field.onChange("offering")}
+                    icon={ShoppingBag}
+                    label="Sell / Offer"
+                    description="I have something to sell or a service to offer"
+                    color="border-emerald-500 bg-emerald-50 text-emerald-700"
+                  />
+                  <RadioCard
+                    selected={field.value === "seeking"}
+                    onClick={() => field.onChange("seeking")}
+                    icon={Search}
+                    label="Looking For"
+                    description="I need something — post a request"
+                    color="border-cyan-500 bg-cyan-50 text-cyan-700"
+                  />
+                </div>
+              )}
+            />
+          </FormField>
+
           {/* Type selector */}
           <FormField
-            label={t.listings.categoryLabel ? "What are you offering?" : "Type"}
+            label={isSeeking ? "What type of thing do you need?" : "What are you offering?"}
             htmlFor="type"
             error={errors.type?.message}
             required
@@ -387,7 +434,7 @@ export default function CreateListingPage() {
                     }}
                     icon={Briefcase}
                     label={t.listings.servicesTab}
-                    description="Tutoring, rides, skills, and more"
+                    description={isSeeking ? "Tutoring, rides, help, etc." : "Tutoring, rides, skills, and more"}
                     color="border-blue-500 bg-blue-50 text-blue-700"
                   />
                   <RadioCard
@@ -398,7 +445,7 @@ export default function CreateListingPage() {
                     }}
                     icon={ShoppingBag}
                     label={t.listings.itemsTab}
-                    description="Textbooks, furniture, electronics, etc."
+                    description={isSeeking ? "Textbooks, electronics, etc." : "Textbooks, furniture, electronics, etc."}
                     color="border-emerald-500 bg-emerald-50 text-emerald-700"
                   />
                 </div>
@@ -492,7 +539,7 @@ export default function CreateListingPage() {
               id="description"
               {...register("description")}
               rows={6}
-              placeholder="Describe what you're offering in detail..."
+              placeholder={isSeeking ? "Describe what you're looking for..." : "Describe what you're offering in detail..."}
               className={cn(
                 "w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm",
                 "placeholder:text-slate-400",
@@ -532,25 +579,113 @@ export default function CreateListingPage() {
             onApplyPrice={(p) => setValue("price_hint", p, { shouldDirty: true })}
           />
 
-          {/* Price hint */}
-          <FormField
-            label={t.listings.priceHintLabel}
-            htmlFor="price_hint"
-            error={errors.price_hint?.message}
-            hint={t.listings.priceHintHelp}
-          >
-            <input
-              id="price_hint"
-              type="text"
-              {...register("price_hint")}
-              placeholder="e.g., $20/hr, $50, Free"
-              className={cn(
-                "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm",
-                "placeholder:text-slate-400",
-                "focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100",
-              )}
-            />
-          </FormField>
+          {/* Price hint (offering) or Budget + Urgency (seeking) */}
+          {isSeeking ? (
+            <>
+              <FormField
+                label={t.listings.budgetLabel}
+                htmlFor="budget_min"
+                error={errors.budget_min?.message || errors.budget_max?.message}
+                hint={t.listings.budgetHintHelp}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                    <input
+                      id="budget_min"
+                      type="number"
+                      min="0"
+                      step="1"
+                      {...register("budget_min")}
+                      placeholder="Min"
+                      className={cn(
+                        "w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-7 pr-3 text-sm",
+                        "placeholder:text-slate-400",
+                        "focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100",
+                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                      )}
+                    />
+                  </div>
+                  <span className="text-sm text-slate-400">–</span>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                    <input
+                      id="budget_max"
+                      type="number"
+                      min="0"
+                      step="1"
+                      {...register("budget_max")}
+                      placeholder="Max"
+                      className={cn(
+                        "w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-7 pr-3 text-sm",
+                        "placeholder:text-slate-400",
+                        "focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100",
+                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                      )}
+                    />
+                  </div>
+                </div>
+              </FormField>
+
+              <FormField
+                label={t.listings.urgencyLabel}
+                htmlFor="urgency"
+              >
+                <Controller
+                  name="urgency"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="flex gap-2">
+                      {[
+                        { value: "low" as const, label: t.listings.urgencyLow },
+                        { value: "medium" as const, label: t.listings.urgencyMedium },
+                        { value: "high" as const, label: t.listings.urgencyHigh },
+                        { value: "asap" as const, label: t.listings.urgencyAsap },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
+                          className={cn(
+                            "flex flex-1 items-center justify-center rounded-lg border py-2.5 text-sm font-medium transition-colors",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                            field.value === opt.value
+                              ? opt.value === "asap"
+                                ? "border-red-500 bg-red-50 text-red-700"
+                                : opt.value === "high"
+                                  ? "border-orange-500 bg-orange-50 text-orange-700"
+                                  : "border-cyan-500 bg-cyan-50 text-cyan-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                />
+              </FormField>
+            </>
+          ) : (
+            <FormField
+              label={t.listings.priceHintLabel}
+              htmlFor="price_hint"
+              error={errors.price_hint?.message}
+              hint={t.listings.priceHintHelp}
+            >
+              <input
+                id="price_hint"
+                type="text"
+                {...register("price_hint")}
+                placeholder="e.g., $20/hr, $50, Free"
+                className={cn(
+                  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm",
+                  "placeholder:text-slate-400",
+                  "focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100",
+                )}
+              />
+            </FormField>
+          )}
 
           {/* Location type */}
           <FormField
@@ -670,7 +805,7 @@ export default function CreateListingPage() {
           <FormField
             label={t.listings.photosLabel}
             htmlFor="photos"
-            hint={selectedType === "item" ? "Required for items - add up to 6 photos" : "Optional - add up to 6 photos"}
+            hint={isSeeking ? "Optional - add reference photos if helpful" : selectedType === "item" ? "Required for items - add up to 6 photos" : "Optional - add up to 6 photos"}
           >
             <PhotoUploader
               listingId={createdListingId}
@@ -739,7 +874,7 @@ export default function CreateListingPage() {
               {(isSubmitting || createListing.isPending) && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              Post Offer
+              {isSeeking ? "Post Request" : "Post Offer"}
             </button>
             <button
               type="button"

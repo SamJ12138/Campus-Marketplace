@@ -8,6 +8,7 @@ import {
   Heart,
   Eye,
   MapPin,
+  Search,
   Briefcase,
   BookOpen,
   Wrench,
@@ -24,7 +25,7 @@ import {
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatPrice } from "@/lib/utils/format";
+import { formatPrice, formatBudgetRange } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { useToggleFavorite } from "@/lib/hooks/use-listings";
 import { useRequireAuth } from "@/lib/hooks/use-require-auth";
@@ -63,6 +64,7 @@ interface ListingCardProps {
 export default function ListingCard({ listing, onQuickView }: ListingCardProps) {
   const toggleFavorite = useToggleFavorite();
   const { requireAuth } = useRequireAuth();
+  const isSeeking = listing.listing_mode === "seeking";
   const hasPhoto = listing.photos.length > 0;
   const photoCount = listing.photos.length;
   const timeAgo = formatDistanceToNow(new Date(listing.created_at), {
@@ -156,6 +158,7 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         "transition-all duration-300 ease-spring",
         "hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-2 hover:border-primary/30",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isSeeking && "border-l-4 border-l-cyan-500",
       )}
     >
       <div
@@ -174,6 +177,10 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
             loading="lazy"
             unoptimized={thumbnailUrl.includes('r2.dev') || undefined}
           />
+        ) : isSeeking ? (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-400 to-teal-500">
+            <Search className="h-16 w-16 text-white/80" />
+          </div>
         ) : listing.type === "service" ? (
           <div
             className={cn(
@@ -207,19 +214,29 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
         <span
           className={cn(
             "absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-semibold shadow-md",
-            listing.type === "service"
-              ? "bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] text-white"
-              : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
+            isSeeking
+              ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white"
+              : listing.type === "service"
+                ? "bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] text-white"
+                : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
           )}
         >
-          {listing.type === "service" ? t.listings.servicesTab : t.listings.itemsTab}
+          {isSeeking
+            ? t.listings.lookingFor
+            : listing.type === "service"
+              ? t.listings.servicesTab
+              : t.listings.itemsTab}
         </span>
 
-        {listing.price_hint && (
+        {isSeeking ? (
+          <span className="hidden sm:block absolute bottom-2 left-2 rounded-xl bg-cyan-600/90 px-3 py-1.5 text-sm font-bold text-white shadow-lg backdrop-blur-sm">
+            {formatBudgetRange(listing.budget_min, listing.budget_max)}
+          </span>
+        ) : listing.price_hint ? (
           <span className="hidden sm:block absolute bottom-2 left-2 rounded-xl bg-foreground/90 px-3 py-1.5 text-sm font-bold text-background shadow-lg backdrop-blur-sm">
             {formatPrice(listing.price_hint)}
           </span>
-        )}
+        ) : null}
 
         {onQuickView && (
           <button
@@ -285,14 +302,25 @@ export default function ListingCard({ listing, onQuickView }: ListingCardProps) 
             </span>
           </div>
         )}
+        {listing.status === "fulfilled" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <span className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 px-5 py-2 text-lg font-bold uppercase tracking-wider text-white shadow-lg">
+              {t.listings.statusFulfilled}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 sm:gap-2 p-2.5 sm:p-4">
-        {listing.price_hint && (
+        {isSeeking ? (
+          <p className="text-sm font-bold text-cyan-600 sm:hidden">
+            {formatBudgetRange(listing.budget_min, listing.budget_max)}
+          </p>
+        ) : listing.price_hint ? (
           <p className="text-sm font-bold text-foreground sm:hidden">
             {formatPrice(listing.price_hint)}
           </p>
-        )}
+        ) : null}
         <h3 className="line-clamp-1 sm:line-clamp-2 text-xs sm:text-sm font-semibold font-display leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
           {listing.title}
         </h3>

@@ -14,6 +14,7 @@ from app.schemas.common import PaginationMeta
 from app.schemas.listing import (
     ListingCreate,
     ListingListResponse,
+    ListingMode,
     ListingResponse,
     ListingType,
     ListingUpdate,
@@ -29,6 +30,7 @@ router = APIRouter(prefix="/listings", tags=["listings"])
 @router.get("", response_model=ListingListResponse)
 async def list_listings(
     type: ListingType | None = None,
+    listing_mode: ListingMode | None = Query(None, description="Filter by offering or seeking"),
     category: str | None = Query(None, description="Category slug"),
     q: str | None = Query(None, min_length=2, max_length=100),
     min_price: float | None = Query(None, ge=0, description="Minimum price filter"),
@@ -44,6 +46,7 @@ async def list_listings(
     items, total = await service.search_listings(
         campus_id=current_user.campus_id if current_user else None,
         type=type,
+        listing_mode=listing_mode,
         category_slug=category,
         query=q,
         min_price=min_price,
@@ -185,4 +188,18 @@ async def mark_listing_sold(
     listing = await service.mark_sold(listing_id, current_user.id)
     if not listing:
         raise HTTPException(404, "Listing not found or not owned by you")
+    return listing
+
+
+@router.post("/{listing_id}/mark-fulfilled", response_model=ListingResponse)
+async def mark_listing_fulfilled(
+    listing_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Mark a request listing as fulfilled."""
+    service = ListingService(db)
+    listing = await service.mark_fulfilled(listing_id, current_user.id)
+    if not listing:
+        raise HTTPException(404, "Request not found, not owned by you, or not a request listing")
     return listing

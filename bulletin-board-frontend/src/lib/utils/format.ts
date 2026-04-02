@@ -11,6 +11,19 @@ export function formatPrice(priceHint: string): string {
 }
 
 /**
+ * Format a budget range for display on request listings.
+ */
+export function formatBudgetRange(
+  min: number | null,
+  max: number | null,
+): string {
+  if (min != null && max != null) return `$${min} – $${max}`;
+  if (min != null) return `From $${min}`;
+  if (max != null) return `Up to $${max}`;
+  return "Flexible";
+}
+
+/**
  * Sanitize a redirect URL to prevent open redirect attacks.
  * Only allows relative paths starting with "/". Falls back to the provided default.
  */

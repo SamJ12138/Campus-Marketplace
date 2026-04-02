@@ -1,7 +1,7 @@
 # GimmeDat Campus Marketplace - Development Log
 
 **Version:** 1.0 (Alpha)
-**Last Updated:** 2026-03-31
+**Last Updated:** 2026-04-02
 **Frontend:** https://gimme-dat.com
 **Backend API:** https://gettysburg-marketplace.onrender.com
 **Repository:** Gettysburg Comunity (monorepo)
@@ -1615,6 +1615,53 @@ Offers are now fully functional in the messaging system. Creating an offer creat
 - Monitor nudge email engagement (did users post items?)
 - Consider adding unsubscribe link to marketing emails
 - Deploy ARQ worker service on Render if background jobs are needed beyond auth
+
+**Status:** COMPLETED
+
+---
+
+### 2026-04-02 - Add "Requests" Feature (Seeking/Looking-For Listings)
+
+**Summary:** Added a full "Requests" feature allowing students to post what they need (seeking mode), complementing the existing offering mode. Two-sided marketplace: sellers find buyers AND buyers find sellers.
+
+**Files Changed:**
+- `bulletin-board-api/app/models/listing.py` — Added `ListingMode` enum (offering/seeking), `Urgency` enum (low/medium/high/asap), `FULFILLED` status, new columns (listing_mode, budget_min, budget_max, urgency, response_count), index on listing_mode
+- `bulletin-board-api/alembic/versions/add_listing_mode_requests.py` — **New file.** Alembic migration: creates enums, adds columns with server defaults, adds fulfilled to listing_status
+- `bulletin-board-api/app/schemas/listing.py` — Added ListingMode/Urgency schema enums, new fields in ListingCreate/Update/Response, budget range validators
+- `bulletin-board-api/app/services/listing_service.py` — Added listing_mode filter to search_listings, pass new fields in create/response, new mark_fulfilled method
+- `bulletin-board-api/app/api/v1/listings.py` — Added listing_mode query param, new POST /{id}/mark-fulfilled endpoint
+- `bulletin-board-frontend/src/lib/types/index.ts` — Added ListingMode, Urgency types, fulfilled status, new fields on Listing/CreateListingRequest/UpdateListingRequest/ListingFilters
+- `bulletin-board-frontend/src/lib/api/listings.ts` — Pass listing_mode filter, new markFulfilled() function
+- `bulletin-board-frontend/src/lib/hooks/use-listings.ts` — New useMarkFulfilled hook
+- `bulletin-board-frontend/src/lib/validation/listing.ts` — Added listing_mode, budget_min, budget_max, urgency with Zod validation
+- `bulletin-board-frontend/src/lib/utils/format.ts` — New formatBudgetRange() utility
+- `bulletin-board-frontend/src/lib/i18n/en.ts` — New strings: lookingFor, iCanHelp, markFulfilled, budgetLabel, urgency labels, etc.
+- `bulletin-board-frontend/src/components/listings/FilterBar.tsx` — "Requests" pill toggle (cyan gradient), mode props, budget label swap
+- `bulletin-board-frontend/src/components/listings/ListingCard.tsx` — Cyan left border, "LOOKING FOR" badge, budget display, urgency dots, "FULFILLED" overlay
+- `bulletin-board-frontend/src/components/listings/QuickViewModal.tsx` — Budget display, "I Can Help" CTA for seeking
+- `bulletin-board-frontend/src/components/onboarding/slides.ts` — New "Post What You Need" slide (cyan, Megaphone icon) at position 5/7
+- `bulletin-board-frontend/src/app/(main)/feed/page.tsx` — listingMode state, URL param sync, mode filter, "Requests" page title
+- `bulletin-board-frontend/src/app/(main)/listings/new/page.tsx` — Mode selector step (Sell/Offer vs Looking For), conditional budget/urgency fields, "Post Request" button
+- `bulletin-board-frontend/src/app/(main)/listings/[id]/page.tsx` — "LOOKING FOR" badge, budget display, "I Can Help" CTA, "Mark Fulfilled" action + confirm modal
+- `bulletin-board-frontend/src/app/(main)/profile/listings/page.tsx` — Fulfilled status config, Mark Fulfilled action for seeking listings
+
+**Details:**
+Implemented by extending the existing Listing model with a `listing_mode` field ("offering" | "seeking") rather than creating a separate table. This reuses all existing infrastructure: search, moderation, photos, messaging, favorites, categories, and AI embeddings. Existing listings default to "offering" via server default — zero data migration needed.
+
+Key design decisions:
+- Cyan/teal color theme distinguishes requests from offerings visually
+- Budget range (min/max) replaces price_hint for seeking listings
+- Urgency levels (low/medium/high/asap) with colored dot indicators
+- "I Can Help" button uses existing messaging system
+- "Mark Fulfilled" mirrors "Mark Sold" for request completion
+- Onboarding carousel updated with new slide explaining the feature
+- Backend test suite has a pre-existing failure (listing_status enum in partial index) unrelated to this change
+
+**Next Steps:**
+- Run Alembic migration on production database
+- Add seed data with example request listings
+- Monitor adoption — consider promoting requests feature in marketing emails
+- Potentially add response_count auto-increment when threads are created for seeking listings
 
 **Status:** COMPLETED
 

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -30,6 +31,18 @@ class ListingType(str, enum.Enum):
     ITEM = "item"
 
 
+class ListingMode(str, enum.Enum):
+    OFFERING = "offering"
+    SEEKING = "seeking"
+
+
+class Urgency(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    ASAP = "asap"
+
+
 class LocationType(str, enum.Enum):
     ON_CAMPUS = "on_campus"
     OFF_CAMPUS = "off_campus"
@@ -48,6 +61,7 @@ class ListingStatus(str, enum.Enum):
     EXPIRED = "expired"
     REMOVED = "removed"
     SOLD = "sold"
+    FULFILLED = "fulfilled"
 
 
 class Category(Base):
@@ -84,6 +98,7 @@ class Listing(Base, TimestampMixin):
         ),
         Index("idx_listings_search", "search_vector", postgresql_using="gin"),
         Index("idx_listings_created", "created_at"),
+        Index("idx_listings_mode", "listing_mode"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -116,6 +131,17 @@ class Listing(Base, TimestampMixin):
     contact_details: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_regulated: Mapped[bool] = mapped_column(Boolean, default=False)
     disclaimer_accepted: Mapped[bool] = mapped_column(Boolean, default=False)
+    listing_mode: Mapped[ListingMode] = mapped_column(
+        Enum(ListingMode, name="listing_mode_enum"),
+        default=ListingMode.OFFERING,
+        nullable=False,
+    )
+    budget_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    budget_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    urgency: Mapped[Urgency | None] = mapped_column(
+        Enum(Urgency, name="urgency_enum"), nullable=True
+    )
+    response_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[ListingStatus] = mapped_column(
         Enum(ListingStatus, name="listing_status"),
         default=ListingStatus.ACTIVE,

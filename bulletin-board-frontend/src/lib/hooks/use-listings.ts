@@ -21,6 +21,7 @@ import {
   deleteListing,
   renewListing,
   markSold,
+  markFulfilled,
   getCategories,
   getFavorites,
   addFavorite,
@@ -181,6 +182,25 @@ export function useMarkSold() {
     },
     onError: () => {
       toast.error("Failed to mark as sold");
+    },
+  });
+}
+
+export function useMarkFulfilled() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => markFulfilled(id),
+    onSuccess: (updatedListing) => {
+      queryClient.setQueryData(
+        listingKeys.detail(updatedListing.id),
+        updatedListing,
+      );
+      queryClient.invalidateQueries({ queryKey: listingKeys.lists() });
+      toast.success("Marked as fulfilled");
+    },
+    onError: () => {
+      toast.error("Failed to mark as fulfilled");
     },
   });
 }

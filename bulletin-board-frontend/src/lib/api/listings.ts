@@ -13,6 +13,7 @@ export async function getListings(
 ): Promise<PaginatedResponse<Listing>> {
   return api.get<PaginatedResponse<Listing>>("/api/v1/listings", {
     type: params.type,
+    listing_mode: params.listing_mode,
     category: params.category_slug,
     location_type: params.location_type,
     q: params.q,
@@ -52,6 +53,10 @@ export async function renewListing(id: string): Promise<Listing> {
 
 export async function markSold(id: string): Promise<Listing> {
   return api.post<Listing>(`/api/v1/listings/${id}/mark-sold`);
+}
+
+export async function markFulfilled(id: string): Promise<Listing> {
+  return api.post<Listing>(`/api/v1/listings/${id}/mark-fulfilled`);
 }
 
 export async function getCategories(

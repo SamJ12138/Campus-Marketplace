@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { useListings, useRenewListing, useMarkSold } from "@/lib/hooks/use-listings";
+import { useListings, useRenewListing, useMarkSold, useMarkFulfilled } from "@/lib/hooks/use-listings";
 import type { Listing, ListingStatus } from "@/lib/types";
 import { ProtectedPage } from "@/components/auth/ProtectedPage";
 
@@ -49,6 +49,11 @@ const STATUS_CONFIG: Record<
     icon: XCircle,
     className: "bg-destructive/10 text-destructive",
   },
+  fulfilled: {
+    label: t.listings.statusFulfilled,
+    icon: CheckCircle,
+    className: "bg-cyan-500/10 text-cyan-600",
+  },
 };
 
 function StatusBadge({ status }: { status: ListingStatus }) {
@@ -72,14 +77,18 @@ function ListingCard({
   listing,
   onRenew,
   onMarkSold,
+  onMarkFulfilled,
   isRenewing,
   isMarkingSold,
+  isMarkingFulfilled,
 }: {
   listing: Listing;
   onRenew: (id: string) => void;
   onMarkSold: (id: string) => void;
+  onMarkFulfilled: (id: string) => void;
   isRenewing: boolean;
   isMarkingSold: boolean;
+  isMarkingFulfilled: boolean;
 }) {
   const thumbnailUrl =
     listing.photos.length > 0 ? listing.photos[0].thumbnail_url : null;
@@ -136,23 +145,43 @@ function ListingCard({
                 <Pencil className="h-3 w-3" />
                 {t.common.edit}
               </Link>
-              <button
-                type="button"
-                onClick={() => onMarkSold(listing.id)}
-                disabled={isMarkingSold}
-                className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2",
-                  "text-xs font-medium hover:bg-accent transition-colors",
-                  "disabled:opacity-50 disabled:pointer-events-none",
-                )}
-              >
-                {isMarkingSold ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <ShoppingBag className="h-3 w-3" />
-                )}
-                {t.listings.markSold}
-              </button>
+              {listing.listing_mode === "seeking" ? (
+                <button
+                  type="button"
+                  onClick={() => onMarkFulfilled(listing.id)}
+                  disabled={isMarkingFulfilled}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2",
+                    "text-xs font-medium hover:bg-accent transition-colors",
+                    "disabled:opacity-50 disabled:pointer-events-none",
+                  )}
+                >
+                  {isMarkingFulfilled ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-3 w-3" />
+                  )}
+                  {t.listings.markFulfilled}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onMarkSold(listing.id)}
+                  disabled={isMarkingSold}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2",
+                    "text-xs font-medium hover:bg-accent transition-colors",
+                    "disabled:opacity-50 disabled:pointer-events-none",
+                  )}
+                >
+                  {isMarkingSold ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ShoppingBag className="h-3 w-3" />
+                  )}
+                  {t.listings.markSold}
+                </button>
+              )}
             </>
           )}
           {listing.status === "expired" && (
@@ -202,9 +231,11 @@ export default function MyListingsPage() {
   );
   const renewMutation = useRenewListing();
   const markSoldMutation = useMarkSold();
+  const markFulfilledMutation = useMarkFulfilled();
 
   const [renewingId, setRenewingId] = useState<string | null>(null);
   const [markingSoldId, setMarkingSoldId] = useState<string | null>(null);
+  const [markingFulfilledId, setMarkingFulfilledId] = useState<string | null>(null);
 
   const listings = useMemo(() => {
     if (!data?.pages) return [];
@@ -221,6 +252,11 @@ export default function MyListingsPage() {
   function handleMarkSold(id: string) {
     setMarkingSoldId(id);
     markSoldMutation.mutate(id, { onSettled: () => setMarkingSoldId(null) });
+  }
+
+  function handleMarkFulfilled(id: string) {
+    setMarkingFulfilledId(id);
+    markFulfilledMutation.mutate(id, { onSettled: () => setMarkingFulfilledId(null) });
   }
 
   return (
@@ -274,8 +310,10 @@ export default function MyListingsPage() {
               listing={listing}
               onRenew={handleRenew}
               onMarkSold={handleMarkSold}
+              onMarkFulfilled={handleMarkFulfilled}
               isRenewing={renewingId === listing.id}
               isMarkingSold={markingSoldId === listing.id}
+              isMarkingFulfilled={markingFulfilledId === listing.id}
             />
           ))}
         </div>

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatPrice } from "@/lib/utils/format";
+import { formatPrice, formatBudgetRange } from "@/lib/utils/format";
 import { en as t } from "@/lib/i18n/en";
 import { ListingSchema } from "@/components/seo";
 import {
@@ -35,6 +35,7 @@ import {
   useToggleFavorite,
   useRenewListing,
   useMarkSold,
+  useMarkFulfilled,
   useDeleteListing,
 } from "@/lib/hooks/use-listings";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -392,10 +393,12 @@ export default function ListingDetailPage() {
   const toggleFavorite = useToggleFavorite();
   const renewListing = useRenewListing();
   const markSoldMutation = useMarkSold();
+  const markFulfilledMutation = useMarkFulfilled();
   const deleteListingMutation = useDeleteListing();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmSold, setConfirmSold] = useState(false);
+  const [confirmFulfilled, setConfirmFulfilled] = useState(false);
   const [shareToast, setShareToast] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
@@ -451,6 +454,15 @@ export default function ListingDetailPage() {
       },
     });
   }, [markSoldMutation, listingId]);
+
+  // Handle mark fulfilled
+  const handleMarkFulfilled = useCallback(() => {
+    markFulfilledMutation.mutate(listingId, {
+      onSuccess: () => {
+        setConfirmFulfilled(false);
+      },
+    });
+  }, [markFulfilledMutation, listingId]);
 
   // Handle renew
   const handleRenew = useCallback(() => {
@@ -531,9 +543,19 @@ export default function ListingDetailPage() {
                 {listing.category.name}
               </span>
             )}
+            {listing.listing_mode === "seeking" && (
+              <span className="rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-bold text-cyan-700">
+                {t.listings.lookingFor}
+              </span>
+            )}
             {listing.status === "sold" && (
               <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
                 {t.listings.statusSold}
+              </span>
+            )}
+            {listing.status === "fulfilled" && (
+              <span className="rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-bold text-cyan-700">
+                {t.listings.statusFulfilled}
               </span>
             )}
             {listing.status === "expired" && (
@@ -548,12 +570,16 @@ export default function ListingDetailPage() {
             {listing.title}
           </h1>
 
-          {/* Price */}
-          {listing.price_hint && (
+          {/* Price / Budget */}
+          {listing.listing_mode === "seeking" ? (
+            <p className="text-xl font-bold text-cyan-600">
+              Budget: {formatBudgetRange(listing.budget_min, listing.budget_max)}
+            </p>
+          ) : listing.price_hint ? (
             <p className="text-xl font-bold text-emerald-600">
               {formatPrice(listing.price_hint)}
             </p>
-          )}
+          ) : null}
 
           {/* Description */}
           <div className="rounded-lg bg-slate-50 p-4">
@@ -676,7 +702,18 @@ export default function ListingDetailPage() {
                     {t.listings.renew}
                   </button>
                 )}
-                {listing.type === "item" &&
+                {listing.listing_mode === "seeking" && listing.status === "active" && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmFulfilled(true)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-medium text-cyan-700 hover:bg-cyan-100"
+                  >
+                    <Check className="h-4 w-4" />
+                    {t.listings.markFulfilled}
+                  </button>
+                )}
+                {listing.listing_mode !== "seeking" &&
+                  listing.type === "item" &&
                   listing.status === "active" && (
                     <button
                       type="button"
@@ -701,10 +738,15 @@ export default function ListingDetailPage() {
                 <button
                   type="button"
                   onClick={() => requireAuth(() => router.push(`/messages?listing=${listing.id}`))}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className={cn(
+                    "inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                    listing.listing_mode === "seeking"
+                      ? "bg-cyan-600 hover:bg-cyan-700"
+                      : "bg-blue-600 hover:bg-blue-700",
+                  )}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Message
+                  {listing.listing_mode === "seeking" ? t.listings.iCanHelp : "Message"}
                 </button>
                 <button
                   type="button"
@@ -795,25 +837,46 @@ export default function ListingDetailPage() {
         />
       )}
 
+      {/* Mark fulfilled confirm modal */}
+      {confirmFulfilled && (
+        <ConfirmModal
+          title="Mark as Fulfilled"
+          message="Found what you were looking for? This will close the request."
+          confirmLabel={t.listings.markFulfilled}
+          isLoading={markFulfilledMutation.isPending}
+          onConfirm={handleMarkFulfilled}
+          onCancel={() => setConfirmFulfilled(false)}
+        />
+      )}
+
       {/* Mobile sticky CTA bar */}
-      {!listing.is_own && listing.status !== "sold" && (
+      {!listing.is_own && listing.status !== "sold" && listing.status !== "fulfilled" && (
         <div
           className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/50 glass-strong px-4 py-3 md:hidden"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
         >
           <div className="mx-auto flex max-w-6xl items-center gap-3">
-            {listing.price_hint && (
+            {listing.listing_mode === "seeking" ? (
+              <p className="flex-shrink-0 text-lg font-bold text-cyan-600">
+                {formatBudgetRange(listing.budget_min, listing.budget_max)}
+              </p>
+            ) : listing.price_hint ? (
               <p className="flex-shrink-0 text-lg font-bold text-foreground">
                 {formatPrice(listing.price_hint)}
               </p>
-            )}
+            ) : null}
             <button
               type="button"
               onClick={() => requireAuth(() => router.push(`/messages?listing=${listing.id}`))}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:brightness-110"
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg hover:brightness-110",
+                listing.listing_mode === "seeking"
+                  ? "bg-gradient-to-r from-cyan-500 to-teal-500 shadow-cyan-500/25"
+                  : "bg-gradient-to-r from-primary to-[hsl(var(--secondary-accent))] shadow-primary/25",
+              )}
             >
               <MessageCircle className="h-4 w-4" />
-              Message Seller
+              {listing.listing_mode === "seeking" ? t.listings.iCanHelp : "Message Seller"}
             </button>
             <button
               type="button"

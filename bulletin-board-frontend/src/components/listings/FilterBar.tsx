@@ -1,20 +1,22 @@
 "use client";
 
 import { useRef, useCallback } from "react";
-import { X, ChevronDown, Sparkles } from "lucide-react";
-import type { ListingType, Category } from "@/lib/types";
+import { X, ChevronDown, Sparkles, Megaphone } from "lucide-react";
+import type { ListingType, ListingMode, Category } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { en as t } from "@/lib/i18n/en";
 import { useCategories } from "@/lib/hooks/use-listings";
 
 interface FilterBarProps {
   currentType: ListingType | null;
+  currentMode: ListingMode | null;
   currentCategory: string | null;
   currentSort: string;
   lockedType?: ListingType | null;
   minPrice: string;
   maxPrice: string;
   onTypeChange: (type: ListingType | null) => void;
+  onModeChange: (mode: ListingMode | null) => void;
   onCategoryChange: (categorySlug: string | null) => void;
   onSortChange: (sort: string) => void;
   onMinPriceChange: (value: string) => void;
@@ -29,12 +31,14 @@ const SORT_OPTIONS = [
 
 export default function FilterBar({
   currentType,
+  currentMode,
   currentCategory,
   currentSort,
   lockedType,
   minPrice,
   maxPrice,
   onTypeChange,
+  onModeChange,
   onCategoryChange,
   onSortChange,
   onMinPriceChange,
@@ -47,6 +51,7 @@ export default function FilterBar({
 
   const hasActiveFilters =
     (currentType !== null && currentType !== lockedType) ||
+    currentMode !== null ||
     currentCategory !== null ||
     currentSort !== "newest" ||
     minPrice !== "" ||
@@ -54,11 +59,12 @@ export default function FilterBar({
 
   const handleClearFilters = useCallback(() => {
     if (!lockedType) onTypeChange(null);
+    onModeChange(null);
     onCategoryChange(null);
     onSortChange("newest");
     onMinPriceChange("");
     onMaxPriceChange("");
-  }, [lockedType, onTypeChange, onCategoryChange, onSortChange, onMinPriceChange, onMaxPriceChange]);
+  }, [lockedType, onTypeChange, onModeChange, onCategoryChange, onSortChange, onMinPriceChange, onMaxPriceChange]);
 
   const handleTypeToggle = useCallback(
     (type: ListingType) => {
@@ -124,14 +130,38 @@ export default function FilterBar({
             className={cn(
               "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              currentType === "item"
+              currentType === "item" && currentMode !== "seeking"
                 ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25"
                 : "glass border border-border/50 text-foreground hover:border-primary/30 hover:shadow-sm",
             )}
           >
             <span className="flex items-center gap-1.5">
-              {currentType === "item" && <Sparkles className="h-3.5 w-3.5" />}
+              {currentType === "item" && currentMode !== "seeking" && <Sparkles className="h-3.5 w-3.5" />}
               {t.listings.itemsTab}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (currentMode === "seeking") {
+                onModeChange(null);
+              } else {
+                onModeChange("seeking");
+                onTypeChange(null);
+                onCategoryChange(null);
+              }
+            }}
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              currentMode === "seeking"
+                ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md shadow-cyan-500/25"
+                : "glass border border-border/50 text-foreground hover:border-primary/30 hover:shadow-sm",
+            )}
+          >
+            <span className="flex items-center gap-1.5">
+              {currentMode === "seeking" && <Megaphone className="h-3.5 w-3.5" />}
+              {t.listings.requestsTab}
             </span>
           </button>
         </div>
@@ -199,7 +229,9 @@ export default function FilterBar({
         <div className="h-6 w-px flex-shrink-0 bg-border/50" />
 
         <div className="flex flex-shrink-0 items-center gap-1.5 snap-start">
-          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">$</span>
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            {currentMode === "seeking" ? "Budget $" : "$"}
+          </span>
           <input
             type="number"
             min="0"

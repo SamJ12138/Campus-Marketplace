@@ -3,10 +3,10 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { X, MessageCircle, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { X, MessageCircle, ChevronLeft, ChevronRight, ShoppingBag, Search } from "lucide-react";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatPrice } from "@/lib/utils/format";
+import { formatPrice, formatBudgetRange } from "@/lib/utils/format";
 
 interface QuickViewModalProps {
   listing: Listing | null;
@@ -143,8 +143,15 @@ export default function QuickViewModal({
               unoptimized={currentPhoto.url.includes('r2.dev') || undefined}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <ShoppingBag className="h-20 w-20 text-muted-foreground/30" />
+            <div className={cn(
+              "flex h-full w-full items-center justify-center",
+              listing.listing_mode === "seeking" ? "bg-gradient-to-br from-cyan-400 to-teal-500" : "",
+            )}>
+              {listing.listing_mode === "seeking" ? (
+                <Search className="h-20 w-20 text-white/80" />
+              ) : (
+                <ShoppingBag className="h-20 w-20 text-muted-foreground/30" />
+              )}
             </div>
           )}
 
@@ -192,14 +199,25 @@ export default function QuickViewModal({
         {/* Details */}
         <div className="flex flex-col gap-3 p-5">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="text-lg font-bold text-foreground">
-              {listing.title}
-            </h2>
-            {listing.price_hint && (
+            <div className="flex items-center gap-2">
+              {listing.listing_mode === "seeking" && (
+                <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-700">
+                  LOOKING FOR
+                </span>
+              )}
+              <h2 className="text-lg font-bold text-foreground">
+                {listing.title}
+              </h2>
+            </div>
+            {listing.listing_mode === "seeking" ? (
+              <span className="flex-shrink-0 rounded-full bg-cyan-100 px-3 py-1 text-sm font-bold text-cyan-700">
+                {formatBudgetRange(listing.budget_min, listing.budget_max)}
+              </span>
+            ) : listing.price_hint ? (
               <span className="flex-shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">
                 {formatPrice(listing.price_hint)}
               </span>
-            )}
+            ) : null}
           </div>
 
           {listing.description && (
@@ -243,7 +261,7 @@ export default function QuickViewModal({
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MessageCircle className="h-4 w-4" />
-              Message
+              {listing.listing_mode === "seeking" ? "I Can Help" : "Message"}
             </Link>
           </div>
         </div>
