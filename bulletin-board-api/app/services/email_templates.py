@@ -1394,3 +1394,164 @@ GimmeDat - The student marketplace for services, items, and campus connections.
 """
 
     return _base_template(content), plain_text
+
+
+def requests_feature_email(
+    display_name: str = "there",
+    frontend_url: str = "https://gimme-dat.com",
+) -> tuple[str, str]:
+    """Announcement email for the new Requests feature."""
+    safe_name = escape(display_name)
+    request_url = f"{frontend_url}/listings/new"
+    feed_url = f"{frontend_url}/feed?mode=seeking"
+
+    content = f'''
+        <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #1a1a2e;">
+            New on GimmeDat: Post what you need
+        </h2>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Hi {safe_name},
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Until now, GimmeDat only worked in one direction: students post what
+            they have, and others browse. That changes today.
+        </p>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>You can now post requests for things you need.</strong>
+            Looking for a specific textbook? Need a tutor for organic chemistry?
+            Want someone to sublease your apartment this summer? Post a request
+            and let other students come to you.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            How it works
+        </h3>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                1. Tap <strong>New Offer</strong> and choose <strong>"Looking For"</strong>
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                2. Describe what you need, set an optional budget range, and pick an urgency level
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                3. Your request shows up in the main feed so everyone can see it
+            </td></tr>
+            <tr><td style="padding: 4px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                4. Students who can help tap <strong>"I Can Help"</strong> to message you directly
+            </td></tr>
+        </table>
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            Why this matters
+        </h3>
+
+        <p style="margin: 0 0 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Before, if nobody had listed what you wanted, you were out of luck.
+            Now you can put it out there and let the right person find you. It
+            works for both items and services, so whether you need a used
+            calculator or a ride to the airport, you are covered.
+        </p>
+
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a2e;">
+            Things students are already requesting
+        </h3>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+            <tr><td style="padding: 3px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                - Textbooks for next semester (save money buying used)
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                - Tutoring for specific classes
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                - Furniture and dorm essentials
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                - Rides and travel arrangements
+            </td></tr>
+            <tr><td style="padding: 3px 0; font-size: 15px; color: #333; line-height: 1.6;">
+                - Skills and services (photography, haircuts, tech help)
+            </td></tr>
+        </table>
+
+        <!-- CTA button -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+            <tr>
+                <td style="border-radius: 8px; background-color: #06b6d4;">
+                    <a href="{request_url}" style="display: inline-block; padding: 14px 28px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
+                        Post a request
+                    </a>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">
+            Or <a href="{feed_url}" style="color: #06b6d4; text-decoration: underline;">browse existing requests</a>
+            to see if you can help someone out.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+        <p style="margin: 0 0 8px 0; font-size: 15px; color: #333; line-height: 1.6;">
+            Requests show up alongside regular offers in the marketplace feed
+            with a teal accent so they are easy to spot. You can also filter
+            the feed to show only requests.
+        </p>
+
+        <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">
+            As always, all transactions happen offline between students. GimmeDat
+            does not process payments. Meet in a public place on campus and stay
+            safe.
+        </p>
+
+        <p style="margin: 16px 0 0 0; font-size: 15px; color: #333; line-height: 1.6;">
+            — The GimmeDat Team
+        </p>
+    '''
+
+    plain_text = f"""New on GimmeDat: Post what you need
+
+Hi {display_name},
+
+Until now, GimmeDat only worked in one direction: students post what they have, and others browse. That changes today.
+
+You can now post requests for things you need. Looking for a specific textbook? Need a tutor for organic chemistry? Want someone to sublease your apartment this summer? Post a request and let other students come to you.
+
+How it works:
+
+1. Tap New Offer and choose "Looking For"
+2. Describe what you need, set an optional budget range, and pick an urgency level
+3. Your request shows up in the main feed so everyone can see it
+4. Students who can help tap "I Can Help" to message you directly
+
+Why this matters:
+
+Before, if nobody had listed what you wanted, you were out of luck. Now you can put it out there and let the right person find you. It works for both items and services, so whether you need a used calculator or a ride to the airport, you are covered.
+
+Things students are already requesting:
+- Textbooks for next semester (save money buying used)
+- Tutoring for specific classes
+- Furniture and dorm essentials
+- Rides and travel arrangements
+- Skills and services (photography, haircuts, tech help)
+
+Post a request: {request_url}
+
+Or browse existing requests to see if you can help someone out: {feed_url}
+
+Requests show up alongside regular offers in the marketplace feed with a teal accent so they are easy to spot. You can also filter the feed to show only requests.
+
+As always, all transactions happen offline between students. GimmeDat does not process payments. Meet in a public place on campus and stay safe.
+
+— The GimmeDat Team
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
