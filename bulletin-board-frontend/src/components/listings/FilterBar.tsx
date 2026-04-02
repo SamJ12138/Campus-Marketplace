@@ -75,9 +75,10 @@ export default function FilterBar({
       } else {
         onTypeChange(type);
         onCategoryChange(null);
+        onModeChange(null);
       }
     },
-    [currentType, lockedType, onTypeChange, onCategoryChange],
+    [currentType, lockedType, onTypeChange, onCategoryChange, onModeChange],
   );
 
   return (
@@ -97,6 +98,7 @@ export default function FilterBar({
             onClick={() => {
               onTypeChange(null);
               onCategoryChange(null);
+              onModeChange(null);
             }}
             className={cn(
               "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-spring whitespace-nowrap",

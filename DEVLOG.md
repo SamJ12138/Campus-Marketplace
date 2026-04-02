@@ -1666,3 +1666,17 @@ Key design decisions:
 **Status:** COMPLETED
 
 ---
+
+### 2026-04-02 — Fix sticky "Requests" filter button on marketplace feed
+
+**Problem:** Clicking the "Requests" category button on `/feed` made it sticky — clicking "Items" or "Services" afterward wouldn't deselect it. Users had to click "Requests" again before other filter buttons would work.
+
+**Root Cause:** The filter buttons in `FilterBar.tsx` managed two independent state variables (`type` for Items/Services and `listingMode` for Requests) without cross-clearing each other. Clicking Items/Services only updated `type` but left `listingMode="seeking"` set, so the Requests button stayed highlighted.
+
+**Fix:** (`bulletin-board-frontend/src/components/listings/FilterBar.tsx`)
+- Added `onModeChange(null)` to `handleTypeToggle()` so selecting Items/Services clears seeking mode
+- Added `onModeChange(null)` to "All Offers" button click handler so it fully resets filter state
+
+**Status:** COMPLETED
+
+---
