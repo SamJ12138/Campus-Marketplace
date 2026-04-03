@@ -745,75 +745,59 @@ async def process_pending_message_notifications(ctx):
 async def send_abandoned_signup_emails(ctx):
     """Send apology emails to users who requested a signup code but never completed registration.
 
-    Scans Redis for abandoned_signup:{email} keys set during request_code().
-    Only sends after the verification code has expired (10 min) and the user
-    still hasn't registered. Dedup key prevents sending more than once per day.
+    Queries the signup_attempts table for rows where the code has expired
+    and no apology has been sent yet. If the user registered in the meantime,
+    the row is deleted instead.
     """
     import logging
 
     from sqlalchemy import select
 
+    from app.models.signup_attempt import SignupAttempt
     from app.models.user import User
     from app.services.email_templates import abandoned_signup_email
 
     logger = logging.getLogger("app.worker")
-    redis = ctx["redis"]
     settings = ctx["settings"]
     email_service = ctx["email_service"]
     db_session = ctx["db_session"]
-    expire_seconds = settings.auth_code_expire_minutes * 60
-    now = int(datetime.now(timezone.utc).timestamp())
     sent = 0
 
-    cursor = 0
-    while True:
-        cursor, keys = await redis.scan(cursor, match="abandoned_signup:*", count=100)
+    async with db_session() as db:
+        result = await db.execute(
+            select(SignupAttempt).where(
+                SignupAttempt.apology_sent == False,  # noqa: E712
+                SignupAttempt.code_expires_at < datetime.now(timezone.utc),
+            )
+        )
+        attempts = list(result.scalars().all())
 
-        for key in keys:
-            email = key.replace("abandoned_signup:", "")
-
-            # Check if code has expired
-            timestamp_str = await redis.get(key)
-            if not timestamp_str:
-                continue
-            request_time = int(timestamp_str)
-            if now < request_time + expire_seconds:
-                continue  # Code still valid, user might still verify
-
-            # Check if user completed signup in the meantime
-            async with db_session() as db:
-                user = await db.scalar(select(User).where(User.email == email))
-                if user:
-                    await redis.delete(key)
-                    continue
-
-            # Check dedup — already sent apology for this email today?
-            if await redis.exists(f"abandoned_signup_sent:{email}"):
-                await redis.delete(key)
+        for attempt in attempts:
+            # Check if user registered between code request and now
+            user = await db.scalar(
+                select(User).where(User.email == attempt.email)
+            )
+            if user:
+                await db.delete(attempt)
                 continue
 
-            # Send apology email
             signup_url = f"{settings.primary_frontend_url}/login"
-            username = email.split("@")[0]
+            username = attempt.email.split("@")[0]
             html, text = abandoned_signup_email(username, signup_url)
 
             success = await email_service.send_email(
-                to_email=email,
+                to_email=attempt.email,
                 subject="Sorry about that -- try signing in again",
                 html_content=html,
                 text_content=text,
             )
 
             if success:
-                await redis.set(
-                    f"abandoned_signup_sent:{email}", "1", ex=86400
-                )  # 24h dedup
+                attempt.apology_sent = True
                 sent += 1
+            # If send fails, apology_sent stays False -> retried next cycle
 
-            await redis.delete(key)
-
-        if cursor == 0:
-            break
+        await db.commit()
 
     if sent:
         logger.info("[ABANDONED] Sent %d abandoned signup apology emails", sent)

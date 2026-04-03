@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from redis.asyncio import Redis
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user
@@ -26,6 +27,7 @@ from app.core.security import (
 from app.dependencies import get_arq_pool, get_db, get_redis
 from app.models.campus import Campus
 from app.models.notification import NotificationPreference
+from app.models.signup_attempt import SignupAttempt
 from app.models.user import (
     EmailVerification,
     EmailVerificationPurpose,
@@ -570,12 +572,22 @@ async def request_code(
             "0",
             ex=expire_minutes * 60,
         )
-        # Track for abandoned signup follow-up email
-        await redis.set(
-            f"abandoned_signup:{email}",
-            str(int(datetime.now(timezone.utc).timestamp())),
-            ex=expire_minutes * 60 + 30 * 60,  # code expiry + 30 min buffer for worker pickup
+        # Track in DB for reliable abandoned signup detection
+        stmt = pg_insert(SignupAttempt).values(
+            email=email,
+            code_expires_at=datetime.now(timezone.utc)
+            + timedelta(minutes=expire_minutes),
+            apology_sent=False,
+        ).on_conflict_do_update(
+            index_elements=["email"],
+            set_={
+                "code_expires_at": datetime.now(timezone.utc)
+                + timedelta(minutes=expire_minutes),
+                "apology_sent": False,
+            },
         )
+        await db.execute(stmt)
+        await db.commit()
         display_name = data.username
 
     # Send code email (deliver to alternate address if overridden)
@@ -709,7 +721,11 @@ async def verify_code(
         await redis.delete(
             f"pending_signup_code:{email}",
             f"pending_signup_attempts:{email}",
-            f"abandoned_signup:{email}",
+            f"abandoned_signup:{email}",  # legacy key, harmless no-op
+        )
+        # Remove signup attempt tracking (user registered successfully)
+        await db.execute(
+            delete(SignupAttempt).where(SignupAttempt.email == email)
         )
 
     # --- Check user status (ban/suspension) ---

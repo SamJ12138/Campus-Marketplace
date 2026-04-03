@@ -16,6 +16,7 @@ from app.models.offer import Offer
 from app.models.pending_upload import PendingUpload
 from app.models.report import Report
 from app.models.review import Review
+from app.models.signup_attempt import SignupAttempt
 from app.models.user import EmailVerification, RefreshToken, User
 
 __all__ = [
@@ -50,4 +51,5 @@ __all__ = [
     "Deal",
     "Review",
     "Meeting",
+    "SignupAttempt",
 ]
