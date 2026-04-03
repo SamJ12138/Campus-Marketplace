@@ -574,7 +574,7 @@ async def request_code(
         await redis.set(
             f"abandoned_signup:{email}",
             str(int(datetime.now(timezone.utc).timestamp())),
-            ex=30 * 60,  # 30 min TTL (outlives the 10-min code)
+            ex=expire_minutes * 60 + 30 * 60,  # code expiry + 30 min buffer for worker pickup
         )
         display_name = data.username
 
