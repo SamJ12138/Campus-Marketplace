@@ -112,6 +112,68 @@ async def _enqueue_auth_email(
     logger.info("[AUTH-EMAIL] Sending '%s' to %s via BackgroundTasks", subject, to_email)
 
 
+async def _schedule_apology_check(email: str, delay_minutes: int) -> None:
+    """Wait for code to expire, then send apology email if user never registered.
+
+    Runs in-process via asyncio.create_task so it works even when the ARQ
+    worker service is not deployed.  The ARQ cron job in workers/tasks.py
+    remains as a fallback sweep for edge cases (e.g. server restart).
+    """
+    logger = logging.getLogger("app.auth")
+    try:
+        await asyncio.sleep(delay_minutes * 60)
+
+        from app.db import create_engine, create_session_factory
+
+        engine = create_engine(settings.database_url)
+        session_factory = create_session_factory(engine)
+
+        async with session_factory() as db:
+            attempt = await db.scalar(
+                select(SignupAttempt).where(
+                    SignupAttempt.email == email,
+                    SignupAttempt.apology_sent == False,  # noqa: E712
+                )
+            )
+            if not attempt:
+                await engine.dispose()
+                return
+
+            user = await db.scalar(select(User).where(User.email == email))
+            if user:
+                await db.delete(attempt)
+                await db.commit()
+                await engine.dispose()
+                return
+
+            from app.services.email_templates import abandoned_signup_email
+
+            signup_url = f"{settings.primary_frontend_url}/login"
+            username = email.split("@")[0]
+            html, text = abandoned_signup_email(username, signup_url)
+
+            email_svc = get_email_service(settings)
+            success = await email_svc.send_email(
+                to_email=email,
+                subject="Sorry about that -- try signing in again",
+                html_content=html,
+                text_content=text,
+            )
+
+            if success:
+                attempt.apology_sent = True
+                await db.commit()
+                logger.info("[ABANDONED] Sent apology email to %s (in-process)", email)
+            else:
+                logger.error("[ABANDONED] Failed to send apology to %s", email)
+
+        await engine.dispose()
+    except Exception as e:
+        logger.error(
+            "[ABANDONED] Apology check failed for %s: %s", email, e, exc_info=True
+        )
+
+
 @router.post("/register", status_code=201)
 async def register(
     data: RegisterRequest,
@@ -589,6 +651,8 @@ async def request_code(
         )
         await db.execute(stmt)
         await db.commit()
+        # Schedule in-process apology email (fires after code expires + 2 min buffer)
+        asyncio.create_task(_schedule_apology_check(email, expire_minutes + 2))
         display_name = data.username
 
     # Send code email (deliver to alternate address if overridden)

@@ -1680,3 +1680,19 @@ Key design decisions:
 **Status:** COMPLETED
 
 ---
+
+### 2026-04-03 — Fix apology emails not sending automatically
+
+**Problem:** Users who request a signup code but never complete registration were not receiving the "Sorry about that" apology email. User `puzifi01@gettysburg.edu` waited 20+ minutes with no apology triggered.
+
+**Root Cause:** The apology email system relied entirely on an ARQ worker cron job (`send_abandoned_signup_emails` every 5 min), but the ARQ worker service may not be running on Render. The codebase itself acknowledges this — `_enqueue_auth_email` in auth.py uses FastAPI in-process BackgroundTasks specifically because "the ARQ worker service may not be deployed/running." Auth emails (sign-in codes) worked; apology emails didn't.
+
+**Fix:** (`bulletin-board-api/app/api/v1/auth.py`)
+- Added `_schedule_apology_check()` async function that uses `asyncio.create_task` + `asyncio.sleep` to schedule an in-process check after code expiry + 2 min buffer
+- Called from `request_code()` for new (non-existing) users right after the SignupAttempt DB record is committed
+- After the delay, checks if user registered; if not, sends the apology email directly
+- ARQ cron job kept as fallback sweep for edge cases (server restart during delay)
+
+**Status:** COMPLETED
+
+---
