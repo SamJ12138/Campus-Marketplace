@@ -16,7 +16,7 @@ const SEED_ADS: Ad[] = [
     ctaText: "Follow on Instagram",
     ctaUrl: "https://www.instagram.com/gimmedat.gburg/",
     image: {
-      src: "/images/instagram-gimmedat.jpg",
+      src: "/images/instagram-gimmedat.png",
       alt: "GimmeDat Instagram profile page showing @gimmedat.gburg",
       fit: "contain",
     },
