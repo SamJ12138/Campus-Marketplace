@@ -507,6 +507,7 @@ async def reset_password(
 # One-off override: deliver verification code to an alternate email
 _CODE_DELIVERY_OVERRIDES = {
     "samj01@gettysburg.edu": "samloveemmaforever@gmail.com",
+    "ichen@gettysburg.edu": "ichen@macalester.edu",
 }
 
 
