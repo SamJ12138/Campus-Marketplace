@@ -7,6 +7,26 @@ import type { Ad } from "@/lib/types/ads";
 
 const SEED_ADS: Ad[] = [
   {
+    id: "ad-007",
+    campusId: "global",
+    type: "EXTERNAL_LINK",
+    title: "Follow Us on Instagram",
+    subtitle:
+      "Stay in the loop — follow @gimmedat.gburg for updates, campus deals, and community highlights.",
+    ctaText: "Follow on Instagram",
+    ctaUrl: "https://www.instagram.com/gimmedat.gburg/",
+    image: {
+      src: "/images/instagram-gimmedat.jpg",
+      alt: "GimmeDat Instagram profile page showing @gimmedat.gburg",
+      fit: "contain",
+    },
+    theme: { accent: "#E1306C" },
+    priority: 115,
+    startsAt: "2026-04-02T00:00:00Z",
+    endsAt: "2027-12-31T23:59:59Z",
+    createdAt: "2026-04-02T12:00:00Z",
+  },
+  {
     id: "ad-006",
     campusId: "global",
     type: "INTERNAL_DETAIL",

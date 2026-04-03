@@ -453,7 +453,7 @@ function AdSlide({
           fill
           sizes="(max-width: 768px) 100vw, 45vw"
           priority={isCurrent}
-          className="object-cover"
+          className={ad.image.fit === "contain" ? "object-contain" : "object-cover"}
         />
         {/* Gradient overlay for visual depth */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/20 to-transparent md:from-card/10" />

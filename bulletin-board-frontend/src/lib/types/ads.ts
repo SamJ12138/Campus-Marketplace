@@ -18,7 +18,7 @@ export interface Ad {
   subtitle?: string;
   ctaText: string;
   ctaUrl?: string;
-  image: { src: string; alt: string };
+  image: { src: string; alt: string; fit?: "cover" | "contain" };
   theme?: { accent?: string };
   externalUrl?: string;
   body?: string;
@@ -45,6 +45,7 @@ export const AdSchema = z.object({
   image: z.object({
     src: z.string(),
     alt: z.string(),
+    fit: z.enum(["cover", "contain"]).optional(),
   }),
   theme: z
     .object({
