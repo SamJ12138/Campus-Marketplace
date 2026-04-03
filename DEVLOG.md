@@ -1696,3 +1696,18 @@ Key design decisions:
 **Status:** COMPLETED
 
 ---
+
+### 2026-04-03 — Add automatic welcome email for new users
+
+**Feature:** Send a welcome email with SpongeBob "Hello Welcome" meme image immediately after a new user completes registration via the passwordless flow.
+
+**Implementation:**
+- Added `welcome_email()` template in `email_templates.py` — includes hero image, "here's what you can do" feature list, and "Browse the Marketplace" CTA button
+- Hooked into `verify_code()` in `auth.py` — sends via BackgroundTasks (in-process, no ARQ dependency) only for new users (`is_new_user` flag)
+- Image hosted at `/email-assets/welcome-spongebob.png` via Next.js public directory (served from Vercel CDN)
+- Created `scripts/send_welcome_test.py` for manual test sends
+- Test email sent to `jiati01@gettysburg.edu` (Resend ID: 49ad09e8-d564-46de-ba13-024fa5e17431)
+
+**Status:** COMPLETED
+
+---

@@ -53,6 +53,7 @@ from app.services.email_templates import (
     password_reset_email,
     resend_verification_email,
     verification_email,
+    welcome_email,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -680,6 +681,7 @@ async def request_code(
 async def verify_code(
     data: VerifyCodeRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
@@ -691,6 +693,7 @@ async def verify_code(
     await check_code_verify_rate_limit(redis, client_ip)
 
     user = await db.scalar(select(User).where(User.email == email))
+    is_new_user = False
 
     if user:
         # --- Existing user: verify against DB ---
@@ -772,6 +775,7 @@ async def verify_code(
         )
         db.add(user)
         await db.flush()
+        is_new_user = True
 
         notification_prefs = NotificationPreference(
             user_id=user.id,
@@ -835,6 +839,18 @@ async def verify_code(
 
     user.last_active_at = datetime.now(timezone.utc)
     await db.commit()
+
+    # Send welcome email to newly registered users
+    if is_new_user:
+        image_url = f"{settings.primary_frontend_url}/email-assets/welcome-spongebob.png"
+        feedback_url = f"{settings.primary_frontend_url}/feed"
+        html_content, text_content = welcome_email(
+            user.display_name or data.username, feedback_url, image_url
+        )
+        await _enqueue_auth_email(
+            None, background_tasks, email,
+            "Welcome to GimmeDat!", html_content, text_content,
+        )
 
     return TokenResponse(
         access_token=access_token,

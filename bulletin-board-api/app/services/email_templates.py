@@ -284,6 +284,77 @@ GimmeDat - The student marketplace for services, items, and campus connections.
     return _base_template(content), plain_text
 
 
+def welcome_email(
+    display_name: str, feedback_url: str, image_url: str
+) -> tuple[str, str]:
+    """Generate a welcome email for newly registered users. Returns (html, plain_text)."""
+    safe_name = escape(display_name)
+
+    content = f'''
+        <div style="text-align: center; margin-bottom: 24px;">
+            <img src="{image_url}" alt="Welcome!" width="400" style="max-width: 100%; height: auto; border-radius: 8px;" />
+        </div>
+
+        <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #1a1a2e; text-align: center;">
+            Welcome to GimmeDat, {safe_name}!
+        </h1>
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: #444; line-height: 1.6; text-align: center;">
+            You're officially in. Here's what you can do now:
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="padding: 0 0 20px 0;">
+                    <p style="margin: 0 0 6px 0; font-size: 15px; color: #1a1a2e; font-weight: 600;">Buy and sell with students</p>
+                    <p style="margin: 0; font-size: 14px; color: #666; line-height: 1.5;">Textbooks, dorm stuff, event tickets -- whatever you need or want to get rid of.</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 0 0 20px 0;">
+                    <p style="margin: 0 0 6px 0; font-size: 15px; color: #1a1a2e; font-weight: 600;">Find and offer services</p>
+                    <p style="margin: 0; font-size: 14px; color: #666; line-height: 1.5;">Tutoring, rides, photography, tech help -- campus talent, all in one place.</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 0 0 24px 0;">
+                    <p style="margin: 0 0 6px 0; font-size: 15px; color: #1a1a2e; font-weight: 600;">Message directly</p>
+                    <p style="margin: 0; font-size: 14px; color: #666; line-height: 1.5;">No middleman. Chat with sellers and buyers right on the platform.</p>
+                </td>
+            </tr>
+        </table>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 4px 0 16px 0;">
+                    <a href="{feedback_url}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 6px;">Give Feedback</a>
+                </td>
+            </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; color: #999; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+            Got questions? Just reply to this email -- a real human reads it.
+        </p>
+    '''
+
+    plain_text = f"""Welcome to GimmeDat, {display_name}!
+
+You're officially in. Here's what you can do now:
+
+- Buy and sell with students: textbooks, dorm stuff, event tickets
+- Find and offer services: tutoring, rides, photography, tech help
+- Message directly: chat with sellers and buyers on the platform
+
+We'd love to hear what you think: {feedback_url}
+
+Got questions? Just reply to this email -- a real human reads it.
+
+--
+GimmeDat - The student marketplace for services, items, and campus connections.
+"""
+
+    return _base_template(content), plain_text
+
+
 def new_message_email(
     sender_name: str,
     listing_title: str,
